@@ -1,22 +1,22 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using LeanPythonGenerator.Model;
+using LeanPythonGenerator.Parse;
+using LeanPythonGenerator.Render;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace LeanPythonGenerator
 {
     class Program
     {
-        private string _leanPath;
+        private readonly string _leanPath;
+        private readonly string _outputDirectory;
 
-        private Program(string leanPath)
+        private Program(string leanDirectory, string outputDirectory)
         {
-            _leanPath = leanPath.Replace('\\', '/');
-
-            if (_leanPath.EndsWith("/"))
-            {
-                _leanPath = _leanPath.Substring(0, _leanPath.Length - 1);
-            }
+            _leanPath = FormatPath(leanDirectory);
+            _outputDirectory = FormatPath(outputDirectory);
         }
 
         private void Run()
@@ -33,12 +33,13 @@ namespace LeanPythonGenerator
                 // Other non-relevant projects
                 "PythonToolbox",
                 "Tests",
-                "Toolbox"
+                "ToolBox"
             };
 
             // Path prefixes for all blacklistedProjects
             var blacklistedPrefixes = blacklistedProjects
-                .Select(project => $"{_leanPath}/{project}/");
+                .Select(project => $"{_leanPath}/{project}/")
+                .ToList();
 
             // Find all C# files in non-blacklisted projects
             var sourceFiles = Directory
@@ -50,22 +51,66 @@ namespace LeanPythonGenerator
 
             // Create syntax trees for all C# files
             var syntaxTrees = sourceFiles
-                .Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file)))
+                .Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file))
                 .ToList();
 
             // Create a compilation containing all syntax trees to retrieve semantic models containing type info from
             var compilation = CSharpCompilation.Create("").AddSyntaxTrees(syntaxTrees);
+
+            // Create an empty ParseContext which will be filled with all relevant information during parsing
+            var context = new ParseContext();
+
+            // Parse all syntax trees
+            foreach (var syntaxTree in syntaxTrees)
+            {
+                Console.WriteLine($"Parsing {syntaxTree.FilePath}");
+
+                var model = compilation.GetSemanticModel(syntaxTree);
+
+                var parser = new Parser(context, model);
+                parser.Visit(syntaxTree.GetRoot());
+            }
+
+            // Render .pyi files containing type hints for all parsed namespaces
+            foreach (var ns in context.GetNamespaces())
+            {
+                var relativePath = $"{ns.Name.Replace('.', '/')}/__init__.pyi";
+                var pyiPath = Path.GetFullPath(relativePath, _outputDirectory);
+
+                Console.WriteLine($"Generating {pyiPath}");
+
+                new FileInfo(pyiPath).Directory?.Create();
+                using var writer = new StreamWriter(pyiPath);
+
+                var renderer = new NamespaceRenderer(writer, 0);
+                renderer.Render(ns);
+            }
+        }
+
+        private string FormatPath(string path)
+        {
+            var cwd = Directory.GetCurrentDirectory();
+            var resolvedPath = Path.GetFullPath(path, cwd);
+
+            var normalizedPath = resolvedPath.Replace('\\', '/');
+
+            if (normalizedPath.EndsWith("/"))
+            {
+                normalizedPath = normalizedPath.Substring(0, path.Length - 1);
+            }
+
+            return normalizedPath;
         }
 
         static void Main(string[] args)
         {
-            if (args.Length != 1)
+            if (args.Length != 2)
             {
-                Console.WriteLine("Usage: dotnet run <path to Lean>");
+                Console.WriteLine("Usage: dotnet run <Lean directory> <output directory>");
                 Environment.Exit(1);
             }
 
-            new Program(args[0]).Run();
+            new Program(args[0], args[1]).Run();
         }
     }
 }

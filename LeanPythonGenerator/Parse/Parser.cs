@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.Linq;
-using System.Xml;
 using LeanPythonGenerator.Model;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -8,7 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace LeanPythonGenerator.Parse
 {
-    public class Parser : CSharpSyntaxWalker
+    /// <summary>
+    /// The parser which is responsible for parsing all relevant information in all C# files to the ParseContext.
+    /// </summary>
+    public partial class Parser : CSharpSyntaxWalker
     {
         private readonly ParseContext _context;
         private readonly SemanticModel _model;
@@ -44,15 +45,8 @@ namespace LeanPythonGenerator.Parse
 
             EnterClass(cls);
 
-            var symbol = _model.GetDeclaredSymbol(node);
-            foreach (var typeSymbol in symbol.Interfaces)
-            {
-                var type = ParseType(typeSymbol);
-                _currentClass.InheritsFrom.Add(type);
-                _currentNamespace.UsedTypes.Add(type);
-            }
-
             CheckForClassSummary(node);
+            CheckForInheritedTypes(node);
 
             base.VisitClassDeclaration(node);
             ExitClass();
@@ -68,6 +62,7 @@ namespace LeanPythonGenerator.Parse
             EnterClass(new Class(ParseType(node)));
 
             CheckForClassSummary(node);
+            CheckForInheritedTypes(node);
 
             base.VisitStructDeclaration(node);
             ExitClass();
@@ -81,7 +76,7 @@ namespace LeanPythonGenerator.Parse
             }
 
             var cls = new Class(ParseType(node));
-            var enumType = new Type("Enum", "enum");
+            var enumType = new PythonType("Enum", "enum");
             cls.InheritsFrom.Add(enumType);
 
             EnterClass(cls);
@@ -107,6 +102,7 @@ namespace LeanPythonGenerator.Parse
             EnterClass(cls);
 
             CheckForClassSummary(node);
+            CheckForInheritedTypes(node);
 
             base.VisitInterfaceDeclaration(node);
             ExitClass();
@@ -117,74 +113,23 @@ namespace LeanPythonGenerator.Parse
             var doc = ParseDocumentation(node);
             if (doc["summary"] != null)
             {
-                _currentClass.Summary = GetText(doc["summary"]);
+                _currentClass.Summary = doc["summary"].GetText();
             }
         }
 
-        private Type ParseType(SyntaxNode node)
+        private void CheckForInheritedTypes(BaseTypeDeclarationSyntax node)
         {
-            return ParseType(_model.GetDeclaredSymbol(node));
-        }
+            var symbol = _model.GetDeclaredSymbol(node);
 
-        private Type ParseType(ISymbol symbol, string typeName = null)
-        {
-            var name = typeName ?? symbol.Name;
-            var ns = symbol.ContainingNamespace.Name;
-
-            var type = new Type(name, ns != "" ? ns : null);
-
-            if (symbol is INamedTypeSymbol namedSymbol)
+            if (symbol == null)
             {
-                foreach (var typeParameter in namedSymbol.TypeParameters)
-                {
-                    var parameterName = GetTypeParameterName(typeParameter);
-
-                    if (parameterName != "")
-                    {
-                        _currentNamespace.TypeParameterNames.Add(parameterName);
-                    }
-
-                    type.TypeParameters.Add(ParseType(typeParameter, parameterName));
-                }
+                return;
             }
 
-            return type;
-        }
-
-        /// <summary>
-        /// In the generated *.pyi files there may be multiple classes in a file.
-        /// To prevent against clashing type parameters names this method names them Class_Method_TypeParameterName.
-        /// </summary>
-        private string GetTypeParameterName(ITypeParameterSymbol symbol)
-        {
-            var nameParts = new List<string>();
-
-            ISymbol currentType = symbol;
-            ISymbol previousCurrentType;
-
-            while (true)
+            foreach (var typeSymbol in symbol.Interfaces)
             {
-                previousCurrentType = currentType;
-
-                if (previousCurrentType is ITypeParameterSymbol parameterSymbol)
-                {
-                    currentType = (ISymbol) parameterSymbol.DeclaringMethod ?? parameterSymbol.DeclaringType;
-                }
-
-                currentType ??= previousCurrentType.ContainingType;
-
-                if (currentType == null || currentType.Equals(previousCurrentType))
-                {
-                    break;
-                }
-
-                nameParts.Add(previousCurrentType.Name);
+                _currentClass.InheritsFrom.Add(ParseType(typeSymbol));
             }
-
-            nameParts.Add(previousCurrentType.Name);
-            nameParts.Reverse();
-
-            return string.Join("_", nameParts);
         }
 
         private void EnterClass(Class cls)
@@ -204,56 +149,6 @@ namespace LeanPythonGenerator.Parse
         private void ExitClass()
         {
             _currentClass = _currentClass.ParentClass;
-        }
-
-        private XmlElement ParseDocumentation(SyntaxNode node)
-        {
-            var xmlLines = node
-                .GetLeadingTrivia()
-                .ToString()
-                .Split("\n")
-                .Select(line => line.Trim())
-                .Select(line =>
-                {
-                    if (line.StartsWith("/// "))
-                    {
-                        return line.Substring(4);
-                    }
-
-                    if (line.StartsWith("///"))
-                    {
-                        return line.Substring(3);
-                    }
-
-                    return line;
-                });
-
-            var xml = string.Join("\n", xmlLines).Replace("&", "&amp;");
-
-            var doc = new XmlDocument();
-            doc.LoadXml($"<root>{xml}</root>");
-
-            return doc["root"];
-        }
-
-        private string GetText(XmlElement xmlElement)
-        {
-            var clone = xmlElement.CloneNode(true);
-
-            for (int i = 0, iMax = clone.ChildNodes.Count; i < iMax; i++)
-            {
-                var child = clone.ChildNodes[i];
-
-                if (child.Name != "see")
-                {
-                    continue;
-                }
-
-                var newNode = clone.OwnerDocument.CreateTextNode(child.Attributes["cref"].InnerText);
-                clone.ReplaceChild(newNode, child);
-            }
-
-            return clone.InnerText.Trim();
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using LeanPythonGenerator.Model;
 using LeanPythonGenerator.Parse;
 using LeanPythonGenerator.Render;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace LeanPythonGenerator
@@ -55,7 +56,10 @@ namespace LeanPythonGenerator
                 .ToList();
 
             // Create a compilation containing all syntax trees to retrieve semantic models containing type info from
-            var compilation = CSharpCompilation.Create("").AddSyntaxTrees(syntaxTrees);
+            var compilation = CSharpCompilation
+                .Create("")
+                .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+                .AddSyntaxTrees(syntaxTrees);
 
             // Create an empty ParseContext which will be filled with all relevant information during parsing
             var context = new ParseContext();

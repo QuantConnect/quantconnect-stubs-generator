@@ -4,13 +4,13 @@ using System.Linq;
 
 namespace LeanPythonGenerator.Model
 {
-    public class Type : IEquatable<Type>
+    public class PythonType : IEquatable<PythonType>
     {
         public string Name { get; }
         public string Namespace { get; }
-        public IList<Type> TypeParameters { get; } = new List<Type>();
+        public IList<PythonType> TypeParameters { get; } = new List<PythonType>();
 
-        public Type(string name, string ns = null)
+        public PythonType(string name, string ns = null)
         {
             Name = name;
             Namespace = ns;
@@ -33,7 +33,7 @@ namespace LeanPythonGenerator.Model
             return str;
         }
 
-        public bool Equals(Type other)
+        public bool Equals(PythonType other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
@@ -44,7 +44,7 @@ namespace LeanPythonGenerator.Model
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((Type) obj);
+            return obj.GetType() == GetType() && Equals((PythonType) obj);
         }
 
         public override int GetHashCode()

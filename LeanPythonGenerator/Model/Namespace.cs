@@ -9,7 +9,7 @@ namespace LeanPythonGenerator.Model
         /// <summary>
         /// Types used within any class in the namespace.
         /// </summary>
-        public ISet<Type> UsedTypes { get; } = new HashSet<Type>();
+        public ISet<PythonType> UsedTypes { get; } = new HashSet<PythonType>();
 
         public ISet<string> TypeParameterNames { get; } = new HashSet<string>();
 
@@ -25,7 +25,7 @@ namespace LeanPythonGenerator.Model
             return _classes.Values;
         }
 
-        public Class GetClassByType(Type type)
+        public Class GetClassByType(PythonType type)
         {
             if (!_classes.ContainsKey(type.Name))
             {

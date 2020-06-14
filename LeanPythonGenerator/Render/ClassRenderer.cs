@@ -42,7 +42,7 @@ namespace LeanPythonGenerator.Render
 
             if (cls.Summary != null)
             {
-                WriteLine($"'''\n{cls.Summary}\n'''".Indent());
+                WriteLine($"\"\"\"\n{cls.Summary}\n\"\"\"".Indent());
                 WriteLine();
             }
 

@@ -17,8 +17,8 @@ namespace LeanPythonGenerator.Render
         {
             if (ns.TypeParameterNames.Count > 0)
             {
-                ns.UsedTypes.Add(new Type("TypeVar", "typing"));
-                ns.UsedTypes.Add(new Type("Generic", "typing"));
+                ns.UsedTypes.Add(new PythonType("TypeVar", "typing"));
+                ns.UsedTypes.Add(new PythonType("Generic", "typing"));
             }
 
             RenderImports(ns);
@@ -41,6 +41,11 @@ namespace LeanPythonGenerator.Render
                 return;
             }
 
+            if (typesToImport.Any(x => x.Key.StartsWith("System")))
+            {
+                WriteLine("import clr");
+            }
+
             foreach (var group in typesToImport)
             {
                 var types = group
@@ -50,6 +55,7 @@ namespace LeanPythonGenerator.Render
                 WriteLine($"from {group.Key} import {string.Join(", ", types)}");
             }
 
+            WriteLine();
             WriteLine();
         }
 
@@ -70,6 +76,7 @@ namespace LeanPythonGenerator.Render
                 WriteLine($"{name} = TypeVar('{name}')");
             }
 
+            WriteLine();
             WriteLine();
         }
 

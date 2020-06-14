@@ -6,6 +6,13 @@ namespace LeanPythonGenerator.Model
     {
         public string Name { get; }
 
+        /// <summary>
+        /// Types used within any class in the namespace.
+        /// </summary>
+        public IList<Type> UsedTypes { get; } = new List<Type>();
+
+        public ISet<string> TypeParameterNames { get; } = new HashSet<string>();
+
         private readonly IDictionary<string, Class> _classes = new Dictionary<string, Class>();
 
         public Namespace(string name)
@@ -18,14 +25,14 @@ namespace LeanPythonGenerator.Model
             return _classes.Values;
         }
 
-        public Class GetClassByName(string name)
+        public Class GetClassByType(Type type)
         {
-            if (!_classes.ContainsKey(name))
+            if (!_classes.ContainsKey(type.Name))
             {
-                _classes[name] = new Class(name, this);
+                _classes[type.Name] = new Class(type);
             }
 
-            return _classes[name];
+            return _classes[type.Name];
         }
     }
 }

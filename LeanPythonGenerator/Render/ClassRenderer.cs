@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using LeanPythonGenerator.Model;
@@ -13,12 +14,28 @@ namespace LeanPythonGenerator.Render
 
         public override void Render(Class cls)
         {
-            Write($"class {cls.Name}");
+            Write($"class {cls.Type.Name}");
+
+            var inherited = new List<string>();
+
+            var typeParameters = cls.Type.TypeParameters;
+            if (typeParameters.Count > 0)
+            {
+                var types = typeParameters.Select(type => type.ToString());
+                inherited.Add($"Generic[{string.Join(", ", types)}]");
+            }
 
             if (cls.InheritsFrom.Count > 0)
             {
-                var types = cls.InheritsFrom.Select(type => GetTypeName(cls, type));
-                Write($"({string.Join(", ", types)})");
+                foreach (var inheritedType in cls.InheritsFrom)
+                {
+                    inherited.Add(inheritedType.ToString(cls.Type.Namespace));
+                }
+            }
+
+            if (inherited.Count > 0)
+            {
+                Write($"({string.Join(", ", inherited)})");
             }
 
             WriteLine(":");
@@ -35,12 +52,6 @@ namespace LeanPythonGenerator.Render
                 renderer.Render(innerCls);
                 WriteLine();
             }
-        }
-
-        private string GetTypeName(Class cls, Type type)
-        {
-            // Quote all non-imported types because there may be forward references
-            return type.Namespace == cls.Namespace.Name ? $"'{type.Name}'" : type.Name;
         }
     }
 }

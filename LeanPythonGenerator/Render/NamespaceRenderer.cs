@@ -45,8 +45,7 @@ namespace LeanPythonGenerator.Render
             {
                 var types = group
                     .Select(type => type.Name)
-                    .Distinct()
-                    .OrderBy(name => name);
+                    .Distinct();
 
                 WriteLine($"from {group.Key} import {string.Join(", ", types)}");
             }

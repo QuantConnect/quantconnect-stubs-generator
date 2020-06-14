@@ -1,9 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace LeanPythonGenerator.Model
 {
-    public class Type
+    public class Type : IEquatable<Type>
     {
         public string Name { get; }
         public string Namespace { get; }
@@ -30,6 +31,25 @@ namespace LeanPythonGenerator.Model
             str += "]";
 
             return str;
+        }
+
+        public bool Equals(Type other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Name == other.Name && Namespace == other.Namespace;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((Type) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Name, Namespace);
         }
     }
 }

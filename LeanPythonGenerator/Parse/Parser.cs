@@ -14,7 +14,6 @@ namespace LeanPythonGenerator.Parse
         private readonly SemanticModel _model;
 
         private Namespace _currentNamespace;
-
         private Class _currentClass;
 
         public Parser(ParseContext context, SemanticModel model)
@@ -45,10 +44,17 @@ namespace LeanPythonGenerator.Parse
 
             EnterClass(cls);
 
+            var symbol = _model.GetDeclaredSymbol(node);
+            foreach (var typeSymbol in symbol.Interfaces)
+            {
+                var type = ParseType(typeSymbol);
+                _currentClass.InheritsFrom.Add(type);
+                _currentNamespace.UsedTypes.Add(type);
+            }
+
             CheckForClassSummary(node);
 
             base.VisitClassDeclaration(node);
-
             ExitClass();
         }
 
@@ -64,7 +70,6 @@ namespace LeanPythonGenerator.Parse
             CheckForClassSummary(node);
 
             base.VisitStructDeclaration(node);
-
             ExitClass();
         }
 
@@ -85,7 +90,6 @@ namespace LeanPythonGenerator.Parse
             CheckForClassSummary(node);
 
             base.VisitEnumDeclaration(node);
-
             ExitClass();
         }
 
@@ -105,7 +109,6 @@ namespace LeanPythonGenerator.Parse
             CheckForClassSummary(node);
 
             base.VisitInterfaceDeclaration(node);
-
             ExitClass();
         }
 

@@ -9,7 +9,7 @@ namespace LeanPythonGenerator.Model
         /// <summary>
         /// Types used within any class in the namespace.
         /// </summary>
-        public IList<Type> UsedTypes { get; } = new List<Type>();
+        public ISet<Type> UsedTypes { get; } = new HashSet<Type>();
 
         public ISet<string> TypeParameterNames { get; } = new HashSet<string>();
 

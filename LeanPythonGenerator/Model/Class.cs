@@ -8,7 +8,7 @@ namespace LeanPythonGenerator.Model
 
         public string Summary { get; set; }
 
-        public IList<Type> InheritsFrom { get; } = new List<Type>();
+        public ISet<Type> InheritsFrom { get; } = new HashSet<Type>();
 
         public Class ParentClass { get; set; }
         public IList<Class> InnerClasses { get; } = new List<Class>();

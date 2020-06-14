@@ -56,7 +56,15 @@ namespace LeanPythonGenerator.Render
 
         private void RenderTypeVars(Namespace ns)
         {
-            var typeVarNames = ns.TypeParameterNames.OrderBy(name => name);
+            var typeVarNames = ns
+                .TypeParameterNames
+                .OrderBy(name => name)
+                .ToList();
+
+            if (typeVarNames.Count == 0)
+            {
+                return;
+            }
 
             foreach (var name in typeVarNames)
             {

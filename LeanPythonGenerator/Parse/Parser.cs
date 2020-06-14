@@ -39,6 +39,11 @@ namespace LeanPythonGenerator.Parse
 
         public override void VisitClassDeclaration(ClassDeclarationSyntax node)
         {
+            if (node.Modifiers.Any(modifier => modifier.Text == "private"))
+            {
+                return;
+            }
+
             var cls = _currentClass == null
                 ? _currentNamespace.GetClassByType(ParseType(node))
                 : new Class(ParseType(node));
@@ -54,6 +59,11 @@ namespace LeanPythonGenerator.Parse
 
         public override void VisitStructDeclaration(StructDeclarationSyntax node)
         {
+            if (node.Modifiers.Any(modifier => modifier.Text == "private"))
+            {
+                return;
+            }
+
             EnterClass(new Class(ParseType(node)));
 
             CheckForClassSummary(node);
@@ -65,6 +75,11 @@ namespace LeanPythonGenerator.Parse
 
         public override void VisitEnumDeclaration(EnumDeclarationSyntax node)
         {
+            if (node.Modifiers.Any(modifier => modifier.Text == "private"))
+            {
+                return;
+            }
+
             var cls = new Class(ParseType(node));
             var enumType = new Type("Enum", "enum");
             cls.InheritsFrom.Add(enumType);
@@ -81,6 +96,11 @@ namespace LeanPythonGenerator.Parse
 
         public override void VisitInterfaceDeclaration(InterfaceDeclarationSyntax node)
         {
+            if (node.Modifiers.Any(modifier => modifier.Text == "private"))
+            {
+                return;
+            }
+
             var cls = _currentClass == null
                 ? _currentNamespace.GetClassByType(ParseType(node))
                 : new Class(ParseType(node));

@@ -17,11 +17,6 @@ namespace LeanPythonGenerator.Parse
 
         private Class _currentClass;
 
-        /// <summary>
-        /// If _currentClass is A.B.C then _topClass is A.
-        /// </summary>
-        private Class _topClass;
-
         public Parser(ParseContext context, SemanticModel model)
         {
             _context = context;
@@ -194,7 +189,6 @@ namespace LeanPythonGenerator.Parse
             if (_currentClass == null)
             {
                 _currentClass = cls;
-                _topClass = cls;
             }
             else
             {
@@ -207,11 +201,6 @@ namespace LeanPythonGenerator.Parse
         private void ExitClass()
         {
             _currentClass = _currentClass.ParentClass;
-
-            if (_currentClass == null)
-            {
-                _topClass = null;
-            }
         }
 
         private XmlElement ParseDocumentation(SyntaxNode node)

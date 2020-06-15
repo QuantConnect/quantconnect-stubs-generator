@@ -149,6 +149,7 @@ namespace LeanPythonGenerator.Parse
                         return new PythonType("int");
                     case "Single":
                     case "Double":
+                    case "Decimal":
                         return new PythonType("float");
                     case "Boolean":
                         return new PythonType("bool");

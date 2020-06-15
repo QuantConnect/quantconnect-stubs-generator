@@ -65,7 +65,6 @@ namespace LeanPythonGenerator.Render
             }
 
             WriteLine($"{property.Name} = {property.Value}");
-            WriteLine();
         }
     }
 }

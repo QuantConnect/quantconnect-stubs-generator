@@ -47,8 +47,13 @@ namespace LeanPythonGenerator.Render
 
             WriteLine($"@{property.Name}.setter");
             WriteLine($"def {property.Name}(self, value: {property.Type.ToString(_class.Type.Namespace)}):");
-            WriteLine("pass".Indent());
 
+            if (property.Summary != null)
+            {
+                WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"".Indent());
+            }
+
+            WriteLine("pass".Indent());
             WriteLine();
         }
 
@@ -59,13 +64,7 @@ namespace LeanPythonGenerator.Render
                 WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"");
             }
 
-            Write($"{property.Name}: {property.Type.ToString(_class.Type.Namespace)}");
-
-            if (property.Value != null)
-            {
-                Write($" = {property.Value}");
-            }
-
+            WriteLine($"{property.Name} = {property.Value}");
             WriteLine();
         }
     }

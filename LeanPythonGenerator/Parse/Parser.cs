@@ -86,7 +86,7 @@ namespace LeanPythonGenerator.Parse
 
         public override void VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
-            if (node.Modifiers.All(modifier => modifier.Text != "public"))
+            if (node.Modifiers.Any(modifier => modifier.Text == "private"))
             {
                 return;
             }
@@ -114,7 +114,21 @@ namespace LeanPythonGenerator.Parse
 
         public override void VisitEnumMemberDeclaration(EnumMemberDeclarationSyntax node)
         {
-            // TODO(jmerle): Implement
+            var property = new Property(node.Identifier.Text)
+            {
+                Value = node.EqualsValue != null
+                    ? node.EqualsValue.Value.ToString()
+                    : _currentClass.Properties.Count.ToString()
+            };
+
+
+            var doc = ParseDocumentation(node);
+            if (doc["summary"] != null)
+            {
+                property.Summary = doc["summary"].GetText();
+            }
+
+            _currentClass.Properties.Add(property);
         }
 
         private bool EnterClass(BaseTypeDeclarationSyntax node)

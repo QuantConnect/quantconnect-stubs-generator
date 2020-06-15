@@ -84,6 +84,39 @@ namespace LeanPythonGenerator.Parse
             ExitClass();
         }
 
+        public override void VisitPropertyDeclaration(PropertyDeclarationSyntax node)
+        {
+            if (node.Modifiers.All(modifier => modifier.Text != "public"))
+            {
+                return;
+            }
+
+            var writeable = node.AccessorList?.Accessors.Any(accessor =>
+            {
+                return accessor.Keyword.Text == "set"
+                       && accessor.Modifiers.All(modifier => modifier.Text != "private");
+            }) ?? false;
+
+            var property = new Property(node.Identifier.Text)
+            {
+                Type = GetType(node.Type),
+                ReadOnly = !writeable
+            };
+
+            var doc = ParseDocumentation(node);
+            if (doc["summary"] != null)
+            {
+                property.Summary = doc["summary"].GetText();
+            }
+
+            _currentClass.Properties.Add(property);
+        }
+
+        public override void VisitEnumMemberDeclaration(EnumMemberDeclarationSyntax node)
+        {
+            // TODO(jmerle): Implement
+        }
+
         private bool EnterClass(BaseTypeDeclarationSyntax node)
         {
             if (node.Modifiers.Any(modifier => modifier.Text == "private"))

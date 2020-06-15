@@ -26,7 +26,7 @@ namespace LeanPythonGenerator.Model
             }
 
             // Quote all non-imported types because there may be forward references
-            var str = Namespace == currentNamespace ? $"'{Name}'" : Name;
+            var str = Namespace == currentNamespace && !IsNamedTypeParameter ? $"'{Name}'" : Name;
 
             if (TypeParameters.Count == 0)
             {

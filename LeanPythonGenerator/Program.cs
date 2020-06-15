@@ -122,10 +122,22 @@ namespace LeanPythonGenerator
             classType.TypeParameters.Add(valueType);
             ns.TypeParameterNames.Add(valueType.Name);
 
-            Class cls = ns.GetClassByType(classType);
+            var cls = ns.GetClassByType(classType);
             cls.Summary = "This class exists to improve type hints. It cannot be imported.";
 
-            // TODO(jmerle): Add Key and Value properties
+            cls.Properties.Add(new Property("Key")
+            {
+                Type = keyType,
+                ReadOnly = false,
+                Summary = "The key of the pair."
+            });
+
+            cls.Properties.Add(new Property("Value")
+            {
+                Type = valueType,
+                ReadOnly = false,
+                Summary = "The value of the pair."
+            });
         }
 
         private string FormatPath(string path)

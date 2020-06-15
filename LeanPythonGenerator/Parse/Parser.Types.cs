@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using LeanPythonGenerator.Model;
 using Microsoft.CodeAnalysis;
@@ -51,7 +52,7 @@ namespace LeanPythonGenerator.Parse
         /// </summary>
         private PythonType GetType(SyntaxNode node)
         {
-            return GetType(_model.GetDeclaredSymbol(node));
+            return GetType(_model.GetDeclaredSymbol(node) ?? _model.GetSymbolInfo(node).Symbol);
         }
 
         /// <summary>
@@ -65,7 +66,22 @@ namespace LeanPythonGenerator.Parse
                 return new PythonType("Any", "typing");
             }
 
-            var name = typeParameterName ?? symbol.Name;
+            var name = typeParameterName;
+            if (name == null)
+            {
+                name = symbol.Name;
+
+                // Add parent classes to the name
+                var fullName = symbol.ToString();
+                var fullNamespace = symbol.ContainingNamespace.ToDisplayString();
+                var nameWithoutNamespace = fullName!.Replace(fullNamespace + ".", "");
+
+                var prefix = nameWithoutNamespace.Substring(0,
+                    nameWithoutNamespace.IndexOf(nameWithoutNamespace, StringComparison.Ordinal));
+
+                name = prefix + name;
+            }
+
             var ns = symbol.ContainingNamespace.ToDisplayString();
 
             var type = new PythonType(name, ns)
@@ -120,7 +136,7 @@ namespace LeanPythonGenerator.Parse
         /// </summary>
         private PythonType CSharpTypeToPythonType(PythonType type)
         {
-            // Primitives
+            // Primitives and DateTime
             if (type.Namespace == "System")
             {
                 switch (type.Name)
@@ -136,10 +152,12 @@ namespace LeanPythonGenerator.Parse
                         return new PythonType("float");
                     case "Boolean":
                         return new PythonType("bool");
+                    case "DateTime":
+                        return new PythonType("datetime", "datetime");
                 }
             }
 
-            // Lists
+            // List
             if ((type.Namespace == "System.Collections.Generic" && type.Name == "IEnumerable")
                 || (type.Namespace == "System.Collections" && type.Name == "IList")
                 || (type.Namespace == "System.Collections.Generic" && type.Name == "List"))
@@ -148,7 +166,7 @@ namespace LeanPythonGenerator.Parse
                 type.Namespace = "typing";
             }
 
-            // KeyValuePairs
+            // KeyValuePair
             if (type.Namespace == "System.Collections.Generic" && type.Name == "KeyValuePair")
             {
                 type.Namespace = "QuantConnect";

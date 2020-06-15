@@ -14,7 +14,14 @@ namespace LeanPythonGenerator.Render
 
         public override void Render(Class cls)
         {
-            Write($"class {cls.Type.Name}");
+            RenderClassHeader(cls);
+            RenderInnerClasses(cls);
+            RenderProperties(cls);
+        }
+
+        private void RenderClassHeader(Class cls)
+        {
+            Write($"class {cls.Type.Name.Split(".").Last()}");
 
             var inherited = new List<string>();
 
@@ -45,11 +52,26 @@ namespace LeanPythonGenerator.Render
                 WriteLine($"\"\"\"\n{cls.Summary}\n\"\"\"".Indent());
                 WriteLine();
             }
+        }
+
+        private void RenderInnerClasses(Class cls)
+        {
+            var innerRenderer = new ClassRenderer(_writer, _indentationLevel + 1);
 
             foreach (var innerCls in cls.InnerClasses)
             {
-                var renderer = new ClassRenderer(_writer, _indentationLevel + 1);
-                renderer.Render(innerCls);
+                innerRenderer.Render(innerCls);
+                WriteLine();
+            }
+        }
+
+        private void RenderProperties(Class cls)
+        {
+            var propertyRenderer = new PropertyRenderer(_writer, _indentationLevel + 1, cls);
+
+            foreach (var property in cls.Properties)
+            {
+                propertyRenderer.Render(property);
                 WriteLine();
             }
         }

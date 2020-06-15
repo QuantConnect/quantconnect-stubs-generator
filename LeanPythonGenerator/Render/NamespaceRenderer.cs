@@ -45,7 +45,7 @@ namespace LeanPythonGenerator.Render
             foreach (var group in typesToImport)
             {
                 var types = group
-                    .Select(type => type.Name)
+                    .Select(type => type.Name.Split(".")[0])
                     .Distinct();
 
                 WriteLine($"from {group.Key} import {string.Join(", ", types)}");

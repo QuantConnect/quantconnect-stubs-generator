@@ -22,13 +22,13 @@ namespace LeanPythonGenerator.Render
 
         protected void Write(string value)
         {
-            _writer.Write(IndentIfNecessary(value));
+            _writer.Write(IndentIfNecessary(value).TrimEnd());
             _isAtLineStart = value.EndsWith("\n");
         }
 
         protected void WriteLine(string value = "")
         {
-            _writer.WriteLine(IndentIfNecessary(value));
+            _writer.WriteLine(IndentIfNecessary(value).TrimEnd());
             _isAtLineStart = true;
         }
 

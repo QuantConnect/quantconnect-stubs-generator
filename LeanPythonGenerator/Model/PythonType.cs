@@ -8,6 +8,8 @@ namespace LeanPythonGenerator.Model
     {
         public string Name { get; }
         public string Namespace { get; }
+        public bool IsNamedTypeParameter { get; set; }
+        public string Alias { get; set; }
         public IList<PythonType> TypeParameters { get; } = new List<PythonType>();
 
         public PythonType(string name, string ns = null)
@@ -16,8 +18,13 @@ namespace LeanPythonGenerator.Model
             Namespace = ns;
         }
 
-        public string ToString(string currentNamespace = "")
+        public string ToString(string currentNamespace = "", bool ignoreAlias = false)
         {
+            if (!ignoreAlias && Alias != null)
+            {
+                return Alias;
+            }
+
             // Quote all non-imported types because there may be forward references
             var str = Namespace == currentNamespace ? $"'{Name}'" : Name;
 
@@ -37,7 +44,7 @@ namespace LeanPythonGenerator.Model
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return Name == other.Name && Namespace == other.Namespace;
+            return Name == other.Name && Namespace == other.Namespace && Alias == other.Alias;
         }
 
         public override bool Equals(object obj)
@@ -49,7 +56,7 @@ namespace LeanPythonGenerator.Model
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Name, Namespace);
+            return HashCode.Combine(Name, Namespace, Alias);
         }
     }
 }

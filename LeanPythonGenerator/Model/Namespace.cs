@@ -11,6 +11,8 @@ namespace LeanPythonGenerator.Model
         /// </summary>
         public ISet<PythonType> UsedTypes { get; } = new HashSet<PythonType>();
 
+        public ISet<TypeAlias> TypeAliases { get; } = new HashSet<TypeAlias>();
+
         public ISet<string> TypeParameterNames { get; } = new HashSet<string>();
 
         private readonly IDictionary<string, Class> _classes = new Dictionary<string, Class>();

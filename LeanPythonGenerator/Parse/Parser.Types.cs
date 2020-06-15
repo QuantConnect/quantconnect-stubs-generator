@@ -8,60 +8,90 @@ namespace LeanPythonGenerator.Parse
     public partial class Parser
     {
         /// <summary>
-        /// Parses the type of any node in the syntax tree to a Type object containing Python type information.
-        /// Also marks all parsed types, including parsed type arguments, as used in the current namespace.
+        /// Returns the Python type of the given symbol.
+        /// Returns Any if there is no Python type for the given symbol.
+        /// Also marks the type, including any type arguments, as used in the current namespace.
         /// </summary>
-        private PythonType ParseType(SyntaxNode node)
+        private PythonType GetType(ISymbol symbol)
         {
-            return ParseType(_model.GetDeclaredSymbol(node));
+            var type = ParseType(symbol);
+
+            // Mark all types in type and its type parameters as used in the current namespace
+            var typeQueue = new Queue<PythonType>();
+            typeQueue.Enqueue(type);
+
+            while (typeQueue.Count > 0)
+            {
+                var currentType = typeQueue.Dequeue();
+
+                _currentNamespace.UsedTypes.Add(currentType);
+
+                if (currentType.IsNamedTypeParameter)
+                {
+                    _currentNamespace.TypeParameterNames.Add(currentType.Name);
+                }
+
+                if (currentType.Alias != null)
+                {
+                    _currentNamespace.TypeAliases.Add(new TypeAlias(currentType.Alias, currentType));
+                }
+
+                foreach (var typeParameter in currentType.TypeParameters)
+                {
+                    typeQueue.Enqueue(typeParameter);
+                }
+            }
+
+            return type;
         }
 
         /// <summary>
-        /// Parses the C# symbol to a Type object containing Python type information.
-        /// Also marks all parsed types, including parsed type arguments, as used in the current namespace.
+        /// Returns the Python type of the given node.
+        /// Returns Any if there is no Python type for the given node.
+        /// Also marks the type, including any type arguments, as used in the current namespace.
         /// </summary>
-        private PythonType ParseType(ISymbol symbol, string typeName = null)
+        private PythonType GetType(SyntaxNode node)
+        {
+            return GetType(_model.GetDeclaredSymbol(node));
+        }
+
+        /// <summary>
+        /// Parses a C# symbol to an object containing Python type information.
+        /// </summary>
+        private PythonType ParseType(ISymbol symbol, string typeParameterName = null)
         {
             // Use Any as fallback
-            if (symbol == null || symbol.Name == "")
+            if (symbol == null || symbol.Name == "" || symbol.ContainingNamespace == null)
             {
-                var anyType = CSharpTypeToPythonType(new PythonType("Any", "typing"));
-                _currentNamespace.UsedTypes.Add(anyType);
-                return anyType;
+                return new PythonType("Any", "typing");
             }
 
-            var name = typeName ?? symbol.Name;
+            var name = typeParameterName ?? symbol.Name;
             var ns = symbol.ContainingNamespace.ToDisplayString();
 
-            var type = new PythonType(name, ns != "" && ns != "<global namespace>" ? ns : null);
+            var type = new PythonType(name, ns)
+            {
+                IsNamedTypeParameter = typeParameterName != null
+            };
 
             if (symbol is INamedTypeSymbol namedSymbol)
             {
                 foreach (var typeParameter in namedSymbol.TypeArguments)
                 {
-                    // The type parameter is a type like "String" instead of "T" when ContainingNamespace is not null
-                    if (typeParameter.ContainingNamespace != null)
+                    // Check if the type parameter is a type like "String" instead of "T"
+                    if (typeParameter.ToDisplayString().Contains("."))
                     {
                         type.TypeParameters.Add(ParseType(typeParameter));
                     }
                     else
                     {
                         var parameterName = GetTypeParameterName(typeParameter);
-
-                        if (parameterName != "")
-                        {
-                            _currentNamespace.TypeParameterNames.Add(parameterName);
-                        }
-
                         type.TypeParameters.Add(ParseType(typeParameter, parameterName));
                     }
                 }
             }
 
-            type = CSharpTypeToPythonType(type);
-            _currentNamespace.UsedTypes.Add(type);
-
-            return type;
+            return CSharpTypeToPythonType(type);
         }
 
         /// <summary>
@@ -85,7 +115,7 @@ namespace LeanPythonGenerator.Parse
         }
 
         /// <summary>
-        /// Converts a C# Type object to a Python one.
+        /// Converts a C# type to a Python type.
         /// This method handles conversions like the one from System.String to str.
         /// If the Type object doesn't need to be converted, the originally provided type is returned.
         /// </summary>
@@ -107,6 +137,22 @@ namespace LeanPythonGenerator.Parse
                     case "Boolean":
                         return new PythonType("bool");
                 }
+            }
+
+            // C# types that do not have a Python-equivalent are converted to an aliased version of Any
+            if (type.Namespace.StartsWith("System") || type.Namespace == "<global namespace>")
+            {
+                var alias = type.Name;
+
+                if (type.Namespace.StartsWith("System"))
+                {
+                    alias = $"{type.Namespace.Replace('.', '_')}_{alias}";
+                }
+
+                return new PythonType("Any", "typing")
+                {
+                    Alias = alias
+                };
             }
 
             return type;

@@ -22,6 +22,7 @@ namespace LeanPythonGenerator.Render
             }
 
             RenderImports(ns);
+            RenderTypeAliases(ns);
             RenderTypeVars(ns);
             RenderClasses(ns);
         }
@@ -41,11 +42,6 @@ namespace LeanPythonGenerator.Render
                 return;
             }
 
-            if (typesToImport.Any(x => x.Key.StartsWith("System")))
-            {
-                WriteLine("import clr");
-            }
-
             foreach (var group in typesToImport)
             {
                 var types = group
@@ -53,6 +49,22 @@ namespace LeanPythonGenerator.Render
                     .Distinct();
 
                 WriteLine($"from {group.Key} import {string.Join(", ", types)}");
+            }
+
+            WriteLine();
+            WriteLine();
+        }
+
+        private void RenderTypeAliases(Namespace ns)
+        {
+            if (ns.TypeAliases.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var alias in ns.TypeAliases)
+            {
+                WriteLine($"{alias.Alias} = {alias.ActualType.ToString(ns.Name, true)}");
             }
 
             WriteLine();

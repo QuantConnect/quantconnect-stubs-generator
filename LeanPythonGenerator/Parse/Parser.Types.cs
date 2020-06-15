@@ -158,10 +158,11 @@ namespace LeanPythonGenerator.Parse
                 }
             }
 
-            // List
+            // Lists
             if ((type.Namespace == "System.Collections.Generic" && type.Name == "IEnumerable")
                 || (type.Namespace == "System.Collections" && type.Name == "IList")
-                || (type.Namespace == "System.Collections.Generic" && type.Name == "List"))
+                || (type.Namespace == "System.Collections.Generic" && type.Name == "List")
+                || (type.Namespace == "System.Collections.Generic" && type.Name == "ICollection"))
             {
                 type.Name = "List";
                 type.Namespace = "typing";

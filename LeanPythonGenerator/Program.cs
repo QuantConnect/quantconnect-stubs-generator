@@ -64,6 +64,10 @@ namespace LeanPythonGenerator
             // Create an empty ParseContext which will be filled with all relevant information during parsing
             var context = new ParseContext();
 
+            // Create utility classes
+            // These classes shouldn't be imported, but are used to improve type hinting
+            CreateUtilityClasses(context);
+
             // Parse all syntax trees
             foreach (var syntaxTree in syntaxTrees)
             {
@@ -89,6 +93,39 @@ namespace LeanPythonGenerator
                 var renderer = new NamespaceRenderer(writer, 0);
                 renderer.Render(ns);
             }
+        }
+
+        private void CreateUtilityClasses(ParseContext context)
+        {
+            var ns = context.GetNamespaceByName("QuantConnect");
+
+            CreateKeyValuePair(ns);
+        }
+
+        private void CreateKeyValuePair(Namespace ns)
+        {
+            var classType = new PythonType("KeyValuePair", ns.Name);
+
+            var keyType = new PythonType($"{classType.Name}_K", ns.Name)
+            {
+                IsNamedTypeParameter = true
+            };
+
+            var valueType = new PythonType($"{classType.Name}_V", ns.Name)
+            {
+                IsNamedTypeParameter = true
+            };
+
+            classType.TypeParameters.Add(keyType);
+            ns.TypeParameterNames.Add(keyType.Name);
+
+            classType.TypeParameters.Add(valueType);
+            ns.TypeParameterNames.Add(valueType.Name);
+
+            Class cls = ns.GetClassByType(classType);
+            cls.Summary = "This class exists to improve type hints. It cannot be imported.";
+
+            // TODO(jmerle): Add Key and Value properties
         }
 
         private string FormatPath(string path)

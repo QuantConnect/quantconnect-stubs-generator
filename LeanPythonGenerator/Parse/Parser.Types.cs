@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using LeanPythonGenerator.Model;
 using Microsoft.CodeAnalysis;
@@ -121,6 +120,7 @@ namespace LeanPythonGenerator.Parse
         /// </summary>
         private PythonType CSharpTypeToPythonType(PythonType type)
         {
+            // Primitives
             if (type.Namespace == "System")
             {
                 switch (type.Name)
@@ -137,6 +137,21 @@ namespace LeanPythonGenerator.Parse
                     case "Boolean":
                         return new PythonType("bool");
                 }
+            }
+
+            // Lists
+            if ((type.Namespace == "System.Collections.Generic" && type.Name == "IEnumerable")
+                || (type.Namespace == "System.Collections" && type.Name == "IList")
+                || (type.Namespace == "System.Collections.Generic" && type.Name == "List"))
+            {
+                type.Name = "List";
+                type.Namespace = "typing";
+            }
+
+            // KeyValuePairs
+            if (type.Namespace == "System.Collections.Generic" && type.Name == "KeyValuePair")
+            {
+                type.Namespace = "QuantConnect";
             }
 
             // C# types that do not have a Python-equivalent are converted to an aliased version of Any

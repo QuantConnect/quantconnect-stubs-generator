@@ -6,8 +6,8 @@ namespace LeanPythonGenerator.Model
 {
     public class PythonType : IEquatable<PythonType>
     {
-        public string Name { get; }
-        public string Namespace { get; }
+        public string Name { get; set; }
+        public string Namespace { get; set; }
         public bool IsNamedTypeParameter { get; set; }
         public string Alias { get; set; }
         public IList<PythonType> TypeParameters { get; } = new List<PythonType>();

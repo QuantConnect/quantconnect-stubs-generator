@@ -109,6 +109,20 @@ namespace LeanPythonGenerator.Parse
                 property.Summary = doc["summary"].GetText();
             }
 
+            if (node.Modifiers.Any(modifier => modifier.Text == "protected"))
+            {
+                const string text = "This property is protected.";
+
+                if (property.Summary != null)
+                {
+                    property.Summary = text + "\n\n" + property.Summary;
+                }
+                else
+                {
+                    property.Summary = text;
+                }
+            }
+
             _currentClass.Properties.Add(property);
         }
 
@@ -194,12 +208,29 @@ namespace LeanPythonGenerator.Parse
             }
         }
 
-        private void CheckForClassSummary(SyntaxNode node)
+        private void CheckForClassSummary(BaseTypeDeclarationSyntax node)
         {
             var doc = ParseDocumentation(node);
             if (doc["summary"] != null)
             {
                 _currentClass.Summary = doc["summary"].GetText();
+            }
+
+            if (node.Modifiers.Any(modifier => modifier.Text == "protected"))
+            {
+                const string text = "This class is protected.";
+
+                if (_currentClass.Summary != null)
+                {
+                    if (!_currentClass.Summary.Contains(text))
+                    {
+                        _currentClass.Summary = text + "\n\n" + _currentClass.Summary;
+                    }
+                }
+                else
+                {
+                    _currentClass.Summary = text;
+                }
             }
         }
     }

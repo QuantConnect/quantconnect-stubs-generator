@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Xml;
 using LeanPythonGenerator.Model;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -236,6 +237,28 @@ namespace LeanPythonGenerator.Parse
                 method.Summary = PrefixSummary(method.Summary, "This method is protected.");
             }
 
+            foreach (var parameterSyntax in node.ParameterList.Parameters)
+            {
+                var parameter = new Parameter(parameterSyntax.Identifier.Text, GetType(parameterSyntax.Type));
+
+                if (parameterSyntax.Default != null)
+                {
+                    parameter.Value = FormatValue(parameterSyntax.Default.Value.ToString());
+                }
+
+                var paramNodes = doc.GetElementsByTagName("param");
+                for (var i = 0; i < paramNodes.Count; i++)
+                {
+                    var element = (XmlElement) paramNodes[i];
+                    if (element.Attributes["name"]?.Value == parameter.Name)
+                    {
+                        parameter.Summary = element.GetText();
+                    }
+                }
+
+                method.Parameters.Add(parameter);
+            }
+
             _currentClass.Methods.Add(method);
         }
 
@@ -371,6 +394,18 @@ namespace LeanPythonGenerator.Parse
             if (value == "null")
             {
                 return "None";
+            }
+
+            // Boolean true
+            if (value == "true")
+            {
+                return "True";
+            }
+
+            // Boolean false
+            if (value == "false")
+            {
+                return "False";
             }
 
             // If the value is a number, remove a potential suffix like "m" in 1.0m

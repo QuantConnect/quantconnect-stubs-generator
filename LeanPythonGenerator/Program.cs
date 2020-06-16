@@ -82,14 +82,16 @@ namespace LeanPythonGenerator
             // Render .pyi files containing type hints for all parsed namespaces
             foreach (var ns in context.GetNamespaces())
             {
-                var relativePath = $"{ns.Name.Replace('.', '/')}/__init__.pyi";
-                var pyiPath = Path.GetFullPath(relativePath, _outputDirectory);
+                var namespacePath = ns.Name.Replace('.', '/');
+                var pyiPath = Path.GetFullPath($"{namespacePath}/__init__.pyi", _outputDirectory);
+                var typedPath = Path.GetFullPath($"{namespacePath}/py.typed", _outputDirectory);
 
                 Console.WriteLine($"Generating {pyiPath}");
 
-                new FileInfo(pyiPath).Directory?.Create();
-                using var writer = new StreamWriter(pyiPath);
+                new FileInfo(typedPath).Directory?.Create();
+                File.Create(typedPath).Close();
 
+                using var writer = new StreamWriter(pyiPath);
                 var renderer = new NamespaceRenderer(writer, 0);
                 renderer.Render(ns);
             }

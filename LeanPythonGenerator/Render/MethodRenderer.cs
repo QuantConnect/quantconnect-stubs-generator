@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using LeanPythonGenerator.Model;
 using LeanPythonGenerator.Utility;
 
@@ -37,6 +38,16 @@ namespace LeanPythonGenerator.Render
                 Write("self");
             }
 
+            if (method.Parameters.Count > 0)
+            {
+                if (!method.Static)
+                {
+                    Write(", ");
+                }
+
+                Write(string.Join(", ", method.Parameters.Select(ParameterToString)));
+            }
+
             WriteLine($") -> {method.ReturnType.ToString(_namespace)}:");
 
             if (method.Summary != null)
@@ -47,6 +58,18 @@ namespace LeanPythonGenerator.Render
             WriteLine("pass".Indent());
             WriteLine();
             WriteLine();
+        }
+
+        private string ParameterToString(Parameter parameter)
+        {
+            var str = $"{parameter.Name}: {parameter.Type.ToString(_namespace)}";
+
+            if (parameter.Value != null)
+            {
+                str += $" = {parameter.Value}";
+            }
+
+            return str;
         }
     }
 }

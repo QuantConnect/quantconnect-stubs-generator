@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace LeanPythonGenerator.Model
 {
     public class Method
@@ -10,6 +12,8 @@ namespace LeanPythonGenerator.Model
         public bool Overload { get; set; }
 
         public string Summary { get; set; }
+
+        public IList<Parameter> Parameters { get; set; } = new List<Parameter>();
 
         public Method(string name, PythonType returnType)
         {

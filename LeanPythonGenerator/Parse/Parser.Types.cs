@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using LeanPythonGenerator.Model;
 using Microsoft.CodeAnalysis;
 
@@ -124,6 +125,18 @@ namespace LeanPythonGenerator.Parse
             {
                 nameParts.Add(currentType.Name);
                 currentType = currentType.ContainingType;
+
+                if (nameParts.Count == 1 && symbol is ITypeParameterSymbol typeParameterSymbol)
+                {
+                    var methodName = typeParameterSymbol.DeclaringMethod?.Name;
+
+                    if (methodName != null)
+                    {
+                        var methodCount = _currentClass.Methods.Count(method => method.Name == methodName);
+                        nameParts.Add($"{methodCount + 1}");
+                        nameParts.Add(typeParameterSymbol.DeclaringMethod.Name);
+                    }
+                }
             }
 
             nameParts.Reverse();

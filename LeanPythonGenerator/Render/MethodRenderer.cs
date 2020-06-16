@@ -15,7 +15,24 @@ namespace LeanPythonGenerator.Render
 
         public override void Render(Method method)
         {
-            WriteLine($"def {method.Name}() -> {method.ReturnType.ToString(_class.Type.Namespace)}:");
+            if (method.Static)
+            {
+                WriteLine("@staticmethod");
+            }
+
+            if (method.Abstract)
+            {
+                WriteLine("@abstractmethod");
+            }
+
+            Write($"def {method.Name}(");
+
+            if (!method.Static)
+            {
+                Write("self");
+            }
+
+            WriteLine($") -> {method.ReturnType.ToString(_class.Type.Namespace)}:");
 
             if (method.Summary != null)
             {

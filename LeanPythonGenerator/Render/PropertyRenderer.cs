@@ -50,6 +50,12 @@ namespace LeanPythonGenerator.Render
         private void RenderProperty(Property property)
         {
             WriteLine("@property");
+
+            if (property.Abstract)
+            {
+                WriteLine("@abstractmethod");
+            }
+
             WriteLine($"def {property.Name}(self) -> {property.Type.ToString(_class.Type.Namespace)}:");
 
             if (property.Summary != null)
@@ -68,6 +74,12 @@ namespace LeanPythonGenerator.Render
             WriteLine();
 
             WriteLine($"@{property.Name}.setter");
+
+            if (property.Abstract)
+            {
+                WriteLine("@abstractmethod");
+            }
+
             WriteLine($"def {property.Name}(self, value: {property.Type.ToString(_class.Type.Namespace)}):");
 
             if (property.Summary != null)

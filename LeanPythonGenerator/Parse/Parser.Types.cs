@@ -136,7 +136,6 @@ namespace LeanPythonGenerator.Parse
         /// </summary>
         private PythonType CSharpTypeToPythonType(PythonType type)
         {
-            // Primitives and DateTime
             if (type.Namespace == "System")
             {
                 switch (type.Name)
@@ -163,6 +162,10 @@ namespace LeanPythonGenerator.Parse
                         return new PythonType("None");
                     case "DateTime":
                         return new PythonType("datetime", "datetime");
+                    case "Nullable":
+                        type.Name = "Optional";
+                        type.Namespace = "typing";
+                        break;
                 }
             }
 

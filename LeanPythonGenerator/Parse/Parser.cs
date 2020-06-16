@@ -79,6 +79,8 @@ namespace LeanPythonGenerator.Parse
                 return;
             }
 
+            _currentClass.Interface = true;
+
             base.VisitInterfaceDeclaration(node);
 
             ExitClass();
@@ -86,7 +88,7 @@ namespace LeanPythonGenerator.Parse
 
         public override void VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
-            if (node.Modifiers.Any(modifier => modifier.Text == "private"))
+            if (HasModifier(node, "private"))
             {
                 return;
             }
@@ -101,7 +103,8 @@ namespace LeanPythonGenerator.Parse
             {
                 Type = GetType(node.Type),
                 ReadOnly = !writeable,
-                Static = node.Modifiers.Any(modifier => modifier.Text == "static")
+                Static = HasModifier(node, "static"),
+                Abstract = _currentClass.Interface || HasModifier(node, "abstract")
             };
 
             var doc = ParseDocumentation(node);
@@ -110,7 +113,7 @@ namespace LeanPythonGenerator.Parse
                 property.Summary = doc["summary"].GetText();
             }
 
-            if (node.Modifiers.Any(modifier => modifier.Text == "protected"))
+            if (HasModifier(node, "protected"))
             {
                 property.Summary = PrefixSummary(property.Summary, "This property is protected.");
             }
@@ -125,7 +128,8 @@ namespace LeanPythonGenerator.Parse
                 Value = node.EqualsValue != null
                     ? node.EqualsValue.Value.ToString()
                     : _currentClass.Properties.Count.ToString(),
-                Static = true
+                Static = true,
+                Abstract = _currentClass.Interface || HasModifier(node, "abstract")
             };
 
 
@@ -140,12 +144,16 @@ namespace LeanPythonGenerator.Parse
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
-            if (node.Modifiers.Any(modifier => modifier.Text == "private"))
+            if (HasModifier(node, "private"))
             {
                 return;
             }
 
-            var method = new Method(node.Identifier.Text, GetType(node.ReturnType));
+            var method = new Method(node.Identifier.Text, GetType(node.ReturnType))
+            {
+                Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
+                Static = HasModifier(node, "static")
+            };
 
             var doc = ParseDocumentation(node);
             if (doc["summary"] != null)
@@ -153,7 +161,7 @@ namespace LeanPythonGenerator.Parse
                 method.Summary = doc["summary"].GetText();
             }
 
-            if (node.Modifiers.Any(modifier => modifier.Text == "protected"))
+            if (HasModifier(node, "protected"))
             {
                 method.Summary = PrefixSummary(method.Summary, "This method is protected.");
             }
@@ -163,7 +171,7 @@ namespace LeanPythonGenerator.Parse
 
         private bool EnterClass(BaseTypeDeclarationSyntax node)
         {
-            if (node.Modifiers.Any(modifier => modifier.Text == "private"))
+            if (HasModifier(node, "private"))
             {
                 return false;
             }
@@ -203,6 +211,11 @@ namespace LeanPythonGenerator.Parse
                 return;
             }
 
+            if (node is InterfaceDeclarationSyntax || HasModifier(node, "abstract"))
+            {
+                _currentClass.InheritsFrom.Add(new PythonType("ABC", "abc"));
+            }
+
             if (symbol.BaseType != null)
             {
                 var ns = symbol.BaseType.ContainingNamespace.Name;
@@ -232,7 +245,7 @@ namespace LeanPythonGenerator.Parse
                 _currentClass.Summary = doc["summary"].GetText();
             }
 
-            if (node.Modifiers.Any(modifier => modifier.Text == "protected"))
+            if (HasModifier(node, "protected"))
             {
                 _currentClass.Summary = PrefixSummary(_currentClass.Summary, "This class is protected.");
             }
@@ -248,6 +261,11 @@ namespace LeanPythonGenerator.Parse
             }
 
             return prefix;
+        }
+
+        private bool HasModifier(MemberDeclarationSyntax node, string modifier)
+        {
+            return node.Modifiers.Any(m => m.Text == modifier);
         }
     }
 }

@@ -7,6 +7,7 @@ namespace LeanPythonGenerator.Model
 
         public bool ReadOnly { get; set; }
         public bool Static { get; set; }
+        public bool Abstract { get; set; }
 
         public string Value { get; set; }
 

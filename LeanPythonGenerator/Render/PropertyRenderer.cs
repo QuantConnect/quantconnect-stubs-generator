@@ -8,7 +8,8 @@ namespace LeanPythonGenerator.Render
     {
         private readonly Namespace _namespace;
 
-        public PropertyRenderer(StreamWriter writer, int indentationLevel, Namespace ns) : base(writer, indentationLevel)
+        public PropertyRenderer(StreamWriter writer, int indentationLevel, Namespace ns) : base(writer,
+            indentationLevel)
         {
             _namespace = ns;
         }
@@ -30,6 +31,12 @@ namespace LeanPythonGenerator.Render
             if (property.Summary != null)
             {
                 WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"");
+            }
+
+            // Some attributes are named "None" in C#, which is a keyword in Python
+            if (property.Name == "None")
+            {
+                Write("# Cannot convert to Python: ");
             }
 
             Write(property.Name);

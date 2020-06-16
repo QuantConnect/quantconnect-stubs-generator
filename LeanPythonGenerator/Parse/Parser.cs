@@ -242,7 +242,8 @@ namespace LeanPythonGenerator.Parse
 
             foreach (var parameterSyntax in node.ParameterList.Parameters)
             {
-                var parameter = new Parameter(parameterSyntax.Identifier.Text, GetType(parameterSyntax.Type));
+                var originalName = parameterSyntax.Identifier.Text;
+                var parameter = new Parameter(FormatParameterName(originalName), GetType(parameterSyntax.Type));
 
                 if (parameterSyntax.Default != null)
                 {
@@ -253,7 +254,7 @@ namespace LeanPythonGenerator.Parse
                 for (var i = 0; i < paramNodes.Count; i++)
                 {
                     var element = (XmlElement) paramNodes[i];
-                    if (element.Attributes["name"]?.Value == parameter.Name)
+                    if (element.Attributes["name"]?.Value == originalName)
                     {
                         docStrings.Add($":param {parameter.Name}: {element.GetText()}");
                     }
@@ -437,13 +438,36 @@ namespace LeanPythonGenerator.Parse
                 return value;
             }
 
-            // If the value contains certain characters it definitely doesn't have a Python equivalent
-            if (value.Contains("new ") || value.Contains("<") || value.Contains("typeof"))
+            // Strings
+            if (value.StartsWith("@\"") && value.EndsWith("\""))
             {
-                return null;
+                value = value.Substring(1);
+            }
+
+            // If the value contains certain characters it doesn't have a Python equivalent
+            if (value.Contains("new ") || value.Contains("<") || value.Contains("(") || value.Contains("@\""))
+            {
+                return "None";
             }
 
             return value;
+        }
+
+        private string FormatParameterName(string name)
+        {
+            // Remove "@" prefix
+            if (name.StartsWith("@"))
+            {
+                name = name.Substring(1);
+            }
+
+            // Escape keywords
+            return name switch
+            {
+                "from" => "_from",
+                "enum" => "_enum",
+                _ => name
+            };
         }
     }
 }

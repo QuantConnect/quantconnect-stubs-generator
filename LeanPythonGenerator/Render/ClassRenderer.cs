@@ -50,13 +50,9 @@ namespace LeanPythonGenerator.Render
             }
 
             WriteLine(":");
-
-            if (cls.Summary != null)
-            {
-                WriteLine($"\"\"\"\n{cls.Summary}\n\"\"\"".Indent());
-                WriteLine();
-                WriteLine();
-            }
+            WriteLine($"\"\"\"\n{cls.Summary ?? "This class has no documentation."}\n\"\"\"".Indent());
+            WriteLine();
+            WriteLine();
         }
 
         private void RenderInnerClasses(Class cls)

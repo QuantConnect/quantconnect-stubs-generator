@@ -94,6 +94,8 @@ namespace LeanPythonGenerator.Render
 
         private void RenderClasses(Namespace ns)
         {
+            // TODO(jmerle): Order classes in such an order that the least amount of forward references are needed
+
             var classes = ns.GetClasses().ToList();
             for (int i = 0, iMax = classes.Count; i < iMax; i++)
             {

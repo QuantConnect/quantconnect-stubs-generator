@@ -58,7 +58,7 @@ namespace LeanPythonGenerator.Parse
         /// <summary>
         /// Parses a C# symbol to an object containing Python type information.
         /// </summary>
-        private PythonType ParseType(ISymbol symbol, string typeParameterName = null)
+        private PythonType ParseType(ISymbol symbol)
         {
             // Use Any as fallback
             if (symbol == null || symbol.Name == "" || symbol.ContainingNamespace == null)
@@ -66,7 +66,16 @@ namespace LeanPythonGenerator.Parse
                 return new PythonType("Any", "typing");
             }
 
-            var name = typeParameterName;
+            string name = null;
+            var isNamedTypeParameter = false;
+
+            // Check if the symbol is a type like "T" instead of "System.String"
+            if (!symbol.ToDisplayString().Contains("."))
+            {
+                name = GetTypeParameterName((ITypeSymbol) symbol);
+                isNamedTypeParameter = true;
+            }
+
             if (name == null)
             {
                 name = symbol.Name;
@@ -86,23 +95,14 @@ namespace LeanPythonGenerator.Parse
 
             var type = new PythonType(name, ns)
             {
-                IsNamedTypeParameter = typeParameterName != null
+                IsNamedTypeParameter = isNamedTypeParameter
             };
 
             if (symbol is INamedTypeSymbol namedSymbol)
             {
                 foreach (var typeParameter in namedSymbol.TypeArguments)
                 {
-                    // Check if the type parameter is a type like "String" instead of "T"
-                    if (typeParameter.ToDisplayString().Contains("."))
-                    {
-                        type.TypeParameters.Add(ParseType(typeParameter));
-                    }
-                    else
-                    {
-                        var parameterName = GetTypeParameterName(typeParameter);
-                        type.TypeParameters.Add(ParseType(typeParameter, parameterName));
-                    }
+                    type.TypeParameters.Add(ParseType(typeParameter));
                 }
             }
 

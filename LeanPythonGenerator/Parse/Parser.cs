@@ -200,7 +200,12 @@ namespace LeanPythonGenerator.Parse
             }
 
             // TODO(jmerle): Put extension methods in the right place
-            // TODO(jmerle): Ignore extension methods like IEnumerable.GetEnumerator() in Slice
+
+            // Skip extension methods like IEnumerable.GetEnumerator() in Slice
+            if (GetType(node).ToString().Contains("System."))
+            {
+                return;
+            }
 
             var method = new Method(node.Identifier.Text, GetType(node.ReturnType))
             {

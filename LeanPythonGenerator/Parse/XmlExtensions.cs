@@ -17,7 +17,9 @@ namespace LeanPythonGenerator.Parse
                     continue;
                 }
 
-                var newNode = clone.OwnerDocument.CreateTextNode(child.Attributes["cref"].InnerText);
+                var attribute = child.Attributes["cref"] ?? child.Attributes["paramref"];
+                var newNode = clone.OwnerDocument.CreateTextNode(attribute.InnerText);
+
                 clone.ReplaceChild(newNode, child);
             }
 

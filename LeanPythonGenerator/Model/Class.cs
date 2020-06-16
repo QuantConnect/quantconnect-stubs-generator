@@ -14,6 +14,7 @@ namespace LeanPythonGenerator.Model
         public IList<Class> InnerClasses { get; } = new List<Class>();
 
         public IList<Property> Properties { get; } = new List<Property>();
+        public IList<Method> Methods { get; } = new List<Method>();
 
         public Class(PythonType type)
         {

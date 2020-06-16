@@ -12,11 +12,27 @@ namespace LeanPythonGenerator.Parse
         /// </summary>
         private XmlElement ParseDocumentation(SyntaxNode node)
         {
-            var xmlLines = node
+            var lines = node
                 .GetLeadingTrivia()
                 .ToString()
+                .Trim()
                 .Split("\n")
                 .Select(line => line.Trim())
+                .ToList();
+
+            // LeadingTrivia of a node contains all comments above it
+            // We skip everything before the last uncommented line to get only the XML directly above the node
+            var skips = 0;
+            for (var i = 0; i < lines.Count; i++)
+            {
+                if (lines[i] == "")
+                {
+                    skips = i;
+                }
+            }
+
+            var xmlLines = lines
+                .Skip(skips)
                 .Select(line =>
                 {
                     if (line.StartsWith("/// "))
@@ -33,6 +49,11 @@ namespace LeanPythonGenerator.Parse
                 });
 
             var xml = string.Join("\n", xmlLines).Replace("&", "&amp;");
+
+            if (!xml.StartsWith("<"))
+            {
+                xml = "";
+            }
 
             var doc = new XmlDocument();
             doc.LoadXml($"<root>{xml}</root>");

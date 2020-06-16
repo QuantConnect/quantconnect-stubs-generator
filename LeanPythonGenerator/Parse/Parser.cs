@@ -138,6 +138,29 @@ namespace LeanPythonGenerator.Parse
             _currentClass.Properties.Add(property);
         }
 
+        public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
+        {
+            if (node.Modifiers.Any(modifier => modifier.Text == "private"))
+            {
+                return;
+            }
+
+            var method = new Method(node.Identifier.Text, GetType(node.ReturnType));
+
+            var doc = ParseDocumentation(node);
+            if (doc["summary"] != null)
+            {
+                method.Summary = doc["summary"].GetText();
+            }
+
+            if (node.Modifiers.Any(modifier => modifier.Text == "protected"))
+            {
+                method.Summary = PrefixSummary(method.Summary, "This method is protected.");
+            }
+
+            _currentClass.Methods.Add(method);
+        }
+
         private bool EnterClass(BaseTypeDeclarationSyntax node)
         {
             if (node.Modifiers.Any(modifier => modifier.Text == "private"))

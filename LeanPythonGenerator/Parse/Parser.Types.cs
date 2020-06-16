@@ -159,6 +159,8 @@ namespace LeanPythonGenerator.Parse
                         return new PythonType("float");
                     case "Boolean":
                         return new PythonType("bool");
+                    case "Void":
+                        return new PythonType("None");
                     case "DateTime":
                         return new PythonType("datetime", "datetime");
                 }

@@ -17,6 +17,7 @@ namespace LeanPythonGenerator.Render
             RenderClassHeader(cls);
             RenderInnerClasses(cls);
             RenderProperties(cls);
+            RenderMethods(cls);
         }
 
         private void RenderClassHeader(Class cls)
@@ -72,6 +73,17 @@ namespace LeanPythonGenerator.Render
             foreach (var property in cls.Properties)
             {
                 propertyRenderer.Render(property);
+                WriteLine();
+            }
+        }
+
+        private void RenderMethods(Class cls)
+        {
+            var methodRenderer = new MethodRenderer(_writer, _indentationLevel + 1, cls);
+
+            foreach (var method in cls.Methods)
+            {
+                methodRenderer.Render(method);
                 WriteLine();
             }
         }

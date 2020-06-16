@@ -113,6 +113,11 @@ namespace LeanPythonGenerator.Parse
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract")
             };
 
+            if (property.Abstract)
+            {
+                _topClass.UsedTypes.Add(new PythonType("abstractmethod", "abc"));
+            }
+
             var doc = ParseDocumentation(node);
             if (doc["summary"] != null)
             {
@@ -193,6 +198,7 @@ namespace LeanPythonGenerator.Parse
             }
 
             // TODO(jmerle): Put extension methods in the right place
+            // TODO(jmerle): Ignore extension methods like IEnumerable.GetEnumerator() in Slice
 
             var method = new Method(node.Identifier.Text, GetType(node.ReturnType))
             {
@@ -209,9 +215,14 @@ namespace LeanPythonGenerator.Parse
                     .Count(member => member.Name == method.Name) > 1;
             }
 
+            if (method.Abstract)
+            {
+                _topClass.UsedTypes.Add(new PythonType("abstractmethod", "abc"));
+            }
+
             if (method.Overload)
             {
-                _topClass.UsedTypes.Add(new PythonType("overload", "overloading"));
+                _topClass.UsedTypes.Add(new PythonType("overload", "typing"));
             }
 
             var doc = ParseDocumentation(node);
@@ -265,6 +276,11 @@ namespace LeanPythonGenerator.Parse
 
             cls.Static = HasModifier(node, "static");
 
+            if (cls.Type.TypeParameters.Count > 0)
+            {
+                _topClass.UsedTypes.Add(new PythonType("Generic", "typing"));
+            }
+
             CheckForInheritedTypes(node);
             CheckForClassSummary(node);
 
@@ -292,7 +308,9 @@ namespace LeanPythonGenerator.Parse
 
             if (node is InterfaceDeclarationSyntax || HasModifier(node, "abstract"))
             {
-                _currentClass.InheritsFrom.Add(new PythonType("ABC", "abc"));
+                var abcType = new PythonType("ABC", "abc");
+                _currentClass.InheritsFrom.Add(abcType);
+                _topClass.UsedTypes.Add(abcType);
             }
 
             if (symbol.BaseType != null)
@@ -366,8 +384,8 @@ namespace LeanPythonGenerator.Parse
                 return value;
             }
 
-            // If the value is a constructor call there is no direct Python equivalent
-            if (value.StartsWith("new "))
+            // If the value contains certain characters it definitely doesn't have a Python equivalent
+            if (value.Contains("new ") || value.Contains("<") || value.Contains("typeof"))
             {
                 return null;
             }

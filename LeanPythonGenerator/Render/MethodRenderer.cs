@@ -15,11 +15,6 @@ namespace LeanPythonGenerator.Render
 
         public override void Render(Method method)
         {
-            if (method.Overload)
-            {
-                WriteLine("@overload");
-            }
-
             if (method.Static)
             {
                 WriteLine("@staticmethod");
@@ -28,6 +23,11 @@ namespace LeanPythonGenerator.Render
             if (method.Abstract)
             {
                 WriteLine("@abstractmethod");
+            }
+
+            if (method.Overload)
+            {
+                WriteLine("@overload");
             }
 
             Write($"def {method.Name}(");

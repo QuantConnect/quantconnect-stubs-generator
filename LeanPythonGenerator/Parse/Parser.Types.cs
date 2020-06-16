@@ -30,7 +30,6 @@ namespace LeanPythonGenerator.Parse
                 {
                     _currentNamespace.TypeParameterNames.Add(currentType.Name);
                     _topClass.UsedTypes.Add(new PythonType("TypeVar", "typing"));
-                    _topClass.UsedTypes.Add(new PythonType("Generic", "typing"));
                 }
 
                 if (currentType.Alias != null)
@@ -184,10 +183,11 @@ namespace LeanPythonGenerator.Parse
             }
 
             // Lists
-            if ((type.Namespace == "System.Collections.Generic" && type.Name == "IEnumerable")
-                || (type.Namespace == "System.Collections" && type.Name == "IList")
+            if ((type.Namespace == "System.Collections" && type.Name == "IList")
                 || (type.Namespace == "System.Collections.Generic" && type.Name == "List")
-                || (type.Namespace == "System.Collections.Generic" && type.Name == "ICollection"))
+                || (type.Namespace == "System.Collections.Generic" && type.Name == "ICollection")
+                || (type.Namespace == "System.Collections.Generic" && type.Name == "IEnumerable")
+                || (type.Namespace == "System.Collections.Generic" && type.Name == "IReadOnlyList"))
             {
                 type.Name = "List";
                 type.Namespace = "typing";

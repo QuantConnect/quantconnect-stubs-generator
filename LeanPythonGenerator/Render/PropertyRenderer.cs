@@ -45,6 +45,8 @@ namespace LeanPythonGenerator.Render
             }
 
             WriteLine();
+            WriteLine();
+            WriteLine();
         }
 
         private void RenderProperty(Property property)
@@ -65,13 +67,12 @@ namespace LeanPythonGenerator.Render
 
             WriteLine("pass".Indent());
             WriteLine();
+            WriteLine();
 
             if (property.ReadOnly)
             {
                 return;
             }
-
-            WriteLine();
 
             WriteLine($"@{property.Name}.setter");
 
@@ -88,6 +89,7 @@ namespace LeanPythonGenerator.Render
             }
 
             WriteLine("pass".Indent());
+            WriteLine();
             WriteLine();
         }
     }

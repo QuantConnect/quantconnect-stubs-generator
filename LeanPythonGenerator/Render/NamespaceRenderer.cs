@@ -100,7 +100,6 @@ namespace LeanPythonGenerator.Render
             for (int i = 0, iMax = classes.Count; i < iMax; i++)
             {
                 _classRenderer.Render(classes[i]);
-                if (i != iMax - 1) WriteLine();
             }
         }
     }

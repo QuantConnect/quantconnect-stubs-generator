@@ -46,6 +46,7 @@ namespace LeanPythonGenerator.Render
 
             WriteLine("pass".Indent());
             WriteLine();
+            WriteLine();
         }
     }
 }

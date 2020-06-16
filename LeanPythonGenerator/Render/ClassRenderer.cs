@@ -52,6 +52,7 @@ namespace LeanPythonGenerator.Render
             {
                 WriteLine($"\"\"\"\n{cls.Summary}\n\"\"\"".Indent());
                 WriteLine();
+                WriteLine();
             }
         }
 
@@ -62,7 +63,6 @@ namespace LeanPythonGenerator.Render
             foreach (var innerCls in cls.InnerClasses)
             {
                 innerRenderer.Render(innerCls);
-                WriteLine();
             }
         }
 
@@ -73,7 +73,6 @@ namespace LeanPythonGenerator.Render
             foreach (var property in cls.Properties)
             {
                 propertyRenderer.Render(property);
-                WriteLine();
             }
         }
 
@@ -84,7 +83,6 @@ namespace LeanPythonGenerator.Render
             foreach (var method in cls.Methods)
             {
                 methodRenderer.Render(method);
-                WriteLine();
             }
         }
     }

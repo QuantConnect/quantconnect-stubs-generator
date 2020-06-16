@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -217,9 +218,8 @@ namespace LeanPythonGenerator.Parse
 
                     // Skip extension methods on non-QC data types
                     if (classType.Namespace == null
-                        || classType.Namespace == "typing"
-                        || classType.Namespace == "<global namespace>"
-                        || classType.Namespace.StartsWith("System."))
+                        || (!classType.Namespace.StartsWith("QuantConnect.")
+                            && !classType.Namespace.StartsWith("Oanda.")))
                     {
                         return;
                     }

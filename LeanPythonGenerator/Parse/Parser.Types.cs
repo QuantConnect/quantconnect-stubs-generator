@@ -169,6 +169,18 @@ namespace LeanPythonGenerator.Parse
                 }
             }
 
+            // Dictionaries
+            if (type.Namespace == "System.Collections.Generic"
+                && type.Name == "IEnumerable"
+                && type.TypeParameters.Count == 1
+                && type.TypeParameters[0].Namespace == "QuantConnect"
+                && type.TypeParameters[0].Name == "KeyValuePair")
+            {
+                type.Name = "Dict";
+                type.Namespace = "typing";
+                type.TypeParameters = type.TypeParameters[0].TypeParameters;
+            }
+
             // Lists
             if ((type.Namespace == "System.Collections.Generic" && type.Name == "IEnumerable")
                 || (type.Namespace == "System.Collections" && type.Name == "IList")

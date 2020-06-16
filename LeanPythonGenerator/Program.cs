@@ -102,7 +102,6 @@ namespace LeanPythonGenerator
             CreateKeyValuePair(ns);
         }
 
-        // TODO(jmerle): Convert IEnumerable<KeyValuePair<K, V>> to Dict[K, V] and remove this
         private void CreateKeyValuePair(Namespace ns)
         {
             var classType = new PythonType("KeyValuePair", ns.Name);

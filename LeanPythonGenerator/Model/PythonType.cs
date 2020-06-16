@@ -10,7 +10,7 @@ namespace LeanPythonGenerator.Model
         public string Namespace { get; set; }
         public bool IsNamedTypeParameter { get; set; }
         public string Alias { get; set; }
-        public IList<PythonType> TypeParameters { get; } = new List<PythonType>();
+        public IList<PythonType> TypeParameters { get; set; } = new List<PythonType>();
 
         public PythonType(string name, string ns = null)
         {

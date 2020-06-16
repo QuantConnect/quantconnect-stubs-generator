@@ -18,15 +18,14 @@ jobs:
       - name: Build
         run: dotnet build
 
-      - name: Stop build
-        uses: andymckay/cancel-action@0.2
-        if: ${{ github.ref != 'ref/head/master' }}
-
       - name: Clone Lean
         run: git clone https://github.com/QuantConnect/Lean.git lean
+        if: ${{ github.ref == 'ref/head/master' }}
 
       - name: Run
         run: dotnet run --project LeanPythonGenerator lean lean-types
+        if: ${{ github.ref == 'ref/head/master' }}
 
       - name: List types directory
         run: ls lean-types
+        if: ${{ github.ref == 'ref/head/master' }}

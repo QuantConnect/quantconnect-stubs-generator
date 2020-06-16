@@ -199,18 +199,41 @@ namespace LeanPythonGenerator.Parse
                 return;
             }
 
-            // TODO(jmerle): Put extension methods in the right place
-
             // Skip extension methods like IEnumerable.GetEnumerator() in Slice
             if (GetType(node).ToString().Contains("System."))
             {
                 return;
             }
 
+            var classContainingMethod = _currentClass;
+            var isExtensionMethod = false;
+
+            if (node.ParameterList.Parameters.Count > 0)
+            {
+                var firstParameter = node.ParameterList.Parameters[0];
+                if (firstParameter.Modifiers.Any(modifier => modifier.Text == "this"))
+                {
+                    var classType = GetType(firstParameter.Type);
+
+                    // Skip extension methods on non-QC data types
+                    if (classType.Namespace == null
+                        || classType.Namespace == "typing"
+                        || classType.Namespace == "<global namespace>"
+                        || classType.Namespace.StartsWith("System."))
+                    {
+                        return;
+                    }
+
+                    var ns = _context.GetNamespaceByName(classType.Namespace);
+                    classContainingMethod = ns.GetClassByType(classType);
+                    isExtensionMethod = true;
+                }
+            }
+
             var method = new Method(node.Identifier.Text, GetType(node.ReturnType))
             {
-                Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
-                Static = _currentClass.Static || HasModifier(node, "static")
+                Abstract = classContainingMethod.Interface || HasModifier(node, "abstract"),
+                Static = !isExtensionMethod && (classContainingMethod.Static || HasModifier(node, "static"))
             };
 
             var symbol = _model.GetDeclaredSymbol(node);
@@ -247,6 +270,12 @@ namespace LeanPythonGenerator.Parse
 
             foreach (var parameterSyntax in node.ParameterList.Parameters)
             {
+                // Skip the parameter which marks this method as an extension method
+                if (parameterSyntax.Modifiers.Any(modifier => modifier.Text == "this"))
+                {
+                    continue;
+                }
+
                 var originalName = parameterSyntax.Identifier.Text;
                 var parameter = new Parameter(FormatParameterName(originalName), GetType(parameterSyntax.Type));
 
@@ -289,7 +318,7 @@ namespace LeanPythonGenerator.Parse
                     : paramText;
             }
 
-            _currentClass.Methods.Add(method);
+            classContainingMethod.Methods.Add(method);
         }
 
         private bool EnterClass(BaseTypeDeclarationSyntax node)

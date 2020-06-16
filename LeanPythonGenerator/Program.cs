@@ -55,6 +55,11 @@ namespace LeanPythonGenerator
                 .Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file))
                 .ToList();
 
+            // Move all syntax trees containing extension methods to the end
+            // var extensionTrees = syntaxTrees.Where(tree => tree.FilePath.Contains("Extensions.cs"));
+            // syntaxTrees = syntaxTrees.Where(tree => !tree.FilePath.Contains("Extensions.cs")).ToList();
+            // syntaxTrees.AddRange(extensionTrees);
+
             // Create a compilation containing all syntax trees to retrieve semantic models containing type info from
             var compilation = CSharpCompilation
                 .Create("")
@@ -65,18 +70,18 @@ namespace LeanPythonGenerator
             var context = new ParseContext();
 
             // Create utility classes
-            // These classes shouldn't be imported, but are used to improve type hinting
+            // These classes shouldn't be imported but are used to improve type hinting
             CreateUtilityClasses(context);
 
             // Parse all syntax trees
-            foreach (var syntaxTree in syntaxTrees)
+            foreach (var tree in syntaxTrees)
             {
-                Console.WriteLine($"Parsing {syntaxTree.FilePath}");
+                Console.WriteLine($"Parsing {tree.FilePath}");
 
-                var model = compilation.GetSemanticModel(syntaxTree);
+                var model = compilation.GetSemanticModel(tree);
 
                 var parser = new Parser(context, model);
-                parser.Visit(syntaxTree.GetRoot());
+                parser.Visit(tree.GetRoot());
             }
 
             // Render .pyi files containing type hints for all parsed namespaces

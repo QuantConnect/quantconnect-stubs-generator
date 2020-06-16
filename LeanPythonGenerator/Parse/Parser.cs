@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -239,7 +238,7 @@ namespace LeanPythonGenerator.Parse
                 method.Summary = PrefixSummary(method.Summary, "This method is protected.");
             }
 
-            var parameterSummaries = new List<string>();
+            var docStrings = new List<string>();
 
             foreach (var parameterSyntax in node.ParameterList.Parameters)
             {
@@ -256,16 +255,23 @@ namespace LeanPythonGenerator.Parse
                     var element = (XmlElement) paramNodes[i];
                     if (element.Attributes["name"]?.Value == parameter.Name)
                     {
-                        parameterSummaries.Add($":param {parameter.Name}: {element.GetText()}");
+                        docStrings.Add($":param {parameter.Name}: {element.GetText()}");
                     }
                 }
 
                 method.Parameters.Add(parameter);
             }
 
-            if (parameterSummaries.Count > 0)
+            if (doc["returns"] != null)
             {
-                var paramText = string.Join("\n", parameterSummaries);
+                docStrings.Add($":returns: {doc["returns"].GetText()}");
+            }
+
+            docStrings = docStrings.Select(str => str.Replace('\n', ' ')).ToList();
+
+            if (docStrings.Count > 0)
+            {
+                var paramText = string.Join("\n", docStrings);
                 method.Summary = method.Summary != null
                     ? method.Summary + "\n\n" + paramText
                     : paramText;

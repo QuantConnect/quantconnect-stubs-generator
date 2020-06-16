@@ -155,6 +155,20 @@ namespace LeanPythonGenerator.Parse
                 Static = HasModifier(node, "static")
             };
 
+            var symbol = _model.GetDeclaredSymbol(node);
+            if (symbol != null)
+            {
+                method.Overload = symbol
+                    .ContainingType
+                    .GetMembers()
+                    .Count(member => member.Name == method.Name) > 1;
+            }
+
+            if (method.Overload)
+            {
+                _currentNamespace.UsedTypes.Add(new PythonType("overload", "overloading"));
+            }
+
             var doc = ParseDocumentation(node);
             if (doc["summary"] != null)
             {

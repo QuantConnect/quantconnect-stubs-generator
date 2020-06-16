@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Text.RegularExpressions;
 using LeanPythonGenerator.Model;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -126,7 +127,7 @@ namespace LeanPythonGenerator.Parse
             var property = new Property(node.Identifier.Text)
             {
                 Value = node.EqualsValue != null
-                    ? node.EqualsValue.Value.ToString()
+                    ? FormatValue(node.EqualsValue.Value.ToString())
                     : _currentClass.Properties.Count.ToString(),
                 Static = true,
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract")
@@ -161,8 +162,7 @@ namespace LeanPythonGenerator.Parse
 
                 if (variable.Initializer != null)
                 {
-                    // TODO(jmerle): Strip initializers to ensure Python compatibility (e.g. 1.0m -> 1.0)
-                    property.Value = variable.Initializer.Value.ToString();
+                    property.Value = FormatValue(variable.Initializer.Value.ToString());
                 }
 
                 var doc = ParseDocumentation(node);
@@ -320,6 +320,28 @@ namespace LeanPythonGenerator.Parse
         private bool HasModifier(MemberDeclarationSyntax node, string modifier)
         {
             return node.Modifiers.Any(m => m.Text == modifier);
+        }
+
+        private string FormatValue(string value)
+        {
+            // If the value is a number, remove a potential suffix like "m" in 1.0m
+            if (Regex.IsMatch(value, @"^\d"))
+            {
+                if (Regex.IsMatch(value, "[^0-9]$"))
+                {
+                    return value.Substring(0, value.Length - 1);
+                }
+
+                return value;
+            }
+
+            // If the value is a constructor call there is no direct Python equivalent
+            if (value.StartsWith("new "))
+            {
+                return null;
+            }
+
+            return value;
         }
     }
 }

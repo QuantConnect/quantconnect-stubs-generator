@@ -64,6 +64,11 @@ namespace LeanPythonGenerator.Render
         {
             var str = $"{parameter.Name}: {parameter.Type.ToString(_namespace)}";
 
+            if (parameter.VarArgs)
+            {
+                str = "*" + str;
+            }
+
             if (parameter.Value != null)
             {
                 str += $" = {parameter.Value}";

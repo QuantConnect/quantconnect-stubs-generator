@@ -13,7 +13,7 @@ namespace LeanPythonGenerator.Model
 
         public string Summary { get; set; }
 
-        public IList<Parameter> Parameters { get; set; } = new List<Parameter>();
+        public IList<Parameter> Parameters { get; } = new List<Parameter>();
 
         public Method(string name, PythonType returnType)
         {

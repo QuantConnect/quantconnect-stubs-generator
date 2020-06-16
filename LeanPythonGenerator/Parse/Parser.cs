@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -245,6 +244,12 @@ namespace LeanPythonGenerator.Parse
             {
                 var originalName = parameterSyntax.Identifier.Text;
                 var parameter = new Parameter(FormatParameterName(originalName), GetType(parameterSyntax.Type));
+
+                if (parameterSyntax.Modifiers.Any(modifier => modifier.Text == "params"))
+                {
+                    parameter.VarArgs = true;
+                    parameter.Type = parameter.Type.TypeParameters[0];
+                }
 
                 if (parameterSyntax.Default != null)
                 {

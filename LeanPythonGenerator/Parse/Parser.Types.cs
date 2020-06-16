@@ -141,11 +141,17 @@ namespace LeanPythonGenerator.Parse
             {
                 switch (type.Name)
                 {
+                    case "Char":
                     case "String":
                         return new PythonType("str");
+                    case "Byte":
+                    case "SByte":
                     case "Int16":
                     case "Int32":
                     case "Int64":
+                    case "UInt16":
+                    case "UInt32":
+                    case "UInt64":
                         return new PythonType("int");
                     case "Single":
                     case "Double":

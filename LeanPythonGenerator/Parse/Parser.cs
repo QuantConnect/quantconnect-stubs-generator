@@ -111,16 +111,7 @@ namespace LeanPythonGenerator.Parse
 
             if (node.Modifiers.Any(modifier => modifier.Text == "protected"))
             {
-                const string text = "This property is protected.";
-
-                if (property.Summary != null)
-                {
-                    property.Summary = text + "\n\n" + property.Summary;
-                }
-                else
-                {
-                    property.Summary = text;
-                }
+                property.Summary = PrefixSummary(property.Summary, "This property is protected.");
             }
 
             _currentClass.Properties.Add(property);
@@ -218,20 +209,20 @@ namespace LeanPythonGenerator.Parse
 
             if (node.Modifiers.Any(modifier => modifier.Text == "protected"))
             {
-                const string text = "This class is protected.";
-
-                if (_currentClass.Summary != null)
-                {
-                    if (!_currentClass.Summary.Contains(text))
-                    {
-                        _currentClass.Summary = text + "\n\n" + _currentClass.Summary;
-                    }
-                }
-                else
-                {
-                    _currentClass.Summary = text;
-                }
+                _currentClass.Summary = PrefixSummary(_currentClass.Summary, "This class is protected.");
             }
+        }
+
+        private string PrefixSummary(string currentSummary, string prefix)
+        {
+            if (currentSummary != null)
+            {
+                return currentSummary.Contains(prefix)
+                    ? currentSummary
+                    : prefix + "\n\n" + currentSummary;
+            }
+
+            return prefix;
         }
     }
 }

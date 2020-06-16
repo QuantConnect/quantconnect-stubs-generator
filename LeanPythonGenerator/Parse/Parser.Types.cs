@@ -189,6 +189,7 @@ namespace LeanPythonGenerator.Parse
                     case "Nullable":
                         type.Name = "Optional";
                         type.Namespace = "typing";
+                        type.IsNamedTypeParameter = false;
                         break;
                 }
             }
@@ -203,6 +204,7 @@ namespace LeanPythonGenerator.Parse
                 type.Name = "Dict";
                 type.Namespace = "typing";
                 type.TypeParameters = type.TypeParameters[0].TypeParameters;
+                type.IsNamedTypeParameter = false;
             }
 
             // Lists
@@ -214,6 +216,7 @@ namespace LeanPythonGenerator.Parse
             {
                 type.Name = "List";
                 type.Namespace = "typing";
+                type.IsNamedTypeParameter = false;
             }
 
             // KeyValuePair

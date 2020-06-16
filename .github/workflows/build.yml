@@ -20,12 +20,12 @@ jobs:
 
       - name: Clone Lean
         run: git clone https://github.com/QuantConnect/Lean.git lean
-        if: ${{ github.ref == 'ref/head/master' }}
+        if: github.ref == 'refs/head/master' && github.event_name == 'push'
 
       - name: Run
         run: dotnet run --project LeanPythonGenerator lean lean-types
-        if: ${{ github.ref == 'ref/head/master' }}
+        if: github.ref == 'refs/head/master' && github.event_name == 'push'
 
       - name: List types directory
         run: ls lean-types
-        if: ${{ github.ref == 'ref/head/master' }}
+        if: github.ref == 'refs/head/master' && github.event_name == 'push'

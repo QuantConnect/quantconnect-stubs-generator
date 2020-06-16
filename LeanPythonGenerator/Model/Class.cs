@@ -8,6 +8,8 @@ namespace LeanPythonGenerator.Model
 
         public string Summary { get; set; }
 
+        public bool Static { get; set; }
+
         public ISet<PythonType> InheritsFrom { get; } = new HashSet<PythonType>();
 
         public Class ParentClass { get; set; }

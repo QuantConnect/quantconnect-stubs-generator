@@ -103,7 +103,7 @@ namespace LeanPythonGenerator.Parse
             {
                 Type = GetType(node.Type),
                 ReadOnly = !writeable,
-                Static = HasModifier(node, "static"),
+                Static = _currentClass.Static || HasModifier(node, "static"),
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract")
             };
 
@@ -142,6 +142,44 @@ namespace LeanPythonGenerator.Parse
             _currentClass.Properties.Add(property);
         }
 
+        public override void VisitFieldDeclaration(FieldDeclarationSyntax node)
+        {
+            if (HasModifier(node, "private"))
+            {
+                return;
+            }
+
+            foreach (var variable in node.Declaration.Variables)
+            {
+                var property = new Property(variable.Identifier.Text)
+                {
+                    Type = GetType(node.Declaration.Type),
+                    ReadOnly = HasModifier(node, "readonly") || HasModifier(node, "const"),
+                    Static = _currentClass.Static || HasModifier(node, "static"),
+                    Abstract = _currentClass.Interface || HasModifier(node, "abstract")
+                };
+
+                if (variable.Initializer != null)
+                {
+                    // TODO(jmerle): Strip initializers to ensure Python compatibility (e.g. 1.0m -> 1.0)
+                    property.Value = variable.Initializer.Value.ToString();
+                }
+
+                var doc = ParseDocumentation(node);
+                if (doc["summary"] != null)
+                {
+                    property.Summary = doc["summary"].GetText();
+                }
+
+                if (HasModifier(node, "protected"))
+                {
+                    property.Summary = PrefixSummary(property.Summary, "This field is protected.");
+                }
+
+                _currentClass.Properties.Add(property);
+            }
+        }
+
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             if (HasModifier(node, "private"))
@@ -152,7 +190,7 @@ namespace LeanPythonGenerator.Parse
             var method = new Method(node.Identifier.Text, GetType(node.ReturnType))
             {
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
-                Static = HasModifier(node, "static")
+                Static = _currentClass.Static || HasModifier(node, "static")
             };
 
             var symbol = _model.GetDeclaredSymbol(node);
@@ -204,6 +242,8 @@ namespace LeanPythonGenerator.Parse
                 _currentClass.InnerClasses.Add(cls);
                 _currentClass = cls;
             }
+
+            cls.Static = HasModifier(node, "static");
 
             CheckForInheritedTypes(node);
             CheckForClassSummary(node);

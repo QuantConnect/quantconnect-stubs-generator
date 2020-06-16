@@ -100,7 +100,8 @@ namespace LeanPythonGenerator.Parse
             var property = new Property(node.Identifier.Text)
             {
                 Type = GetType(node.Type),
-                ReadOnly = !writeable
+                ReadOnly = !writeable,
+                Static = node.Modifiers.Any(modifier => modifier.Text == "static")
             };
 
             var doc = ParseDocumentation(node);
@@ -123,7 +124,8 @@ namespace LeanPythonGenerator.Parse
             {
                 Value = node.EqualsValue != null
                     ? node.EqualsValue.Value.ToString()
-                    : _currentClass.Properties.Count.ToString()
+                    : _currentClass.Properties.Count.ToString(),
+                Static = true
             };
 
 

@@ -15,14 +15,36 @@ namespace LeanPythonGenerator.Render
 
         public override void Render(Property property)
         {
-            if (property.Value == null)
+            if (property.Static)
             {
-                RenderProperty(property);
+                RenderAttribute(property);
             }
             else
             {
-                RenderEnumMember(property);
+                RenderProperty(property);
             }
+        }
+
+        private void RenderAttribute(Property property)
+        {
+            if (property.Summary != null)
+            {
+                WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"");
+            }
+
+            Write(property.Name);
+
+            if (property.Type != null)
+            {
+                Write($": {property.Type.ToString(_class.Type.Namespace)}");
+            }
+
+            if (property.Value != null)
+            {
+                Write($" = {property.Value}");
+            }
+
+            WriteLine();
         }
 
         private void RenderProperty(Property property)
@@ -55,16 +77,6 @@ namespace LeanPythonGenerator.Render
 
             WriteLine("pass".Indent());
             WriteLine();
-        }
-
-        private void RenderEnumMember(Property property)
-        {
-            if (property.Summary != null)
-            {
-                WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"");
-            }
-
-            WriteLine($"{property.Name} = {property.Value}");
         }
     }
 }

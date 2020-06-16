@@ -17,8 +17,19 @@ namespace LeanPythonGenerator.Parse
                     continue;
                 }
 
-                var attribute = child.Attributes["cref"] ?? child.Attributes["paramref"] ?? child.Attributes["langword"];
-                var newNode = clone.OwnerDocument.CreateTextNode(attribute.InnerText);
+                var attribute = child.Attributes["cref"]
+                                ?? child.Attributes["paramref"]
+                                ?? child.Attributes["langword"];
+
+                var newText = attribute.InnerText;
+
+                // Convert "T:System.Object" to "System.Object"
+                if (newText.Length > 2 && newText[1] == ':')
+                {
+                    newText = newText.Substring(2);
+                }
+
+                var newNode = clone.OwnerDocument.CreateTextNode(newText);
 
                 clone.ReplaceChild(newNode, child);
             }

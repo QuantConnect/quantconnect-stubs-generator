@@ -87,8 +87,10 @@ namespace LeanPythonGenerator.Parse
                 var fullNamespace = symbol.ContainingNamespace.ToDisplayString();
                 var nameWithoutNamespace = fullName!.Replace(fullNamespace + ".", "");
 
-                var prefix = nameWithoutNamespace.Substring(0,
-                    nameWithoutNamespace.IndexOf(nameWithoutNamespace, StringComparison.Ordinal));
+                var nameIndex = nameWithoutNamespace.IndexOf(name, StringComparison.Ordinal);
+                var prefix = nameIndex > 0
+                    ? nameWithoutNamespace.Substring(0, nameIndex)
+                    : "";
 
                 name = prefix + name;
             }

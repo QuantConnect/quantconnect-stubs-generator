@@ -8,8 +8,8 @@ namespace LeanPythonGenerator.Render
     {
         private readonly Namespace _namespace;
 
-        public PropertyRenderer(StreamWriter writer, int indentationLevel, Namespace ns) : base(writer,
-            indentationLevel)
+        public PropertyRenderer(StreamWriter writer, int indentationLevel, Namespace ns)
+            : base(writer, indentationLevel)
         {
             _namespace = ns;
         }

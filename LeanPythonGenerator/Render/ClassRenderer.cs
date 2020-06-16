@@ -8,8 +8,11 @@ namespace LeanPythonGenerator.Render
 {
     public class ClassRenderer : BaseRenderer<Class>
     {
-        public ClassRenderer(StreamWriter writer, int indentationLevel) : base(writer, indentationLevel)
+        private readonly Namespace _namespace;
+
+        public ClassRenderer(StreamWriter writer, int indentationLevel, Namespace ns) : base(writer, indentationLevel)
         {
+            _namespace = ns;
         }
 
         public override void Render(Class cls)
@@ -37,7 +40,7 @@ namespace LeanPythonGenerator.Render
             {
                 foreach (var inheritedType in cls.InheritsFrom)
                 {
-                    inherited.Add(inheritedType.ToString(cls.Type.Namespace));
+                    inherited.Add(inheritedType.ToString(_namespace));
                 }
             }
 
@@ -58,7 +61,7 @@ namespace LeanPythonGenerator.Render
 
         private void RenderInnerClasses(Class cls)
         {
-            var innerRenderer = new ClassRenderer(_writer, _indentationLevel + 1);
+            var innerRenderer = new ClassRenderer(_writer, _indentationLevel + 1, _namespace);
 
             foreach (var innerCls in cls.InnerClasses)
             {
@@ -68,7 +71,7 @@ namespace LeanPythonGenerator.Render
 
         private void RenderProperties(Class cls)
         {
-            var propertyRenderer = new PropertyRenderer(_writer, _indentationLevel + 1, cls);
+            var propertyRenderer = new PropertyRenderer(_writer, _indentationLevel + 1, _namespace);
 
             foreach (var property in cls.Properties)
             {
@@ -78,7 +81,7 @@ namespace LeanPythonGenerator.Render
 
         private void RenderMethods(Class cls)
         {
-            var methodRenderer = new MethodRenderer(_writer, _indentationLevel + 1, cls);
+            var methodRenderer = new MethodRenderer(_writer, _indentationLevel + 1, _namespace);
 
             foreach (var method in cls.Methods)
             {

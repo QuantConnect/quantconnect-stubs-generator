@@ -9,6 +9,12 @@ namespace LeanPythonGenerator.Model
         public string Summary { get; set; }
 
         public bool Static { get; set; }
+        public bool Interface { get; set; }
+
+        /// <summary>
+        /// Types used inside this class and any of its inner classes.
+        /// </summary>
+        public ISet<PythonType> UsedTypes { get; set; } = new HashSet<PythonType>();
 
         public ISet<PythonType> InheritsFrom { get; } = new HashSet<PythonType>();
 
@@ -17,8 +23,6 @@ namespace LeanPythonGenerator.Model
 
         public IList<Property> Properties { get; } = new List<Property>();
         public IList<Method> Methods { get; } = new List<Method>();
-
-        public bool Interface { get; set; }
 
         public Class(PythonType type)
         {

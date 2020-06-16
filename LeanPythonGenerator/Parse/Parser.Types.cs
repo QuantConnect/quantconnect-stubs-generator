@@ -24,11 +24,13 @@ namespace LeanPythonGenerator.Parse
             {
                 var currentType = typeQueue.Dequeue();
 
-                _currentNamespace.UsedTypes.Add(currentType);
+                _topClass.UsedTypes.Add(currentType);
 
                 if (currentType.IsNamedTypeParameter)
                 {
                     _currentNamespace.TypeParameterNames.Add(currentType.Name);
+                    _topClass.UsedTypes.Add(new PythonType("TypeVar", "typing"));
+                    _topClass.UsedTypes.Add(new PythonType("Generic", "typing"));
                 }
 
                 if (currentType.Alias != null)

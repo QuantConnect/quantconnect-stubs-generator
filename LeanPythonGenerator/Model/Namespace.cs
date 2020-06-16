@@ -6,14 +6,14 @@ namespace LeanPythonGenerator.Model
     {
         public string Name { get; }
 
-        /// <summary>
-        /// Types used within any class in the namespace.
-        /// </summary>
-        public ISet<PythonType> UsedTypes { get; } = new HashSet<PythonType>();
-
         public ISet<TypeAlias> TypeAliases { get; } = new HashSet<TypeAlias>();
 
         public ISet<string> TypeParameterNames { get; } = new HashSet<string>();
+
+        /// <summary>
+        /// Property used by renderers containing all types in the current namespace that have already been rendered.
+        /// </summary>
+        public ISet<PythonType> DefinedInternalTypes { get; } = new HashSet<PythonType>();
 
         private readonly IDictionary<string, Class> _classes = new Dictionary<string, Class>();
 

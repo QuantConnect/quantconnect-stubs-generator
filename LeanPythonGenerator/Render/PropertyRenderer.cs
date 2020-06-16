@@ -6,11 +6,11 @@ namespace LeanPythonGenerator.Render
 {
     public class PropertyRenderer : BaseRenderer<Property>
     {
-        private readonly Class _class;
+        private readonly Namespace _namespace;
 
-        public PropertyRenderer(StreamWriter writer, int indentationLevel, Class cls) : base(writer, indentationLevel)
+        public PropertyRenderer(StreamWriter writer, int indentationLevel, Namespace ns) : base(writer, indentationLevel)
         {
-            _class = cls;
+            _namespace = ns;
         }
 
         public override void Render(Property property)
@@ -36,7 +36,7 @@ namespace LeanPythonGenerator.Render
 
             if (property.Type != null)
             {
-                Write($": {property.Type.ToString(_class.Type.Namespace)}");
+                Write($": {property.Type.ToString(_namespace)}");
             }
 
             if (property.Value != null)
@@ -58,7 +58,7 @@ namespace LeanPythonGenerator.Render
                 WriteLine("@abstractmethod");
             }
 
-            WriteLine($"def {property.Name}(self) -> {property.Type.ToString(_class.Type.Namespace)}:");
+            WriteLine($"def {property.Name}(self) -> {property.Type.ToString(_namespace)}:");
 
             if (property.Summary != null)
             {
@@ -81,7 +81,7 @@ namespace LeanPythonGenerator.Render
                 WriteLine("@abstractmethod");
             }
 
-            WriteLine($"def {property.Name}(self, value: {property.Type.ToString(_class.Type.Namespace)}):");
+            WriteLine($"def {property.Name}(self, value: {property.Type.ToString(_namespace)}):");
 
             if (property.Summary != null)
             {

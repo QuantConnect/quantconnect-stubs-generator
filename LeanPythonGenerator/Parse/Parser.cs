@@ -18,6 +18,11 @@ namespace LeanPythonGenerator.Parse
         private Namespace _currentNamespace;
         private Class _currentClass;
 
+        /// <summary>
+        /// If _currentClass is A.B.C, _topClass is A.
+        /// </summary>
+        private Class _topClass;
+
         public Parser(ParseContext context, SemanticModel model)
         {
             _context = context;
@@ -66,7 +71,7 @@ namespace LeanPythonGenerator.Parse
 
             var enumType = new PythonType("Enum", "enum");
             _currentClass.InheritsFrom.Add(enumType);
-            _currentNamespace.UsedTypes.Add(enumType);
+            _topClass.UsedTypes.Add(enumType);
 
             base.VisitEnumDeclaration(node);
 
@@ -206,7 +211,7 @@ namespace LeanPythonGenerator.Parse
 
             if (method.Overload)
             {
-                _currentNamespace.UsedTypes.Add(new PythonType("overload", "overloading"));
+                _topClass.UsedTypes.Add(new PythonType("overload", "overloading"));
             }
 
             var doc = ParseDocumentation(node);
@@ -230,13 +235,26 @@ namespace LeanPythonGenerator.Parse
                 return false;
             }
 
-            var cls = _currentClass == null
-                ? _currentNamespace.GetClassByType(GetType(node))
-                : new Class(GetType(node));
+            Class cls;
+            if (_currentClass == null)
+            {
+                // GetType() stores the used types in _topClass
+                _topClass = new Class(new PythonType("Stub", "Stub"));
+
+                cls = _currentNamespace.GetClassByType(GetType(node));
+                cls.UsedTypes.UnionWith(_topClass.UsedTypes);
+
+                _topClass = null;
+            }
+            else
+            {
+                cls = new Class(GetType(node));
+            }
 
             if (_currentClass == null)
             {
                 _currentClass = cls;
+                _topClass = cls;
             }
             else
             {
@@ -256,6 +274,11 @@ namespace LeanPythonGenerator.Parse
         private void ExitClass()
         {
             _currentClass = _currentClass.ParentClass;
+
+            if (_currentClass == null)
+            {
+                _topClass = null;
+            }
         }
 
         private void CheckForInheritedTypes(BaseTypeDeclarationSyntax node)

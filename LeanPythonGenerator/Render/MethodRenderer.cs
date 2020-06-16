@@ -6,11 +6,11 @@ namespace LeanPythonGenerator.Render
 {
     public class MethodRenderer : BaseRenderer<Method>
     {
-        private readonly Class _class;
+        private readonly Namespace _namespace;
 
-        public MethodRenderer(StreamWriter writer, int indentationLevel, Class cls) : base(writer, indentationLevel)
+        public MethodRenderer(StreamWriter writer, int indentationLevel, Namespace ns) : base(writer, indentationLevel)
         {
-            _class = cls;
+            _namespace = ns;
         }
 
         public override void Render(Method method)
@@ -37,7 +37,7 @@ namespace LeanPythonGenerator.Render
                 Write("self");
             }
 
-            WriteLine($") -> {method.ReturnType.ToString(_class.Type.Namespace)}:");
+            WriteLine($") -> {method.ReturnType.ToString(_namespace)}:");
 
             if (method.Summary != null)
             {

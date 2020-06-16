@@ -18,15 +18,23 @@ namespace LeanPythonGenerator.Model
             Namespace = ns;
         }
 
-        public string ToString(string currentNamespace = "", bool ignoreAlias = false)
+        public string ToString(Namespace currentNamespace = null, bool ignoreAlias = false)
         {
             if (!ignoreAlias && Alias != null)
             {
                 return Alias;
             }
 
-            // Quote all non-imported types because there may be forward references
-            var str = Namespace == currentNamespace && !IsNamedTypeParameter ? $"'{Name}'" : Name;
+            var str = Name;
+
+            // Quote all forward-defined types
+            if (!IsNamedTypeParameter
+                && currentNamespace != null
+                && currentNamespace.Name == Namespace
+                && !currentNamespace.DefinedInternalTypes.Contains(this))
+            {
+                str = $"'{str}'";
+            }
 
             if (TypeParameters.Count == 0)
             {

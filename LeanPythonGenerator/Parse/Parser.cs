@@ -187,6 +187,8 @@ namespace LeanPythonGenerator.Parse
                 return;
             }
 
+            // TODO(jmerle): Put extension methods in the right place
+
             var method = new Method(node.Identifier.Text, GetType(node.ReturnType))
             {
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
@@ -324,6 +326,12 @@ namespace LeanPythonGenerator.Parse
 
         private string FormatValue(string value)
         {
+            // null to None
+            if (value == "null")
+            {
+                return "None";
+            }
+
             // If the value is a number, remove a potential suffix like "m" in 1.0m
             if (Regex.IsMatch(value, @"^\d"))
             {

@@ -11,13 +11,13 @@ namespace LeanPythonGenerator.Parse
         /// <summary>
         /// Returns the Python type of the given symbol.
         /// Returns Any if there is no Python type for the given symbol.
-        /// Also marks the type, including any type arguments, as used in the current namespace.
+        /// Also marks the type, including any type arguments, as used in the current top class.
         /// </summary>
         private PythonType GetType(ISymbol symbol)
         {
             var type = ParseType(symbol);
 
-            // Mark all types in type and its type parameters as used in the current namespace
+            // Mark all types in type and its type parameters as used in the current top class
             var typeQueue = new Queue<PythonType>();
             typeQueue.Enqueue(type);
 
@@ -50,7 +50,7 @@ namespace LeanPythonGenerator.Parse
         /// <summary>
         /// Returns the Python type of the given node.
         /// Returns Any if there is no Python type for the given node.
-        /// Also marks the type, including any type arguments, as used in the current namespace.
+        /// Also marks the type, including any type arguments, as used in the current top class.
         /// </summary>
         private PythonType GetType(SyntaxNode node)
         {
@@ -62,6 +62,14 @@ namespace LeanPythonGenerator.Parse
         /// </summary>
         private PythonType ParseType(ISymbol symbol)
         {
+            // Handle arrays
+            if (symbol is IArrayTypeSymbol arraySymbol)
+            {
+                var listType = new PythonType("List", "typing");
+                listType.TypeParameters.Add(ParseType(arraySymbol.ElementType));
+                return listType;
+            }
+
             // Use Any as fallback
             if (symbol == null || symbol.Name == "" || symbol.ContainingNamespace == null)
             {

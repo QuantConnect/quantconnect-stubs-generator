@@ -19,13 +19,22 @@ jobs:
         run: dotnet build
 
       - name: Clone Lean
-        run: git clone https://github.com/QuantConnect/Lean.git lean
+        run: git clone --depth 1 https://github.com/QuantConnect/Lean.git lean
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
       - name: Run
         run: dotnet run --project LeanPythonGenerator lean lean-types
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
-      - name: List types directory
-        run: ls lean-types
+      - name: Package types
+        uses: montudor/action-zip@v0.1.0
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        with:
+          args: zip -qq -r ./lean-types.zip ./lean-types
+
+      - name: Upload types
+        uses: actions/upload-artifact@v2
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        with:
+          name: lean-types
+          path: lean-types.zip

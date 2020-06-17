@@ -96,10 +96,39 @@ namespace LeanPythonGenerator
                 new FileInfo(typedPath).Directory?.Create();
                 File.Create(typedPath).Close();
 
-                using var writer = new StreamWriter(pyiPath);
-                var renderer = new NamespaceRenderer(writer, 0);
+                using var pyiWriter = new StreamWriter(pyiPath);
+                var renderer = new NamespaceRenderer(pyiWriter, 0);
                 renderer.Render(ns);
             }
+
+            // Render setup.py file supporting local installation
+            var setupPath = Path.GetFullPath("setup.py", _outputDirectory);
+            using var setupWriter = new StreamWriter(setupPath);
+
+            setupWriter.WriteLine("from setuptools import setup");
+            setupWriter.WriteLine();
+            setupWriter.WriteLine("setup(");
+            setupWriter.WriteLine("    name='lean-types',");
+            setupWriter.WriteLine("    version='1.0.0',");
+            setupWriter.WriteLine("    description='Type hinting for QuantConnect\\'s Lean',");
+            setupWriter.WriteLine("    packages=[");
+
+            foreach (var ns in context.GetNamespaces().OrderBy(ns => ns.Name))
+            {
+                setupWriter.WriteLine($"        '{ns.Name}',");
+            }
+
+            setupWriter.WriteLine("    ],");
+            setupWriter.WriteLine("    package_data={");
+
+            foreach (var ns in context.GetNamespaces().OrderBy(ns => ns.Name))
+            {
+                setupWriter.WriteLine($"        '{ns.Name}': ['py.typed', '*.pyi'],");
+            }
+
+            setupWriter.WriteLine("    },");
+            setupWriter.WriteLine("    python_requires='>=3.6'");
+            setupWriter.WriteLine(")");
         }
 
         private void CreateUtilityClasses(ParseContext context)

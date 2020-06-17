@@ -36,5 +36,4 @@ jobs:
         uses: actions/upload-artifact@v2
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         with:
-          name: lean-types
           path: lean-types.zip

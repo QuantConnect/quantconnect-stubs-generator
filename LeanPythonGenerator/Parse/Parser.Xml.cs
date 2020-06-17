@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Xml;
 using Microsoft.CodeAnalysis;
@@ -56,7 +57,15 @@ namespace LeanPythonGenerator.Parse
             }
 
             var doc = new XmlDocument();
-            doc.LoadXml($"<root>{xml}</root>");
+
+            try
+            {
+                doc.LoadXml($"<root>{xml}</root>");
+            }
+            catch (Exception)
+            {
+                doc.LoadXml("<root></root>");
+            }
 
             return doc["root"];
         }

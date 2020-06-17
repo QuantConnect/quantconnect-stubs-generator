@@ -195,6 +195,17 @@ namespace LeanPythonGenerator.Parse
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
+            VisitMethod(node, node.Identifier.Text, node.ParameterList, GetType(node.ReturnType));
+        }
+
+        public override void VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
+        {
+            VisitMethod(node, "__init__", node.ParameterList, _currentClass.Type);
+        }
+
+        private void VisitMethod(MemberDeclarationSyntax node, string name,
+            ParameterListSyntax parameterList, PythonType returnType)
+        {
             if (HasModifier(node, "private"))
             {
                 return;
@@ -209,9 +220,9 @@ namespace LeanPythonGenerator.Parse
             var classContainingMethod = _currentClass;
             var isExtensionMethod = false;
 
-            if (node.ParameterList.Parameters.Count > 0)
+            if (parameterList.Parameters.Count > 0)
             {
-                var firstParameter = node.ParameterList.Parameters[0];
+                var firstParameter = parameterList.Parameters[0];
                 if (firstParameter.Modifiers.Any(modifier => modifier.Text == "this"))
                 {
                     var classType = GetType(firstParameter.Type);
@@ -230,7 +241,7 @@ namespace LeanPythonGenerator.Parse
                 }
             }
 
-            var method = new Method(node.Identifier.Text, GetType(node.ReturnType))
+            var method = new Method(name, returnType)
             {
                 Abstract = classContainingMethod.Interface || HasModifier(node, "abstract"),
                 Static = !isExtensionMethod && (classContainingMethod.Static || HasModifier(node, "static"))
@@ -268,7 +279,7 @@ namespace LeanPythonGenerator.Parse
 
             var docStrings = new List<string>();
 
-            foreach (var parameterSyntax in node.ParameterList.Parameters)
+            foreach (var parameterSyntax in parameterList.Parameters)
             {
                 // Skip the parameter which marks this method as an extension method
                 if (parameterSyntax.Modifiers.Any(modifier => modifier.Text == "this"))

@@ -14,4 +14,4 @@ Although at the time of writing this [QuantConnect/quantconnect-lean](https://gi
 
 ## Development
 
-To further develop the project, clone the repository, `cd` into the LeanPythonGenerator project and run `dotnet run <Lean path> <Output directory>`.
+To run the generator locally, clone the repository, `cd` into the LeanPythonGenerator project and run `dotnet run <Lean directory> <output directory>`.

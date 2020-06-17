@@ -26,15 +26,9 @@ jobs:
         run: dotnet run --project LeanPythonGenerator lean lean-types
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
-      - name: Package types
-        uses: montudor/action-zip@v0.1.0
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-        with:
-          args: zip -qq -r ./lean-types.zip ./lean-types
-
       - name: Upload types
         uses: actions/upload-artifact@v2
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         with:
-          name: lean-types.zip
-          path: lean-types.zip
+          name: lean-types
+          path: lean-types

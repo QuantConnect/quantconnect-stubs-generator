@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/jmerle/lean-python-generator/workflows/Build/badge.svg)](https://github.com/jmerle/lean-python-generator/actions?query=workflow%3ABuild)  
 
-After seeing QuantConnect create the [QuantConnect/quantconnect-lean](https://github.com/QuantConnect/quantconnect-lean) project, I challenged myself to do the same thing (generating Python type hints based on [QuantConnect/Lean's](https://github.com/QuantConnect/Lean) C# codebase) for the heck of it. The resulting project is capable of converting C# classes/structs/enums/interfaces/fields/properties/methods to Python classes/members with the correct type conversions, decorators, generics and documentation.
+After seeing QuantConnect create the [QuantConnect/quantconnect-lean](https://github.com/QuantConnect/quantconnect-lean) project, I liked the idea and wanted to try it for myself (generating Python type hints based on [QuantConnect/Lean's](https://github.com/QuantConnect/Lean) C# codebase). The resulting project is capable of converting C# classes/structs/enums/interfaces/fields/properties/methods to Python classes/members with the correct type conversions, decorators, generics and documentation.
 
 ## Installation
 

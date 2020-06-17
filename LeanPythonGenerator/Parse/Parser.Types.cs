@@ -186,6 +186,8 @@ namespace LeanPythonGenerator.Parse
                         return new PythonType("None");
                     case "DateTime":
                         return new PythonType("datetime", "datetime");
+                    case "TimeSpan":
+                        return new PythonType("timedelta", "datetime");
                     case "Nullable":
                         type.Name = "Optional";
                         type.Namespace = "typing";

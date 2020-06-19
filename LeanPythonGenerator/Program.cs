@@ -84,6 +84,9 @@ namespace LeanPythonGenerator
                 parser.Visit(tree.GetRoot());
             }
 
+            // QuantConnect.Api is removed because of case-sensitivity issues with QuantConnect.API
+            context.RemoveNamespace("QuantConnect.Api");
+
             // Render .pyi files containing type hints for all parsed namespaces
             foreach (var ns in context.GetNamespaces())
             {
@@ -110,7 +113,9 @@ namespace LeanPythonGenerator
             setupWriter.WriteLine("setup(");
             setupWriter.WriteLine("    name='lean-types',");
             setupWriter.WriteLine("    version='1.0.0',");
-            setupWriter.WriteLine("    description='Type hinting for QuantConnect\\'s Lean',");
+            setupWriter.WriteLine("    description='Type stubs for QuantConnect\\'s Lean',");
+            setupWriter.WriteLine("    install_requires=['pandas>=0.25.3'],");
+            setupWriter.WriteLine("    python_requires='>=3.6',");
             setupWriter.WriteLine("    packages=[");
 
             foreach (var ns in context.GetNamespaces().OrderBy(ns => ns.Name))
@@ -126,8 +131,7 @@ namespace LeanPythonGenerator
                 setupWriter.WriteLine($"        '{ns.Name}': ['py.typed', '*.pyi'],");
             }
 
-            setupWriter.WriteLine("    },");
-            setupWriter.WriteLine("    python_requires='>=3.6'");
+            setupWriter.WriteLine("    }");
             setupWriter.WriteLine(")");
         }
 

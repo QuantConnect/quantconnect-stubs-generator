@@ -5,7 +5,7 @@ namespace LeanPythonGenerator.Model
     public class Method
     {
         public string Name { get; }
-        public PythonType ReturnType { get; }
+        public PythonType ReturnType { get; set; }
 
         public bool Abstract { get; set; }
         public bool Static { get; set; }

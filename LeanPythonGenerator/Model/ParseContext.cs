@@ -20,5 +20,10 @@ namespace LeanPythonGenerator.Model
 
             return _namespaces[name];
         }
+
+        public void RemoveNamespace(string name)
+        {
+            _namespaces.Remove(name);
+        }
     }
 }

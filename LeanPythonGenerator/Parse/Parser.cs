@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -307,7 +306,16 @@ namespace LeanPythonGenerator.Parse
                     var element = (XmlElement) paramNodes[i];
                     if (element.Attributes["name"]?.Value == originalName)
                     {
-                        docStrings.Add($":param {parameter.Name}: {element.GetText()}");
+                        var text = element.GetText();
+
+                        docStrings.Add($":param {parameter.Name}: {text}");
+
+                        if (CheckDocSuggestsPandasDataFrame(text))
+                        {
+                            var dfType = new PythonType("DataFrame", "pandas");
+                            _topClass.UsedTypes.Add(dfType);
+                            parameter.Type = dfType;
+                        }
                     }
                 }
 
@@ -316,7 +324,16 @@ namespace LeanPythonGenerator.Parse
 
             if (doc["returns"] != null)
             {
-                docStrings.Add($":returns: {doc["returns"].GetText()}");
+                var text = doc["returns"].GetText();
+
+                docStrings.Add($":returns: {text}");
+
+                if (CheckDocSuggestsPandasDataFrame(text))
+                {
+                    var dfType = new PythonType("DataFrame", "pandas");
+                    _topClass.UsedTypes.Add(dfType);
+                    method.ReturnType = dfType;
+                }
             }
 
             docStrings = docStrings.Select(str => str.Replace('\n', ' ')).ToList();
@@ -519,6 +536,14 @@ namespace LeanPythonGenerator.Parse
                 "enum" => "_enum",
                 _ => name
             };
+        }
+
+        /// <summary>
+        /// Returns whether the provided documentation string suggests that a certain type is a pandas DataFrame.
+        /// </summary>
+        private bool CheckDocSuggestsPandasDataFrame(string doc)
+        {
+            return doc.Contains("pandas DataFrame") || doc.Contains("pandas.DataFrame");
         }
     }
 }

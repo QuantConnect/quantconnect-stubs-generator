@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace LeanPythonGenerator.Utility
+namespace QuantConnectStubsGenerator.Utility
 {
     public static class StringExtensions
     {

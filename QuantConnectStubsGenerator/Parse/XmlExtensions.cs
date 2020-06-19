@@ -1,6 +1,6 @@
 using System.Xml;
 
-namespace LeanPythonGenerator.Parse
+namespace QuantConnectStubsGenerator.Parse
 {
     public static class XmlExtensions
     {

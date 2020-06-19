@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace LeanPythonGenerator.Model
+namespace QuantConnectStubsGenerator.Model
 {
     public class PythonType : IEquatable<PythonType>
     {

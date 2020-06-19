@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using System.Linq;
-using LeanPythonGenerator.Model;
+using QuantConnectStubsGenerator.Model;
 
-namespace LeanPythonGenerator.Render
+namespace QuantConnectStubsGenerator.Render
 {
     public class NamespaceRenderer : BaseRenderer<Namespace>
     {

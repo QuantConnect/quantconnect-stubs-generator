@@ -1,13 +1,13 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using LeanPythonGenerator.Model;
-using LeanPythonGenerator.Parse;
-using LeanPythonGenerator.Render;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using QuantConnectStubsGenerator.Model;
+using QuantConnectStubsGenerator.Parse;
+using QuantConnectStubsGenerator.Render;
 
-namespace LeanPythonGenerator
+namespace QuantConnectStubsGenerator
 {
     class Program
     {
@@ -111,7 +111,7 @@ namespace LeanPythonGenerator
             setupWriter.WriteLine("from setuptools import setup");
             setupWriter.WriteLine();
             setupWriter.WriteLine("setup(");
-            setupWriter.WriteLine("    name='lean-types',");
+            setupWriter.WriteLine("    name='quantconnect-stubs',");
             setupWriter.WriteLine("    version='1.0.0',");
             setupWriter.WriteLine("    description='Type stubs for QuantConnect\\'s Lean',");
             setupWriter.WriteLine("    install_requires=['pandas>=0.25.3'],");

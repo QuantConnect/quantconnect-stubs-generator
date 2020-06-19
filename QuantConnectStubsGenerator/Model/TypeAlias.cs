@@ -1,6 +1,6 @@
 using System;
 
-namespace LeanPythonGenerator.Model
+namespace QuantConnectStubsGenerator.Model
 {
     public class TypeAlias : IEquatable<TypeAlias>
     {

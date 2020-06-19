@@ -1,4 +1,4 @@
-namespace LeanPythonGenerator.Model
+namespace QuantConnectStubsGenerator.Model
 {
     public class Property
     {

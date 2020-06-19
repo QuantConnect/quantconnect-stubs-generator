@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace LeanPythonGenerator.Model
+namespace QuantConnectStubsGenerator.Model
 {
     public class Class
     {

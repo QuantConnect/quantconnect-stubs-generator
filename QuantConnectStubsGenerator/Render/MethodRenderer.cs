@@ -1,9 +1,9 @@
 using System.IO;
 using System.Linq;
-using LeanPythonGenerator.Model;
-using LeanPythonGenerator.Utility;
+using QuantConnectStubsGenerator.Utility;
+using QuantConnectStubsGenerator.Model;
 
-namespace LeanPythonGenerator.Render
+namespace QuantConnectStubsGenerator.Render
 {
     public class MethodRenderer : BaseRenderer<Method>
     {

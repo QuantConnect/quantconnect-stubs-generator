@@ -2,7 +2,7 @@ using System.Linq;
 using System.Xml;
 using Microsoft.CodeAnalysis;
 
-namespace LeanPythonGenerator.Parse
+namespace QuantConnectStubsGenerator.Parse
 {
     public partial class Parser
     {

@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using LeanPythonGenerator.Model;
 using Microsoft.CodeAnalysis;
+using QuantConnectStubsGenerator.Model;
 
-namespace LeanPythonGenerator.Parse
+namespace QuantConnectStubsGenerator.Parse
 {
     public partial class Parser
     {

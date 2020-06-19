@@ -1,7 +1,7 @@
 using System.IO;
 using System.Linq;
 
-namespace LeanPythonGenerator.Render
+namespace QuantConnectStubsGenerator.Render
 {
     public abstract class BaseRenderer<T>
     {

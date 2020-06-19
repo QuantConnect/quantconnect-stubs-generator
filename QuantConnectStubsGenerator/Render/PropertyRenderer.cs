@@ -1,8 +1,8 @@
 using System.IO;
-using LeanPythonGenerator.Model;
-using LeanPythonGenerator.Utility;
+using QuantConnectStubsGenerator.Utility;
+using QuantConnectStubsGenerator.Model;
 
-namespace LeanPythonGenerator.Render
+namespace QuantConnectStubsGenerator.Render
 {
     public class PropertyRenderer : BaseRenderer<Property>
     {

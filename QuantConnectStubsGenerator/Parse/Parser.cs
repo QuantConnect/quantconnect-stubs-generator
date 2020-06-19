@@ -2,12 +2,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
-using LeanPythonGenerator.Model;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using QuantConnectStubsGenerator.Model;
 
-namespace LeanPythonGenerator.Parse
+namespace QuantConnectStubsGenerator.Parse
 {
     /// <summary>
     /// The parser which is responsible for parsing all relevant information in all C# files to the ParseContext.

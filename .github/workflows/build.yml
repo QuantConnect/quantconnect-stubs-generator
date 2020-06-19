@@ -23,18 +23,18 @@ jobs:
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
       - name: Run
-        run: dotnet run --project LeanPythonGenerator lean lean-types
+        run: dotnet run --project QuantConnectStubsGenerator lean quantconnect-stubs
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
       - name: Package types
         uses: montudor/action-zip@v0.1.0
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         with:
-          args: zip -qq -r lean-types.zip lean-types
+          args: zip -qq -r quantconnect-stubs.zip quantconnect-stubs
 
       - name: Upload types
         uses: actions/upload-artifact@v2
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         with:
-          name: lean-types
-          path: lean-types.zip
+          name: quantconnect-stubs
+          path: quantconnect-stubs.zip

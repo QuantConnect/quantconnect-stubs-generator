@@ -42,7 +42,20 @@ namespace LeanPythonGenerator.Model
             }
 
             str += "[";
-            str += string.Join(", ", TypeParameters.Select(type => type.ToString(currentNamespace)));
+
+            // Callable require all type parameters but the last to be in a list
+            if (Namespace == "typing" && Name == "Callable")
+            {
+                str += "[";
+                str += string.Join(", ", TypeParameters.SkipLast(1).Select(type => type.ToString(currentNamespace)));
+                str += "], ";
+                str += TypeParameters.Last().ToString(currentNamespace);
+            }
+            else
+            {
+                str += string.Join(", ", TypeParameters.Select(type => type.ToString(currentNamespace)));
+            }
+
             str += "]";
 
             return str;

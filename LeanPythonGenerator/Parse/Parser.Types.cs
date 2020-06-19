@@ -193,6 +193,11 @@ namespace LeanPythonGenerator.Parse
                         type.Namespace = "typing";
                         type.IsNamedTypeParameter = false;
                         break;
+                    case "Func":
+                        type.Name = "Callable";
+                        type.Namespace = "typing";
+                        type.IsNamedTypeParameter = false;
+                        break;
                 }
             }
 

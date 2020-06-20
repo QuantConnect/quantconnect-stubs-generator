@@ -261,30 +261,22 @@ namespace QuantConnectStubsGenerator.Parse
         /// </summary>
         private void MarkTypeUsed(PythonType type)
         {
-            var typeQueue = new Queue<PythonType>();
-            typeQueue.Enqueue(type);
+            _topClass.UsedTypes.Add(type);
 
-            while (typeQueue.Count > 0)
+            if (type.IsNamedTypeParameter)
             {
-                var currentType = typeQueue.Dequeue();
+                _currentNamespace.TypeParameterNames.Add(type.Name);
+                _topClass.UsedTypes.Add(new PythonType("TypeVar", "typing"));
+            }
 
-                _topClass.UsedTypes.Add(currentType);
+            if (type.Alias != null)
+            {
+                _currentNamespace.TypeAliases.Add(new TypeAlias(type.Alias, type));
+            }
 
-                if (currentType.IsNamedTypeParameter)
-                {
-                    _currentNamespace.TypeParameterNames.Add(currentType.Name);
-                    _topClass.UsedTypes.Add(new PythonType("TypeVar", "typing"));
-                }
-
-                if (currentType.Alias != null)
-                {
-                    _currentNamespace.TypeAliases.Add(new TypeAlias(currentType.Alias, currentType));
-                }
-
-                foreach (var typeParameter in currentType.TypeParameters)
-                {
-                    typeQueue.Enqueue(typeParameter);
-                }
+            foreach (var typeParameter in type.TypeParameters)
+            {
+                MarkTypeUsed(typeParameter);
             }
         }
     }

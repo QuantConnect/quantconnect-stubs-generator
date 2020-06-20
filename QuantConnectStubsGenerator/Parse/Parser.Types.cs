@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using QuantConnectStubsGenerator.Model;
@@ -16,34 +17,7 @@ namespace QuantConnectStubsGenerator.Parse
         private PythonType GetType(ISymbol symbol)
         {
             var type = ParseType(symbol);
-
-            // Mark all types in type and its type parameters as used in the current top class
-            var typeQueue = new Queue<PythonType>();
-            typeQueue.Enqueue(type);
-
-            while (typeQueue.Count > 0)
-            {
-                var currentType = typeQueue.Dequeue();
-
-                _topClass.UsedTypes.Add(currentType);
-
-                if (currentType.IsNamedTypeParameter)
-                {
-                    _currentNamespace.TypeParameterNames.Add(currentType.Name);
-                    _topClass.UsedTypes.Add(new PythonType("TypeVar", "typing"));
-                }
-
-                if (currentType.Alias != null)
-                {
-                    _currentNamespace.TypeAliases.Add(new TypeAlias(currentType.Alias, currentType));
-                }
-
-                foreach (var typeParameter in currentType.TypeParameters)
-                {
-                    typeQueue.Enqueue(typeParameter);
-                }
-            }
-
+            MarkTypesUsed(type);
             return type;
         }
 
@@ -52,9 +26,16 @@ namespace QuantConnectStubsGenerator.Parse
         /// Returns Any if there is no Python type for the given node.
         /// Also marks the type, including any type arguments, as used in the current top class.
         /// </summary>
+        [SuppressMessage("ReSharper", "ConstantNullCoalescingCondition")]
+        [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalse")]
         private PythonType GetType(SyntaxNode node)
         {
-            return GetType(_model.GetDeclaredSymbol(node) ?? _model.GetSymbolInfo(node).Symbol);
+            var symbol = _model.GetDeclaredSymbol(node) ?? _model.GetSymbolInfo(node).Symbol;
+            var type = symbol != null ? ParseType(symbol) : NodeTextToPythonType(node.ToString());
+
+            MarkTypesUsed(type);
+
+            return type;
         }
 
         /// <summary>
@@ -249,6 +230,62 @@ namespace QuantConnectStubsGenerator.Parse
             }
 
             return type;
+        }
+
+        /// <summary>
+        /// Attempts to convert the text of a node to a Python type.
+        /// If it is unable to convert the given type, the result of ParseType(null) is returned.
+        /// </summary>
+        private PythonType NodeTextToPythonType(string text)
+        {
+            PythonType type = null;
+
+            switch (text)
+            {
+                case "PyList":
+                    type = new PythonType("List", "typing");
+                    type.TypeParameters.Add(new PythonType("Any", "typing"));
+                    break;
+                case "PyDict":
+                    type = new PythonType("Dict", "typing");
+                    type.TypeParameters.Add(new PythonType("Any", "typing"));
+                    type.TypeParameters.Add(new PythonType("Any", "typing"));
+                    break;
+            }
+
+            return type ?? ParseType(null);
+        }
+
+        /// <summary>
+        /// Marks the given type and all of its type arguments as used in the current top class.
+        /// </summary>
+        private void MarkTypesUsed(PythonType type)
+        {
+            var typeQueue = new Queue<PythonType>();
+            typeQueue.Enqueue(type);
+
+            while (typeQueue.Count > 0)
+            {
+                var currentType = typeQueue.Dequeue();
+
+                _topClass.UsedTypes.Add(currentType);
+
+                if (currentType.IsNamedTypeParameter)
+                {
+                    _currentNamespace.TypeParameterNames.Add(currentType.Name);
+                    _topClass.UsedTypes.Add(new PythonType("TypeVar", "typing"));
+                }
+
+                if (currentType.Alias != null)
+                {
+                    _currentNamespace.TypeAliases.Add(new TypeAlias(currentType.Alias, currentType));
+                }
+
+                foreach (var typeParameter in currentType.TypeParameters)
+                {
+                    typeQueue.Enqueue(typeParameter);
+                }
+            }
         }
     }
 }

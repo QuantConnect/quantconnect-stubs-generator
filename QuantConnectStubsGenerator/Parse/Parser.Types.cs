@@ -17,7 +17,7 @@ namespace QuantConnectStubsGenerator.Parse
         private PythonType GetType(ISymbol symbol)
         {
             var type = ParseType(symbol);
-            MarkTypesUsed(type);
+            MarkTypeUsed(type);
             return type;
         }
 
@@ -33,7 +33,7 @@ namespace QuantConnectStubsGenerator.Parse
             var symbol = _model.GetDeclaredSymbol(node) ?? _model.GetSymbolInfo(node).Symbol;
             var type = symbol != null ? ParseType(symbol) : NodeTextToPythonType(node.ToString());
 
-            MarkTypesUsed(type);
+            MarkTypeUsed(type);
 
             return type;
         }
@@ -259,7 +259,7 @@ namespace QuantConnectStubsGenerator.Parse
         /// <summary>
         /// Marks the given type and all of its type arguments as used in the current top class.
         /// </summary>
-        private void MarkTypesUsed(PythonType type)
+        private void MarkTypeUsed(PythonType type)
         {
             var typeQueue = new Queue<PythonType>();
             typeQueue.Enqueue(type);

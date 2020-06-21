@@ -515,7 +515,7 @@ namespace QuantConnectStubsGenerator.Parse
             // If the value contains certain characters it doesn't have a Python equivalent
             if (value.Contains("new ") || value.Contains("<") || value.Contains("(") || value.Contains("@\""))
             {
-                return "None";
+                return "...";
             }
 
             return value;

@@ -182,7 +182,7 @@ namespace QuantConnectStubsGenerator.Parse
                 }
             }
 
-            // Dictionaries
+            // IEnumerable<KeyValuePair<K, V>>
             if (type.Namespace == "System.Collections.Generic"
                 && type.Name == "IEnumerable"
                 && type.TypeParameters.Count == 1
@@ -192,6 +192,14 @@ namespace QuantConnectStubsGenerator.Parse
                 type.Name = "Dict";
                 type.Namespace = "typing";
                 type.TypeParameters = type.TypeParameters[0].TypeParameters;
+                type.IsNamedTypeParameter = false;
+            }
+
+            // Dictionaries
+            if (type.Namespace == "System.Collections.Generic" && type.Name == "IDictionary")
+            {
+                type.Name = "Dict";
+                type.Namespace = "typing";
                 type.IsNamedTypeParameter = false;
             }
 

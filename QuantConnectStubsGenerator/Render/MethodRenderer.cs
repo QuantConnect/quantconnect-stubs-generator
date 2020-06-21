@@ -55,7 +55,7 @@ namespace QuantConnectStubsGenerator.Render
                 WriteLine($"\"\"\"\n{method.Summary}\n\"\"\"".Indent());
             }
 
-            WriteLine("pass".Indent());
+            WriteLine("...".Indent());
             WriteLine();
             WriteLine();
         }

@@ -1,6 +1,6 @@
 using System.IO;
-using QuantConnectStubsGenerator.Utility;
 using QuantConnectStubsGenerator.Model;
+using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Render
 {
@@ -72,7 +72,7 @@ namespace QuantConnectStubsGenerator.Render
                 WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"".Indent());
             }
 
-            WriteLine("pass".Indent());
+            WriteLine("...".Indent());
             WriteLine();
             WriteLine();
 
@@ -95,7 +95,7 @@ namespace QuantConnectStubsGenerator.Render
                 WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"".Indent());
             }
 
-            WriteLine("pass".Indent());
+            WriteLine("...".Indent());
             WriteLine();
             WriteLine();
         }

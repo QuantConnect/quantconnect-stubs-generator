@@ -4,7 +4,7 @@
 
 After seeing QuantConnect create the [QuantConnect/quantconnect-lean](https://github.com/QuantConnect/quantconnect-lean) project, I liked the idea and wanted to try it for myself (generating Python type hints based on [QuantConnect/Lean's](https://github.com/QuantConnect/Lean) C# codebase). The resulting project is capable of converting C# classes/structs/enums/interfaces/fields/properties/methods to Python classes/members with the correct type conversions, decorators, generics and documentation.
 
-Note that the focus of this project is on improving a local QuantConnect development workflow using IntelliJ IDEA with the Python plugin. As long as JetBrains' Python plugin can interpret it, the focus is not on generating completely valid MyPy types.
+Note that the focus of this project is on improving a local QuantConnect development workflow using IntelliJ IDEA with the Python plugin. As long as JetBrains' Python plugin can interpret it, the focus is not on generating completely valid Mypy types.
 
 ## Installation
 

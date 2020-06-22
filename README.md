@@ -12,7 +12,7 @@ Although at the time of writing this [QuantConnect/quantconnect-lean](https://gi
 1. Download the quantconnect-stubs artifact from the latest build listed [here](https://github.com/jmerle/quantconnect-stubs-generator/actions?query=workflow%3ABuild+branch%3Amaster+event%3Apush+is%3Asuccess).
 2. Extract the downloaded zip. It may contain another zip, extract that one as well if that is the case.
 3. `cd` into the directory you extracted the last zip to, it should contain a `setup.py` file.
-4. Run `python setup.py install`.
+4. Run `pip install .`.
 
 ## Development
 

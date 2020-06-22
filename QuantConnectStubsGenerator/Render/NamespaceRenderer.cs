@@ -25,7 +25,7 @@ namespace QuantConnectStubsGenerator.Render
             var typesToImport = ns
                 .GetClasses()
                 .SelectMany(cls => cls.UsedTypes)
-                .Where(type => type.Namespace != null && type.Namespace != ns.Name)
+                .Where(type => type.Namespace != null)
                 .OrderBy(type => type.Namespace, StringComparer.Ordinal)
                 .GroupBy(type => type.Namespace)
                 .ToList();
@@ -41,7 +41,14 @@ namespace QuantConnectStubsGenerator.Render
                     .Select(type => type.Name.Split(".")[0])
                     .Distinct();
 
-                WriteLine($"from {group.Key} import {string.Join(", ", types)}");
+                if (!group.Key.StartsWith("QuantConnect") && !group.Key.StartsWith("Oanda"))
+                {
+                    WriteLine($"from {group.Key} import {string.Join(", ", types)}");
+                }
+                else
+                {
+                    WriteLine($"import {group.Key}");
+                }
             }
 
             WriteLine();
@@ -115,7 +122,10 @@ namespace QuantConnectStubsGenerator.Render
                 // Remove the rendered class from all other class' UsedTypes sets
                 foreach (var cls in classesToRender)
                 {
-                    cls.UsedTypes = cls.UsedTypes.Where(type => !type.Equals(classToRender.Type)).ToHashSet();
+                    cls.UsedTypes = cls
+                        .UsedTypes
+                        .Where(type => !type.Name.StartsWith(classToRender.Type.Name))
+                        .ToHashSet();
                 }
             }
         }

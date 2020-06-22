@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -79,7 +80,7 @@ namespace QuantConnectStubsGenerator.Render
         {
             var methodRenderer = new MethodRenderer(_writer, _indentationLevel + 1, _namespace);
 
-            foreach (var method in cls.Methods)
+            foreach (var method in cls.Methods.OrderBy(method => method.Name))
             {
                 methodRenderer.Render(method);
             }

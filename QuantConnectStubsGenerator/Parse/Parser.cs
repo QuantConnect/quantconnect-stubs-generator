@@ -168,7 +168,7 @@ namespace QuantConnectStubsGenerator.Parse
                 {
                     Type = GetType(node.Declaration.Type),
                     ReadOnly = HasModifier(node, "readonly") || HasModifier(node, "const"),
-                    Static = _currentClass.Static || HasModifier(node, "static"),
+                    Static = _currentClass.Static || HasModifier(node, "static") || HasModifier(node, "const"),
                     Abstract = _currentClass.Interface || HasModifier(node, "abstract")
                 };
 
@@ -199,7 +199,22 @@ namespace QuantConnectStubsGenerator.Parse
 
         public override void VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
         {
-            VisitMethod(node, "__init__", node.ParameterList, _currentClass.Type);
+            if (HasModifier(node, "static"))
+            {
+                return;
+            }
+
+            VisitMethod(node, "__init__", node.ParameterList, new PythonType("None"));
+        }
+
+        public override void VisitDelegateDeclaration(DelegateDeclarationSyntax node)
+        {
+            if (_topClass == null)
+            {
+                return;
+            }
+
+            VisitMethod(node, node.Identifier.Text, node.ParameterList, GetType(node.ReturnType));
         }
 
         private void VisitMethod(MemberDeclarationSyntax node, string name,
@@ -211,7 +226,7 @@ namespace QuantConnectStubsGenerator.Parse
             }
 
             // Skip extension methods like IEnumerable.GetEnumerator() in Slice
-            if (GetType(node).ToString().Contains("System."))
+            if (GetType(node, false).ToString().Contains("System."))
             {
                 return;
             }
@@ -224,7 +239,13 @@ namespace QuantConnectStubsGenerator.Parse
                 var firstParameter = parameterList.Parameters[0];
                 if (firstParameter.Modifiers.Any(modifier => modifier.Text == "this"))
                 {
-                    var classType = GetType(firstParameter.Type);
+                    var classType = GetType(firstParameter.Type, false);
+
+                    // Skip extension methods on generic types
+                    if (classType.IsNamedTypeParameter)
+                    {
+                        return;
+                    }
 
                     // Skip extension methods on non-QC data types
                     if (classType.Namespace == null
@@ -234,6 +255,8 @@ namespace QuantConnectStubsGenerator.Parse
                         return;
                     }
 
+                    MarkTypeUsed(classType);
+
                     var ns = _context.GetNamespaceByName(classType.Namespace);
                     classContainingMethod = ns.GetClassByType(classType);
                     isExtensionMethod = true;
@@ -242,17 +265,33 @@ namespace QuantConnectStubsGenerator.Parse
 
             var method = new Method(name, returnType)
             {
-                Abstract = classContainingMethod.Interface || HasModifier(node, "abstract"),
+                Abstract = (!isExtensionMethod && classContainingMethod.Interface) || HasModifier(node, "abstract"),
                 Static = !isExtensionMethod && (classContainingMethod.Static || HasModifier(node, "static"))
             };
 
             var symbol = _model.GetDeclaredSymbol(node);
             if (symbol != null)
             {
-                method.Overload = symbol
-                    .ContainingType
-                    .GetMembers()
-                    .Count(member => member.Name == method.Name) > 1;
+                int memberCount;
+
+                if (name == "__init__")
+                {
+                    memberCount = symbol
+                        .ContainingType
+                        .InstanceConstructors
+                        .Count(ctor =>
+                            !ctor.IsImplicitlyDeclared && ctor.DeclaredAccessibility != Accessibility.Private);
+                }
+                else
+                {
+                    memberCount = symbol
+                        .ContainingType
+                        .GetMembers()
+                        .Count(member =>
+                            member.DeclaredAccessibility != Accessibility.Private && member.Name == method.Name);
+                }
+
+                method.Overload = memberCount > 1;
             }
 
             if (method.Abstract)
@@ -293,6 +332,14 @@ namespace QuantConnectStubsGenerator.Parse
                 {
                     parameter.VarArgs = true;
                     parameter.Type = parameter.Type.TypeParameters[0];
+                }
+
+                if (parameter.Type.Namespace == "QuantConnect" && parameter.Type.Name == "Symbol")
+                {
+                    var unionType = new PythonType("Union", "typing");
+                    unionType.TypeParameters.Add(parameter.Type);
+                    unionType.TypeParameters.Add(new PythonType("str"));
+                    parameter.Type = unionType;
                 }
 
                 if (parameterSyntax.Default != null)
@@ -416,13 +463,6 @@ namespace QuantConnectStubsGenerator.Parse
                 return;
             }
 
-            if (node is InterfaceDeclarationSyntax || HasModifier(node, "abstract"))
-            {
-                var abcType = new PythonType("ABC", "abc");
-                _currentClass.InheritsFrom.Add(abcType);
-                _topClass.UsedTypes.Add(abcType);
-            }
-
             if (symbol.BaseType != null)
             {
                 var ns = symbol.BaseType.ContainingNamespace.Name;
@@ -441,6 +481,14 @@ namespace QuantConnectStubsGenerator.Parse
             foreach (var typeSymbol in symbol.Interfaces)
             {
                 _currentClass.InheritsFrom.Add(GetType(typeSymbol));
+            }
+
+            if (symbol.Interfaces.Length == 0
+                && (node is InterfaceDeclarationSyntax || HasModifier(node, "abstract")))
+            {
+                var abcType = new PythonType("ABC", "abc");
+                _currentClass.InheritsFrom.Add(abcType);
+                MarkTypeUsed(abcType);
             }
         }
 
@@ -506,19 +554,21 @@ namespace QuantConnectStubsGenerator.Parse
                 return value;
             }
 
-            // Strings
+            // @"" strings
             if (value.StartsWith("@\"") && value.EndsWith("\""))
             {
                 value = value.Substring(1);
             }
 
-            // If the value contains certain characters it doesn't have a Python equivalent
-            if (value.Contains("new ") || value.Contains("<") || value.Contains("(") || value.Contains("@\""))
+            // Strings
+            if (value.StartsWith("\"")
+                && value.EndsWith("\"")
+                && !value.Substring(1, value.Length - 2).Contains("\""))
             {
-                return "...";
+                return value;
             }
 
-            return value;
+            return "...";
         }
 
         private string FormatParameterName(string name)
@@ -534,6 +584,7 @@ namespace QuantConnectStubsGenerator.Parse
             {
                 "from" => "_from",
                 "enum" => "_enum",
+                "lambda" => "_lambda",
                 _ => name
             };
         }

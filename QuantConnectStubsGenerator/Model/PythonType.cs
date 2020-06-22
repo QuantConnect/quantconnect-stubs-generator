@@ -25,7 +25,16 @@ namespace QuantConnectStubsGenerator.Model
                 return Alias;
             }
 
-            var str = Name;
+            var str = "";
+
+            if (!IsNamedTypeParameter
+                && Namespace != null
+                && (Namespace.StartsWith("QuantConnect") || Namespace.StartsWith("Oanda")))
+            {
+                str += $"{Namespace}.";
+            }
+
+            str += Name;
 
             // Quote all forward-defined types
             if (!IsNamedTypeParameter

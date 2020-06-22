@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -12,28 +11,36 @@ namespace QuantConnectStubsGenerator.Parse
         /// <summary>
         /// Returns the Python type of the given symbol.
         /// Returns Any if there is no Python type for the given symbol.
-        /// Also marks the type, including any type arguments, as used in the current top class.
+        /// Also marks the type, including any type arguments, as used in the current top class if asked to do so.
         /// </summary>
-        private PythonType GetType(ISymbol symbol)
+        private PythonType GetType(ISymbol symbol, bool markUsed = true)
         {
             var type = ParseType(symbol);
-            MarkTypeUsed(type);
+
+            if (markUsed)
+            {
+                MarkTypeUsed(type);
+            }
+
             return type;
         }
 
         /// <summary>
         /// Returns the Python type of the given node.
         /// Returns Any if there is no Python type for the given node.
-        /// Also marks the type, including any type arguments, as used in the current top class.
+        /// Also marks the type, including any type arguments, as used in the current top class if asked to do so.
         /// </summary>
         [SuppressMessage("ReSharper", "ConstantNullCoalescingCondition")]
         [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalse")]
-        private PythonType GetType(SyntaxNode node)
+        private PythonType GetType(SyntaxNode node, bool markUsed = true)
         {
             var symbol = _model.GetDeclaredSymbol(node) ?? _model.GetSymbolInfo(node).Symbol;
             var type = symbol != null ? ParseType(symbol) : NodeTextToPythonType(node.ToString());
 
-            MarkTypeUsed(type);
+            if (markUsed)
+            {
+                MarkTypeUsed(type);
+            }
 
             return type;
         }
@@ -69,19 +76,24 @@ namespace QuantConnectStubsGenerator.Parse
 
             if (name == null)
             {
-                name = symbol.Name;
+                if (symbol is IMethodSymbol)
+                {
+                    name = symbol.Name;
+                }
+                else
+                {
+                    var nameParts = new List<string>();
 
-                // Add parent classes to the name
-                var fullName = symbol.ToString();
-                var fullNamespace = symbol.ContainingNamespace.ToDisplayString();
-                var nameWithoutNamespace = fullName!.Replace(fullNamespace + ".", "");
+                    var currentSymbol = symbol;
+                    while (currentSymbol != null)
+                    {
+                        nameParts.Add(currentSymbol.Name);
+                        currentSymbol = currentSymbol.ContainingType;
+                    }
 
-                var nameIndex = nameWithoutNamespace.IndexOf(name, StringComparison.Ordinal);
-                var prefix = nameIndex > 0
-                    ? nameWithoutNamespace.Substring(0, nameIndex)
-                    : "";
-
-                name = prefix + name;
+                    nameParts.Reverse();
+                    name = string.Join(".", nameParts);
+                }
             }
 
             var ns = symbol.ContainingNamespace.ToDisplayString();
@@ -175,6 +187,7 @@ namespace QuantConnectStubsGenerator.Parse
                         type.IsNamedTypeParameter = false;
                         break;
                     case "Func":
+                    case "Action":
                         type.Name = "Callable";
                         type.Namespace = "typing";
                         type.IsNamedTypeParameter = false;
@@ -201,6 +214,17 @@ namespace QuantConnectStubsGenerator.Parse
                 type.Name = "Dict";
                 type.Namespace = "typing";
                 type.IsNamedTypeParameter = false;
+            }
+
+            // Symbol as first type parameter
+            if (type.TypeParameters.Count > 0
+                && type.TypeParameters[0].Namespace == "QuantConnect"
+                && type.TypeParameters[0].Name == "Symbol")
+            {
+                var unionType = new PythonType("Union", "typing");
+                unionType.TypeParameters.Add(type.TypeParameters[0]);
+                unionType.TypeParameters.Add(new PythonType("str"));
+                type.TypeParameters[0] = unionType;
             }
 
             // Lists

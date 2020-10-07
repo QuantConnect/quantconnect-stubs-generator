@@ -34,7 +34,7 @@ jobs:
       - name: Install integration test dependencies
         run: |
           pip install mypy
-          yarn global add pyright
+          npm install --global pyright
 
       - name: Run integration tests
         run: python integration_tests.py

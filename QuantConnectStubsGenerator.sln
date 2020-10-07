@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantConnectStubsGenerator", "QuantConnectStubsGenerator\QuantConnectStubsGenerator.csproj", "{80A85FFC-73C4-4112-B835-3FDEAEC3A220}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantConnectStubsGenerator", "QuantConnectStubsGenerator\QuantConnectStubsGenerator.csproj", "{61A6CF0C-1044-4787-9ECB-7CF00B5DAF8C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantConnectStubsGenerator.Tests", "QuantConnectStubsGenerator.Tests\QuantConnectStubsGenerator.Tests.csproj", "{C9BD53DA-57D8-4096-85D5-122224A055F5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -8,9 +10,13 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{80A85FFC-73C4-4112-B835-3FDEAEC3A220}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{80A85FFC-73C4-4112-B835-3FDEAEC3A220}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{80A85FFC-73C4-4112-B835-3FDEAEC3A220}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{80A85FFC-73C4-4112-B835-3FDEAEC3A220}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61A6CF0C-1044-4787-9ECB-7CF00B5DAF8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61A6CF0C-1044-4787-9ECB-7CF00B5DAF8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61A6CF0C-1044-4787-9ECB-7CF00B5DAF8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61A6CF0C-1044-4787-9ECB-7CF00B5DAF8C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9BD53DA-57D8-4096-85D5-122224A055F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9BD53DA-57D8-4096-85D5-122224A055F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9BD53DA-57D8-4096-85D5-122224A055F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9BD53DA-57D8-4096-85D5-122224A055F5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

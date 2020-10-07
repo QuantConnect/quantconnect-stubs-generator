@@ -1,19 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace QuantConnectStubsGenerator.Model
 {
     public class Namespace
     {
         public string Name { get; }
-
-        public ISet<TypeAlias> TypeAliases { get; } = new HashSet<TypeAlias>();
-
-        public ISet<string> TypeParameterNames { get; } = new HashSet<string>();
-
-        /// <summary>
-        /// Property used by renderers containing all types in the current namespace that have already been rendered.
-        /// </summary>
-        public ISet<PythonType> DefinedInternalTypes { get; } = new HashSet<PythonType>();
 
         private readonly IDictionary<string, Class> _classes = new Dictionary<string, Class>();
 
@@ -22,19 +15,41 @@ namespace QuantConnectStubsGenerator.Model
             Name = name;
         }
 
-        public IEnumerable<Class> GetClasses()
+        public IEnumerable<Class> GetParentClasses()
         {
-            return _classes.Values;
+            return _classes.Values.Where(cls => cls.ParentClass == null);
         }
 
         public Class GetClassByType(PythonType type)
         {
-            if (!_classes.ContainsKey(type.Name))
+            var key = GetClassKey(type);
+
+            if (_classes.ContainsKey(key))
             {
-                _classes[type.Name] = new Class(type);
+                return _classes[key];
             }
 
-            return _classes[type.Name];
+            throw new ArgumentException($"No class has been registered with type '{type.ToPythonString()}'");
+        }
+
+        public bool HasClass(PythonType type)
+        {
+            return _classes.ContainsKey(GetClassKey(type));
+        }
+
+        public void RegisterClass(Class cls)
+        {
+            _classes[GetClassKey(cls)] = cls;
+        }
+
+        private string GetClassKey(PythonType type)
+        {
+            return $"{type.Namespace}.{type.Name}";
+        }
+
+        private string GetClassKey(Class cls)
+        {
+            return GetClassKey(cls.Type);
         }
     }
 }

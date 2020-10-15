@@ -128,6 +128,9 @@ namespace QuantConnectStubsGenerator.Parser
                 types.Remove(listType);
             }
 
+            // Python classes can't extend their parent classes
+            types = types.Select(type => IsParentClass(type) ? ToAnyAlias(type) : type).ToList();
+
             return types;
         }
 
@@ -139,6 +142,31 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             return null;
+        }
+
+        private bool IsParentClass(PythonType type)
+        {
+            var current = _currentClass;
+
+            while (current != null)
+            {
+                if (current.Type.Name == type.Name && current.Type.Namespace == type.Namespace)
+                {
+                    return true;
+                }
+
+                current = current.ParentClass;
+            }
+
+            return false;
+        }
+
+        private PythonType ToAnyAlias(PythonType type)
+        {
+            return new PythonType("Any", "typing")
+            {
+                Alias = $"{type.Namespace.Replace('.', '_')}_{type.Name}"
+            };
         }
     }
 }

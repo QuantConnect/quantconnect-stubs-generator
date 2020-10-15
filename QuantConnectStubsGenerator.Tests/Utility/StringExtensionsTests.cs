@@ -3,7 +3,7 @@ using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Tests.Utility
 {
-    [TestFixture, Category("Unit")]
+    [TestFixture]
     public class StringExtensionsTests
     {
         [Test]

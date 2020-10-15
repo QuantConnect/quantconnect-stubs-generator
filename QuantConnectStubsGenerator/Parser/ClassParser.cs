@@ -100,13 +100,22 @@ namespace QuantConnectStubsGenerator.Parser
                 }
             }
 
+            var currentType = _typeConverter.GetType(node);
+
             // C# classes can extend the same interface twice with different generics, Python classes can't
             var usedInterfaces = new HashSet<INamedTypeSymbol>();
             foreach (var typeSymbol in symbol.Interfaces)
             {
                 if (usedInterfaces.Add(typeSymbol.ConstructedFrom))
                 {
-                    types.Add(_typeConverter.GetType(typeSymbol));
+                    var parsedTypeSymbol = _typeConverter.GetType(typeSymbol);
+
+                    // Don't make classes inherit themselves
+                    if (currentType.Namespace != parsedTypeSymbol.Namespace
+                        || currentType.Name != parsedTypeSymbol.Name)
+                    {
+                        types.Add(parsedTypeSymbol);
+                    }
                 }
             }
 

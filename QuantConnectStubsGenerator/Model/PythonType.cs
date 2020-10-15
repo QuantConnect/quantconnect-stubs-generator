@@ -1,9 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace QuantConnectStubsGenerator.Model
 {
-    public class PythonType
+    public class PythonType : IEquatable<PythonType>
     {
         public string Name { get; set; }
         public string Namespace { get; set; }
@@ -65,6 +66,28 @@ namespace QuantConnectStubsGenerator.Model
             str += "]";
 
             return str;
+        }
+
+        public bool Equals(PythonType other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Name == other.Name
+                   && Namespace == other.Namespace
+                   && Alias == other.Alias
+                   && IsNamedTypeParameter == other.IsNamedTypeParameter;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((PythonType) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Name, Namespace, Alias, IsNamedTypeParameter);
         }
     }
 }

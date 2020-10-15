@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using QuantConnectStubsGenerator.Model;
+using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Renderer
 {
@@ -99,11 +100,27 @@ namespace QuantConnectStubsGenerator.Renderer
 
         private void RenderClasses(Namespace ns)
         {
-            // TODO: Create a dependency graph and render classes in such order to prevent forward references
+            var dependencyGraph = new DependencyGraph();
+
+            foreach (var cls in ns.GetParentClasses())
+            {
+                dependencyGraph.AddClass(cls);
+            }
+
+            foreach (var cls in ns.GetParentClasses())
+            {
+                foreach (var type in cls.GetUsedTypes())
+                {
+                    if (type != cls.Type)
+                    {
+                        dependencyGraph.AddDependency(cls, type);
+                    }
+                }
+            }
 
             var classRenderer = CreateRenderer<ClassRenderer>(false);
 
-            foreach (var cls in ns.GetParentClasses())
+            foreach (var cls in dependencyGraph.GetClassesInOrder())
             {
                 classRenderer.Render(cls);
             }

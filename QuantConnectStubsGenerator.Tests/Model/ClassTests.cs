@@ -4,7 +4,7 @@ using QuantConnectStubsGenerator.Model;
 
 namespace QuantConnectStubsGenerator.Tests.Model
 {
-    [TestFixture, Category("Unit")]
+    [TestFixture]
     public class ClassTests
     {
         [Test]

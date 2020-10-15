@@ -111,10 +111,7 @@ namespace QuantConnectStubsGenerator.Renderer
             {
                 foreach (var type in cls.GetUsedTypes())
                 {
-                    if (type != cls.Type)
-                    {
-                        dependencyGraph.AddDependency(cls, type);
-                    }
+                    dependencyGraph.AddDependency(cls, type);
                 }
             }
 

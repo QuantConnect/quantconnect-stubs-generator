@@ -31,6 +31,14 @@ namespace QuantConnectStubsGenerator.Utility
                 throw new ArgumentException($"'{cls.Type.ToPythonString()}' has not been registered using AddClass");
             }
 
+            type = GetParentType(type);
+
+            // Classes can't depend on themselves
+            if (Equals(cls.Type, type))
+            {
+                return;
+            }
+
             // Only dependencies between the registered classes are considered
             if (!_classes.ContainsKey(type))
             {
@@ -43,6 +51,21 @@ namespace QuantConnectStubsGenerator.Utility
         public IEnumerable<Class> GetClassesInOrder()
         {
             return _graph.TopologicalSort().Select(type => _classes[type]).Reverse();
+        }
+
+        private PythonType GetParentType(PythonType type)
+        {
+            if (!type.Name.Contains("."))
+            {
+                return type;
+            }
+
+            return new PythonType(type.Name.Substring(0, type.Name.IndexOf('.')), type.Namespace)
+            {
+                Alias = type.Alias,
+                IsNamedTypeParameter = type.IsNamedTypeParameter,
+                TypeParameters = type.TypeParameters
+            };
         }
     }
 }

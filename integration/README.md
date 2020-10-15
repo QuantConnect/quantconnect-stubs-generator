@@ -1,6 +1,6 @@
 # Integration Tests
 
-This directory contains the integration tests. These are written in Python because there NUnit runners don't seem to consistently log both external process output and `Console.WriteLine` messages, making debugging a lot harder.
+This directory contains the integration tests. These are written in Python because the NUnit runners don't seem to consistently log both external process output and `Console.WriteLine` messages, making debugging a lot harder.
 
 ## Usage
 

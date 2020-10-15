@@ -3,6 +3,8 @@ using System.IO;
 using System.Reflection;
 using log4net;
 using log4net.Config;
+using log4net.Core;
+using log4net.Repository.Hierarchy;
 
 namespace QuantConnectStubsGenerator
 {
@@ -20,6 +22,12 @@ namespace QuantConnectStubsGenerator
             {
                 Logger.Error("Usage: dotnet run <Lean directory> <output directory>");
                 Environment.Exit(1);
+            }
+
+            if (Environment.GetEnvironmentVariables().Contains("NO_DEBUG"))
+            {
+                ((Hierarchy) LogManager.GetRepository()).Root.Level = Level.Info;
+                ((Hierarchy) LogManager.GetRepository()).RaiseConfigurationChanged(EventArgs.Empty);
             }
 
             try

@@ -39,3 +39,5 @@ jobs:
       - name: Run integration tests
         run: python integration_tests.py
         working-directory: integration
+        env:
+          NO_DEBUG: true

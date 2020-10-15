@@ -41,7 +41,3 @@ jobs:
         working-directory: integration
         env:
           NO_DEBUG: true
-
-      - name: Inspect weird file
-        run: cat generated/stubs/QuantConnect/Lean/Engine/DataFeeds/__init__.py
-        if: ${{ always() }}

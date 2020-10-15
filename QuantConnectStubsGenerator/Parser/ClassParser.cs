@@ -108,14 +108,7 @@ namespace QuantConnectStubsGenerator.Parser
             {
                 if (usedInterfaces.Add(typeSymbol.ConstructedFrom))
                 {
-                    var parsedTypeSymbol = _typeConverter.GetType(typeSymbol);
-
-                    // Don't make classes inherit themselves
-                    if (currentType.Namespace != parsedTypeSymbol.Namespace
-                        || currentType.Name != parsedTypeSymbol.Name)
-                    {
-                        types.Add(parsedTypeSymbol);
-                    }
+                    types.Add(_typeConverter.GetType(typeSymbol));
                 }
             }
 
@@ -128,8 +121,7 @@ namespace QuantConnectStubsGenerator.Parser
                 types.Remove(listType);
             }
 
-            // Python classes can't extend their parent classes
-            types = types.Select(type => IsParentClass(type) ? ToAnyAlias(type) : type).ToList();
+            types = types.Select(type => ValidateInheritedType(currentType, type)).ToList();
 
             return types;
         }
@@ -142,6 +134,27 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             return null;
+        }
+
+        private PythonType ValidateInheritedType(PythonType currentType, PythonType inheritedType)
+        {
+            if (inheritedType.IsNamedTypeParameter)
+            {
+                return inheritedType;
+            }
+
+            // Python classes can't reference themselves or any of their parent classes in their inherited types
+            if (GetBaseName(currentType) == GetBaseName(inheritedType)
+                && currentType.Namespace == inheritedType.Namespace)
+            {
+                return ToAnyAlias(inheritedType);
+            }
+
+            inheritedType.TypeParameters = inheritedType.TypeParameters
+                .Select(type => ValidateInheritedType(currentType, type))
+                .ToList();
+
+            return inheritedType;
         }
 
         private bool IsParentClass(PythonType type)
@@ -161,11 +174,18 @@ namespace QuantConnectStubsGenerator.Parser
             return false;
         }
 
+        private string GetBaseName(PythonType type)
+        {
+            return type.Name.Contains('.')
+                ? type.Name.Substring(0, type.Name.IndexOf('.'))
+                : type.Name;
+        }
+
         private PythonType ToAnyAlias(PythonType type)
         {
             return new PythonType("Any", "typing")
             {
-                Alias = $"{type.Namespace.Replace('.', '_')}_{type.Name}"
+                Alias = $"{type.Namespace.Replace('.', '_')}_{type.Name.Replace('.', '_')}"
             };
         }
     }

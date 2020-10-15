@@ -70,16 +70,18 @@ namespace QuantConnectStubsGenerator.Parser
 
         private IEnumerable<PythonType> ParseInheritedTypes(BaseTypeDeclarationSyntax node)
         {
+            var types = new List<PythonType>();
+
             if (node is EnumDeclarationSyntax)
             {
-                yield return new PythonType("Enum", "enum");
+                types.Add(new PythonType("Enum", "enum"));
             }
 
             var symbol = _model.GetDeclaredSymbol(node);
 
             if (symbol == null)
             {
-                yield break;
+                return types;
             }
 
             if (symbol.BaseType != null)
@@ -94,18 +96,30 @@ namespace QuantConnectStubsGenerator.Parser
 
                 if (!isObject && !isEnum && !isValueType)
                 {
-                    yield return _typeConverter.GetType(symbol.BaseType);
+                    types.Add(_typeConverter.GetType(symbol.BaseType));
                 }
             }
-            
+
+            // C# classes can extend the same interface twice with different generics, Python classes can't
             var usedInterfaces = new HashSet<INamedTypeSymbol>();
             foreach (var typeSymbol in symbol.Interfaces)
             {
                 if (usedInterfaces.Add(typeSymbol.ConstructedFrom))
                 {
-                    yield return _typeConverter.GetType(typeSymbol);
+                    types.Add(_typeConverter.GetType(typeSymbol));
                 }
             }
+
+            // Ensure classes don't extend from both typing.List and typing.Dict, that causes conflicting definitions
+            var listType = types.FirstOrDefault(type => type.ToPythonString().StartsWith("typing.List["));
+            var dictType = types.FirstOrDefault(type => type.ToPythonString().StartsWith("typing.Dict["));
+
+            if (listType != null && dictType != null)
+            {
+                types.Remove(listType);
+            }
+
+            return types;
         }
 
         private PythonType ParseMetaClass(BaseTypeDeclarationSyntax node)

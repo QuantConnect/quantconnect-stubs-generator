@@ -12,9 +12,9 @@ def fail(msg):
 
 def run_command(args, cwd=os.getcwd()):
     try:
-        print(f'Running {[str(arg) for arg in args] if len(args) <= 5 else args[0]}')
+        print(f'Running {[str(arg) for arg in args] if len(args) <= 5 else args[0]}', flush=True)
         proc = subprocess.run(args, cwd=cwd)
-        print()
+        print(flush=True)
         return proc.returncode == 0
     except FileNotFoundError:
         return False

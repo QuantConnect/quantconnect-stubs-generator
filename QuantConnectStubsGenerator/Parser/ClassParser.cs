@@ -97,10 +97,14 @@ namespace QuantConnectStubsGenerator.Parser
                     yield return _typeConverter.GetType(symbol.BaseType);
                 }
             }
-
+            
+            var usedInterfaces = new HashSet<INamedTypeSymbol>();
             foreach (var typeSymbol in symbol.Interfaces)
             {
-                yield return _typeConverter.GetType(typeSymbol);
+                if (usedInterfaces.Add(typeSymbol.ConstructedFrom))
+                {
+                    yield return _typeConverter.GetType(typeSymbol);
+                }
             }
         }
 

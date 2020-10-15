@@ -6,7 +6,7 @@ import sys
 
 
 def fail(msg):
-    print(msg)
+    print(msg, file=sys.stderr)
     sys.exit(1)
 
 
@@ -26,7 +26,8 @@ def ensure_command_availability(command):
 def get_python_files(dir):
     for dirpath, _, files in os.walk(dir):
         for file in files:
-            yield os.path.abspath(os.path.join(dirpath, file))
+            if file.endswith('.py'):
+                yield os.path.abspath(os.path.join(dirpath, file))
 
 
 def main():

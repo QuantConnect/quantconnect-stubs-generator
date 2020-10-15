@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using log4net;
-using log4net.Config;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using QuantConnectStubsGenerator.Model;
@@ -86,6 +84,9 @@ namespace QuantConnectStubsGenerator
             {
                 RenderNamespace(ns);
             }
+
+            // Ensure all directories contain a __init__.py file so import resolutions work properly
+            EnsureAllModulesReachable();
         }
 
         private void ParseSyntaxTrees<T>(
@@ -130,6 +131,26 @@ namespace QuantConnectStubsGenerator
             using var pyiWriter = new StreamWriter(outputPath);
             var renderer = new NamespaceRenderer(pyiWriter, 0, ns);
             renderer.Render(ns);
+        }
+
+        private void EnsureAllModulesReachable()
+        {
+            var directories = new DirectoryInfo(_outputDirectory).GetDirectories("*.*", SearchOption.AllDirectories);
+            foreach (var directory in directories)
+            {
+                var initPath = Path.GetFullPath("__init__.py", directory.FullName);
+
+                if (new FileInfo(initPath).Exists)
+                {
+                    continue;
+                }
+
+                Logger.Info($"Generating empty {initPath}");
+
+                using var initWriter = new StreamWriter(initPath);
+                initWriter.WriteLine("# This namespace is empty");
+                initWriter.WriteLine("# This file exists to make import resolution work properly");
+            }
         }
 
         private string FormatPath(string path)

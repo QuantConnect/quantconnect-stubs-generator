@@ -12,7 +12,7 @@ def fail(msg):
 
 def run_command(args, cwd=os.getcwd()):
     try:
-        print(f'Running {[str(arg) for arg in args] if len(args) <= 5 else args[0]}', flush=True)
+        print(f'Running {[str(arg) for arg in args] if len(args) <= 10 else args[0]}', flush=True)
         proc = subprocess.run(args, cwd=cwd)
         print(flush=True)
         return proc.returncode == 0

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -25,9 +26,11 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
+            var memberNames = GetMemberNames(node).ToList();
+
             var property = new Property(node.Identifier.Text)
             {
-                Type = PrefixTypeIfNecessary(_typeConverter.GetType(node.Type)),
+                Type = PrefixTypeIfNecessary(_typeConverter.GetType(node.Type), memberNames),
                 ReadOnly = ((IPropertySymbol) _typeConverter.GetSymbol(node)).IsReadOnly,
                 Static = _currentClass.Static || HasModifier(node, "static"),
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract")
@@ -67,11 +70,13 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
+            var memberNames = GetMemberNames(node).ToList();
+
             foreach (var variable in node.Declaration.Variables)
             {
                 var property = new Property(variable.Identifier.Text)
                 {
-                    Type = PrefixTypeIfNecessary(_typeConverter.GetType(node.Declaration.Type)),
+                    Type = PrefixTypeIfNecessary(_typeConverter.GetType(node.Declaration.Type), memberNames),
                     ReadOnly = HasModifier(node, "readonly") || HasModifier(node, "const"),
                     Static = _currentClass.Static || HasModifier(node, "static") || HasModifier(node, "const"),
                     Abstract = _currentClass.Interface || HasModifier(node, "abstract")
@@ -118,26 +123,63 @@ namespace QuantConnectStubsGenerator.Parser
         }
 
         /// <summary>
-        /// There are a lot of properties which have the name of the property or of another property in the class.
-        /// Property types are therefore aliased with an underscore prefix so that type hints still work properly.
+        /// There are a lot of properties which have the name of a member in the class/interface.
+        /// Property types are aliased with an underscore prefix when that is the case.
         /// </summary>
-        private PythonType PrefixTypeIfNecessary(PythonType type)
+        private PythonType PrefixTypeIfNecessary(PythonType type, IList<string> memberNames)
         {
-            if (type.Namespace == null || type.Alias != null || type.IsNamedTypeParameter)
+            if (type.Alias != null || type.IsNamedTypeParameter)
             {
                 return type;
             }
 
-            if (type.Namespace.StartsWith("QuantConnect") || type.Namespace.StartsWith("Oanda"))
+            if (type.Namespace == _currentNamespace.Name && memberNames.Contains(type.Name))
             {
                 var formattedNamespace = type.Namespace.Replace('.', '_');
                 var formattedName = type.Name.Replace('.', '_');
                 type.Alias = $"_{formattedNamespace}_{formattedName}";
             }
 
-            type.TypeParameters = type.TypeParameters.Select(PrefixTypeIfNecessary).ToList();
+            type.TypeParameters = type.TypeParameters.Select(t => PrefixTypeIfNecessary(t, memberNames)).ToList();
 
             return type;
+        }
+
+        private IEnumerable<string> GetMemberNames(MemberDeclarationSyntax node)
+        {
+            var members = node.Parent switch
+            {
+                ClassDeclarationSyntax classSyntax => classSyntax.Members.ToList(),
+                InterfaceDeclarationSyntax interfaceSyntax => interfaceSyntax.Members.ToList(),
+                _ => null
+            };
+
+            if (members == null)
+            {
+                yield break;
+            }
+
+            foreach (var member in members.Where(member => !HasModifier(member, "private")))
+            {
+                switch (member)
+                {
+                    case FieldDeclarationSyntax field:
+                    {
+                        foreach (var variable in field.Declaration.Variables)
+                        {
+                            yield return variable.Identifier.Text;
+                        }
+
+                        break;
+                    }
+                    case PropertyDeclarationSyntax property:
+                        yield return property.Identifier.Text;
+                        break;
+                    case MethodDeclarationSyntax method:
+                        yield return method.Identifier.Text;
+                        break;
+                }
+            }
         }
     }
 }

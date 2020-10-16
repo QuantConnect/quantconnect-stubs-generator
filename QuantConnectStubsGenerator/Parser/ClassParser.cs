@@ -72,13 +72,7 @@ namespace QuantConnectStubsGenerator.Parser
         {
             var types = new List<PythonType>();
 
-            if (node is EnumDeclarationSyntax)
-            {
-                types.Add(new PythonType("Enum", "enum"));
-            }
-
             var symbol = _model.GetDeclaredSymbol(node);
-
             if (symbol == null)
             {
                 return types;

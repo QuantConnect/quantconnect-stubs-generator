@@ -65,15 +65,10 @@ namespace QuantConnectStubsGenerator.Renderer
                 return;
             }
 
-            WriteLine("@property");
-
-            // Mypy has an issue which makes it impossible to use @property and @*.setter along with another decorator
+            // Mypy has an issue which makes it impossible to use @property/@*.setter and @abc.abstractmethod together
             // See https://github.com/python/mypy/issues/1362
-            // Re-enable this when the issue linked above is fixed
-            if (property.Abstract)
-            {
-                // WriteLine("@abc.abstractmethod");
-            }
+            // To still have proper type hints for abstract properties we use the deprecated @abc.abstractproperty
+            WriteLine(property.Abstract ? "@abc.abstractproperty" : "@property");
 
             // Add the getter
             WriteLine($"def {property.Name}(self) -> {property.Type.ToPythonString(CurrentNamespace)}:");
@@ -93,14 +88,6 @@ namespace QuantConnectStubsGenerator.Renderer
             }
 
             WriteLine($"@{property.Name}.setter");
-
-            // Mypy has an issue which makes it impossible to use @property and @*.setter along with another decorator
-            // See https://github.com/python/mypy/issues/1362
-            // Re-enable this when the issue linked above is fixed
-            if (property.Abstract)
-            {
-                // WriteLine("@abc.abstractmethod");
-            }
 
             // Add the setter
             WriteLine($"def {property.Name}(self, value: {property.Type.ToPythonString(CurrentNamespace)}):");

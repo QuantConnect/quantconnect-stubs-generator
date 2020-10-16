@@ -52,7 +52,7 @@ namespace QuantConnectStubsGenerator.Model
 
                 if (property.Abstract)
                 {
-                    types.Add(new PythonType("abstractmethod", "abc"));
+                    types.Add(new PythonType("abstractproperty", "abc"));
                 }
             }
 

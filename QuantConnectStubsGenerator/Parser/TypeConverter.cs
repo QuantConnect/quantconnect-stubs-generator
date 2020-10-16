@@ -35,14 +35,6 @@ namespace QuantConnectStubsGenerator.Parser
         {
             var symbol = GetSymbol(node);
 
-            if (symbol is IPropertySymbol propertySymbol)
-            {
-                if (propertySymbol.IsReadOnly || propertySymbol.IsWriteOnly)
-                {
-                    Console.WriteLine(node.ToFullString());
-                }
-            }
-
             if (symbol == null)
             {
                 return new PythonType("Any", "typing");

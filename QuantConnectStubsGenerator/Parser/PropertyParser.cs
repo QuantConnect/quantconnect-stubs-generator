@@ -36,7 +36,6 @@ namespace QuantConnectStubsGenerator.Parser
             // This is a dirty workaround for TradingEconomicsEarnings.Symbol
             // TradingEconomicsEarnings extends from BaseData, which has a Symbol property of type Symbol
             // Somehow the Symbol property on TradingEconomicsEarnings is of type string though, causing Mypy errors
-            // TODO: Find a way to do this in a generic way without hardcoding TradingEconomicsEarnings.Symbol
             if (_currentClass.Type.Namespace == "QuantConnect.Data.Custom.TradingEconomics"
                 && _currentClass.Type.Name == "TradingEconomicsEarnings"
                 && property.Name == "Symbol")
@@ -119,8 +118,8 @@ namespace QuantConnectStubsGenerator.Parser
         }
 
         /// <summary>
-        /// The QuantConnect and Oanda namespaces contain a lot of properties with the same name as a type.
-        /// These types are aliased with an underscore prefix so that type hints still work.
+        /// There are a lot of properties which have the name of the property or of another property in the class.
+        /// Property types are therefore aliased with an underscore prefix so that type hints still work properly.
         /// </summary>
         private PythonType PrefixTypeIfNecessary(PythonType type)
         {

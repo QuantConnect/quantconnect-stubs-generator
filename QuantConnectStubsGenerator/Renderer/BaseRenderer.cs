@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using QuantConnectStubsGenerator.Model;
+using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Renderer
 {
@@ -26,6 +27,19 @@ namespace QuantConnectStubsGenerator.Renderer
         }
 
         public abstract void Render(T item);
+
+        protected void WriteSummary(string summary, bool indented = false)
+        {
+            if (summary == null)
+            {
+                return;
+            }
+
+            var summarySuffix = summary.Contains("\n") ? "\n" : "";
+            var docstring = $"\"\"\"{summary}{summarySuffix}\"\"\"";
+
+            WriteLine(docstring.Indent(indented ? 1 : 0));
+        }
 
         protected TRenderer CreateRenderer<TRenderer>(bool indented = true)
         {

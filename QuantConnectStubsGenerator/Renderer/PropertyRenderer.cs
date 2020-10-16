@@ -45,10 +45,7 @@ namespace QuantConnectStubsGenerator.Renderer
 
             WriteLine();
 
-            if (property.Summary != null)
-            {
-                WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"");
-            }
+            WriteSummary(property.Summary);
 
             WriteLine();
             WriteLine();
@@ -72,13 +69,9 @@ namespace QuantConnectStubsGenerator.Renderer
 
             // Add the getter
             WriteLine($"def {property.Name}(self) -> {property.Type.ToPythonString(CurrentNamespace)}:");
-
-            if (property.Summary != null)
-            {
-                WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"".Indent());
-            }
-
+            WriteSummary(property.Summary, true);
             WriteLine("...".Indent());
+
             WriteLine();
             WriteLine();
 
@@ -91,13 +84,9 @@ namespace QuantConnectStubsGenerator.Renderer
 
             // Add the setter
             WriteLine($"def {property.Name}(self, value: {property.Type.ToPythonString(CurrentNamespace)}):");
-
-            if (property.Summary != null)
-            {
-                WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"".Indent());
-            }
-
+            WriteSummary(property.Summary, true);
             WriteLine("...".Indent());
+
             WriteLine();
             WriteLine();
         }

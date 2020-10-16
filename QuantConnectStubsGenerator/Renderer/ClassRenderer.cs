@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using QuantConnectStubsGenerator.Model;
-using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Renderer
 {
@@ -49,7 +48,9 @@ namespace QuantConnectStubsGenerator.Renderer
             }
 
             WriteLine(":");
-            WriteLine($"\"\"\"\n{cls.Summary ?? "This class has no documentation."}\n\"\"\"".Indent());
+
+            WriteSummary(cls.Summary ?? "This class has no documentation.", true);
+
             WriteLine();
             WriteLine();
         }

@@ -46,16 +46,11 @@ namespace QuantConnectStubsGenerator.Utility
             }
 
             var edge = new Edge<PythonType>(cls.Type, type);
-            
             _graph.AddEdge(edge);
 
-            // Check if the newly added edge creates a cycle, and if so, remove it
-            // This is expensive, but for now it works fine
-            try
-            {
-                _graph.TopologicalSort();
-            }
-            catch (Exception)
+            // We can't determine the best class order if there are cycles in their dependencies
+            // If the new dependency creates a cycle, remove it
+            if (!_graph.IsDirectedAcyclicGraph())
             {
                 _graph.RemoveEdge(edge);
             }

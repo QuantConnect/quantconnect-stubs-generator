@@ -25,11 +25,6 @@ namespace QuantConnectStubsGenerator.Renderer
 
         private void RenderAttribute(Property property)
         {
-            if (property.Summary != null)
-            {
-                WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"");
-            }
-
             // Some attributes are named "None" in C#, which is a keyword in Python
             if (property.Name == "None")
             {
@@ -49,6 +44,12 @@ namespace QuantConnectStubsGenerator.Renderer
             }
 
             WriteLine();
+
+            if (property.Summary != null)
+            {
+                WriteLine($"\"\"\"\n{property.Summary}\n\"\"\"");
+            }
+
             WriteLine();
             WriteLine();
         }
@@ -63,7 +64,7 @@ namespace QuantConnectStubsGenerator.Renderer
                 WriteLine();
                 return;
             }
-            
+
             WriteLine("@property");
 
             // Mypy has an issue which makes it impossible to use @property and @*.setter along with another decorator

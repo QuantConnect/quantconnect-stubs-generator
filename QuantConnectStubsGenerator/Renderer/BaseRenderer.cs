@@ -35,6 +35,11 @@ namespace QuantConnectStubsGenerator.Renderer
                 return;
             }
 
+            if (!summary.Contains("\n") && summary.EndsWith("\""))
+            {
+                summary = summary.Substring(0, summary.Length - 1) + "\\\"";
+            }
+
             var summarySuffix = summary.Contains("\n") ? "\n" : "";
             var docstring = $"\"\"\"{summary}{summarySuffix}\"\"\"";
 

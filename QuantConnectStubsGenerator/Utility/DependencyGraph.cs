@@ -45,7 +45,20 @@ namespace QuantConnectStubsGenerator.Utility
                 return;
             }
 
-            _graph.AddEdge(new Edge<PythonType>(cls.Type, type));
+            var edge = new Edge<PythonType>(cls.Type, type);
+            
+            _graph.AddEdge(edge);
+
+            // Check if the newly added edge creates a cycle, and if so, remove it
+            // This is expensive, but for now it works fine
+            try
+            {
+                _graph.TopologicalSort();
+            }
+            catch (Exception)
+            {
+                _graph.RemoveEdge(edge);
+            }
         }
 
         public IEnumerable<Class> GetClassesInOrder()

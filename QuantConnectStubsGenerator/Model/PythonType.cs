@@ -20,6 +20,11 @@ namespace QuantConnectStubsGenerator.Model
             Namespace = ns;
         }
 
+        public string GetBaseName()
+        {
+            return Name.Contains('.') ? Name.Substring(0, Name.IndexOf('.')) : Name;
+        }
+
         public string ToPythonString(Namespace currentNamespace = null, bool ignoreAlias = false)
         {
             if (!ignoreAlias && Alias != null)

@@ -66,7 +66,12 @@ namespace QuantConnectStubsGenerator.Renderer
 
         private void RenderProperties(Class cls)
         {
-            // TODO: Implement
+            var propertyRenderer = CreateRenderer<PropertyRenderer>();
+
+            foreach (var property in cls.Properties)
+            {
+                propertyRenderer.Render(property);
+            }
         }
 
         private void RenderMethods(Class cls)

@@ -17,6 +17,8 @@ namespace QuantConnectStubsGenerator.Model
         public Class ParentClass { get; set; }
         public IList<Class> InnerClasses { get; } = new List<Class>();
 
+        public IList<Property> Properties { get; } = new List<Property>();
+
         public Class(PythonType type)
         {
             Type = type;
@@ -39,6 +41,19 @@ namespace QuantConnectStubsGenerator.Model
             if (MetaClass != null)
             {
                 typesToProcess.Enqueue(MetaClass);
+            }
+
+            foreach (var property in Properties)
+            {
+                if (property.Type != null)
+                {
+                    typesToProcess.Enqueue(property.Type);
+                }
+
+                if (property.Abstract)
+                {
+                    types.Add(new PythonType("abstractmethod", "abc"));
+                }
             }
 
             while (typesToProcess.Count > 0)

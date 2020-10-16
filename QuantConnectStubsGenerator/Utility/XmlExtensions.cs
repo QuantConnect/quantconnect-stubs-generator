@@ -34,7 +34,7 @@ namespace QuantConnectStubsGenerator.Utility
                 clone.ReplaceChild(newNode, child);
             }
 
-            return clone.InnerText.Trim();
+            return clone.InnerText.Trim().Replace("\\", "\\\\");
         }
     }
 }

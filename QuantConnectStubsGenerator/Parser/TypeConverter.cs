@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using QuantConnectStubsGenerator.Model;
 
@@ -19,17 +18,34 @@ namespace QuantConnectStubsGenerator.Parser
         }
 
         /// <summary>
+        /// Returns the symbol of the given node.
+        /// Returns null if the semantic model does not contain a symbol for the node.
+        /// </summary>
+        public ISymbol GetSymbol(SyntaxNode node)
+        {
+            // ReSharper disable once ConstantNullCoalescingCondition
+            return _model.GetDeclaredSymbol(node) ?? _model.GetSymbolInfo(node).Symbol;
+        }
+
+        /// <summary>
         /// Returns the Python type of the given node.
         /// Returns an aliased typing.Any if there is no Python type for the given symbol.
         /// </summary>
-        [SuppressMessage("ReSharper", "ConstantNullCoalescingCondition")]
         public PythonType GetType(SyntaxNode node)
         {
-            var symbol = _model.GetDeclaredSymbol(node) ?? _model.GetSymbolInfo(node).Symbol;
+            var symbol = GetSymbol(node);
+
+            if (symbol is IPropertySymbol propertySymbol)
+            {
+                if (propertySymbol.IsReadOnly || propertySymbol.IsWriteOnly)
+                {
+                    Console.WriteLine(node.ToFullString());
+                }
+            }
 
             if (symbol == null)
             {
-                throw new ArgumentException($"Unable to get Python type from node: {node.ToFullString()}");
+                return new PythonType("Any", "typing");
             }
 
             return GetType(symbol);
@@ -60,9 +76,24 @@ namespace QuantConnectStubsGenerator.Parser
 
             var type = new PythonType(name, ns);
 
-            // Process type parameters
+            // Process type parameter
+            if (symbol is ITypeParameterSymbol typeParameterSymbol)
+            {
+                type.IsNamedTypeParameter = true;
+            }
+
+            // Process named type parameters
             if (symbol is INamedTypeSymbol namedTypeSymbol)
             {
+                // Delegates are not supported in Python
+                if (namedTypeSymbol.DelegateInvokeMethod != null)
+                {
+                    return new PythonType("Any", "typing")
+                    {
+                        Alias = type.Namespace.Replace('.', '_') + "_" + type.Name.Replace('.', '_')
+                    };
+                }
+
                 foreach (var typeParameter in namedTypeSymbol.TypeArguments)
                 {
                     var paramType = GetType(typeParameter);
@@ -162,7 +193,7 @@ namespace QuantConnectStubsGenerator.Parser
             // C# types that do not have a Python-equivalent are converted to an aliased version of Any
             if (type.Namespace.StartsWith("System") || type.Namespace == "<global namespace>")
             {
-                var alias = type.Name;
+                var alias = type.Name.Replace('.', '_');
 
                 if (type.Namespace.StartsWith("System"))
                 {

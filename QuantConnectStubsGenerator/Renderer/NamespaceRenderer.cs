@@ -58,6 +58,7 @@ namespace QuantConnectStubsGenerator.Renderer
         {
             var typeAliases = _usedTypes
                 .Where(type => type.Alias != null)
+                .Where(type => type.Namespace != ns.Name)
                 .GroupBy(type => type.Alias)
                 .Select(group => group.First())
                 .ToList();
@@ -100,6 +101,11 @@ namespace QuantConnectStubsGenerator.Renderer
 
         private void RenderClasses(Namespace ns)
         {
+            var typeAliasesByBaseName = _usedTypes
+                .Where(type => type.Alias != null)
+                .Where(type => type.Namespace == ns.Name)
+                .ToLookup(type => type.GetBaseName());
+
             var dependencyGraph = new DependencyGraph();
 
             foreach (var cls in ns.GetParentClasses())
@@ -120,6 +126,23 @@ namespace QuantConnectStubsGenerator.Renderer
             foreach (var cls in dependencyGraph.GetClassesInOrder())
             {
                 classRenderer.Render(cls);
+
+                if (!typeAliasesByBaseName.Contains(cls.Type.Name))
+                {
+                    continue;
+                }
+
+                var aliases = typeAliasesByBaseName[cls.Type.Name]
+                    .GroupBy(type => type.Alias)
+                    .Select(group => group.First());
+
+                foreach (var type in aliases)
+                {
+                    WriteLine($"{type.Alias} = {type.ToPythonString(ns, true)}");
+                }
+
+                WriteLine();
+                WriteLine();
             }
         }
     }

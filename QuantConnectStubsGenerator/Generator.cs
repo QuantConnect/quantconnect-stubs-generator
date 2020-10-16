@@ -113,14 +113,14 @@ namespace QuantConnectStubsGenerator
         private void RenderNamespace(Namespace ns)
         {
             var namespacePath = ns.Name.Replace('.', '/');
-            var outputPath = Path.GetFullPath($"{namespacePath}/__init__.py", _outputDirectory);
+            var outputPath = Path.GetFullPath($"{namespacePath}/__init__.pyi", _outputDirectory);
 
-            // QuantConnect.API stubs are placed in QuantConnect/API/__init__.py
-            // QuantConnect.Api stubs are placed in QuantConnect/Api.py
+            // QuantConnect.API stubs are placed in QuantConnect/API/__init__.pyi
+            // QuantConnect.Api stubs are placed in QuantConnect/Api.pyi
             // This is done to prevent case-sensitivity issues
             if (ns.Name == "QuantConnect.Api")
             {
-                outputPath = Path.GetFullPath($"{namespacePath}.py", _outputDirectory);
+                outputPath = Path.GetFullPath($"{namespacePath}.pyi", _outputDirectory);
             }
 
             Logger.Info($"Generating {outputPath}");
@@ -138,7 +138,7 @@ namespace QuantConnectStubsGenerator
             var directories = new DirectoryInfo(_outputDirectory).GetDirectories("*.*", SearchOption.AllDirectories);
             foreach (var directory in directories)
             {
-                var initPath = Path.GetFullPath("__init__.py", directory.FullName);
+                var initPath = Path.GetFullPath("__init__.pyi", directory.FullName);
 
                 if (new FileInfo(initPath).Exists)
                 {

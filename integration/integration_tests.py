@@ -28,7 +28,7 @@ def ensure_command_availability(command):
 def get_python_files(dir):
     for dirpath, _, files in os.walk(dir):
         for file in files:
-            if file.endswith('.py'):
+            if file.endswith('.pyi'):
                 yield os.path.abspath(os.path.join(dirpath, file))
 
 

@@ -144,7 +144,7 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             // Python classes can't reference themselves or any of their parent classes in their inherited types
-            if (GetBaseName(currentType) == GetBaseName(inheritedType)
+            if (currentType.GetBaseName() == inheritedType.GetBaseName()
                 && currentType.Namespace == inheritedType.Namespace)
             {
                 return ToAnyAlias(inheritedType);
@@ -155,30 +155,6 @@ namespace QuantConnectStubsGenerator.Parser
                 .ToList();
 
             return inheritedType;
-        }
-
-        private bool IsParentClass(PythonType type)
-        {
-            var current = _currentClass;
-
-            while (current != null)
-            {
-                if (current.Type.Name == type.Name && current.Type.Namespace == type.Namespace)
-                {
-                    return true;
-                }
-
-                current = current.ParentClass;
-            }
-
-            return false;
-        }
-
-        private string GetBaseName(PythonType type)
-        {
-            return type.Name.Contains('.')
-                ? type.Name.Substring(0, type.Name.IndexOf('.'))
-                : type.Name;
         }
 
         private PythonType ToAnyAlias(PythonType type)

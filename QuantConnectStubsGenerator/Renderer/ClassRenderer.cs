@@ -7,8 +7,7 @@ namespace QuantConnectStubsGenerator.Renderer
 {
     public class ClassRenderer : BaseRenderer<Class>
     {
-        public ClassRenderer(StreamWriter writer, int indentationLevel, Namespace ns)
-            : base(writer, indentationLevel, ns)
+        public ClassRenderer(StreamWriter writer, int indentationLevel) : base(writer, indentationLevel)
         {
         }
 
@@ -28,18 +27,18 @@ namespace QuantConnectStubsGenerator.Renderer
 
             if (cls.Type.TypeParameters.Count > 0)
             {
-                var types = cls.Type.TypeParameters.Select(type => type.ToPythonString(CurrentNamespace));
+                var types = cls.Type.TypeParameters.Select(type => type.ToPythonString());
                 inherited.Add($"typing.Generic[{string.Join(", ", types)}]");
             }
 
             foreach (var inheritedType in cls.InheritsFrom)
             {
-                inherited.Add(inheritedType.ToPythonString(CurrentNamespace));
+                inherited.Add(inheritedType.ToPythonString());
             }
 
             if (cls.MetaClass != null)
             {
-                inherited.Add($"metaclass={cls.MetaClass.ToPythonString(CurrentNamespace)}");
+                inherited.Add($"metaclass={cls.MetaClass.ToPythonString()}");
             }
 
             if (inherited.Count > 0)
@@ -50,8 +49,6 @@ namespace QuantConnectStubsGenerator.Renderer
             WriteLine(":");
 
             WriteSummary(cls.Summary ?? "This class has no documentation.", true);
-
-            WriteLine();
             WriteLine();
         }
 
@@ -77,7 +74,12 @@ namespace QuantConnectStubsGenerator.Renderer
 
         private void RenderMethods(Class cls)
         {
-            // TODO: Implement
+            var methodRenderer = CreateRenderer<MethodRenderer>();
+
+            foreach (var method in cls.Methods)
+            {
+                methodRenderer.Render(method);
+            }
         }
     }
 }

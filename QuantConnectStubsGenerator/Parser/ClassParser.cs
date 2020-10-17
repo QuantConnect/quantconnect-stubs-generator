@@ -8,7 +8,6 @@ using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Parser
 {
-    // ReSharper disable once ClassNeverInstantiated.Global
     public class ClassParser : BaseParser
     {
         public ClassParser(ParseContext context, SemanticModel model) : base(context, model)

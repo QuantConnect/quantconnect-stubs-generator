@@ -6,8 +6,7 @@ namespace QuantConnectStubsGenerator.Renderer
 {
     public class PropertyRenderer : BaseRenderer<Property>
     {
-        public PropertyRenderer(StreamWriter writer, int indentationLevel, Namespace ns)
-            : base(writer, indentationLevel, ns)
+        public PropertyRenderer(StreamWriter writer, int indentationLevel) : base(writer, indentationLevel)
         {
         }
 
@@ -35,7 +34,7 @@ namespace QuantConnectStubsGenerator.Renderer
 
             if (property.Type != null)
             {
-                Write($": {property.Type.ToPythonString(CurrentNamespace)}");
+                Write($": {property.Type.ToPythonString()}");
             }
 
             if (property.Value != null)
@@ -46,8 +45,6 @@ namespace QuantConnectStubsGenerator.Renderer
             WriteLine();
 
             WriteSummary(property.Summary);
-
-            WriteLine();
             WriteLine();
         }
 
@@ -58,21 +55,21 @@ namespace QuantConnectStubsGenerator.Renderer
             {
                 WriteLine($"# Cannot convert property {property.Name} to Python");
                 WriteLine();
-                WriteLine();
                 return;
             }
 
-            // Mypy has an issue which makes it impossible to use @property/@*.setter and @abc.abstractmethod together
-            // See https://github.com/python/mypy/issues/1362
-            // To still have proper type hints for abstract properties we use the deprecated @abc.abstractproperty
-            WriteLine(property.Abstract ? "@abc.abstractproperty" : "@property");
+            WriteLine("@property");
+
+            if (property.Abstract)
+            {
+                WriteLine("@abc.abstractmethod");
+            }
 
             // Add the getter
-            WriteLine($"def {property.Name}(self) -> {property.Type.ToPythonString(CurrentNamespace)}:");
+            WriteLine($"def {property.Name}(self) -> {property.Type.ToPythonString()}:");
             WriteSummary(property.Summary, true);
             WriteLine("...".Indent());
 
-            WriteLine();
             WriteLine();
 
             if (property.ReadOnly)
@@ -82,12 +79,16 @@ namespace QuantConnectStubsGenerator.Renderer
 
             WriteLine($"@{property.Name}.setter");
 
+            if (property.Abstract)
+            {
+                WriteLine("@abc.abstractmethod");
+            }
+
             // Add the setter
-            WriteLine($"def {property.Name}(self, value: {property.Type.ToPythonString(CurrentNamespace)}):");
+            WriteLine($"def {property.Name}(self, value: {property.Type.ToPythonString()}):");
             WriteSummary(property.Summary, true);
             WriteLine("...".Indent());
 
-            WriteLine();
             WriteLine();
         }
     }

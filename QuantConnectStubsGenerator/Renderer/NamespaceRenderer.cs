@@ -9,33 +9,32 @@ namespace QuantConnectStubsGenerator.Renderer
 {
     public class NamespaceRenderer : BaseRenderer<Namespace>
     {
-        private IList<PythonType> _usedTypes;
-
-        public NamespaceRenderer(StreamWriter writer, int indentationLevel, Namespace ns)
-            : base(writer, indentationLevel, ns)
+        public NamespaceRenderer(StreamWriter writer, int indentationLevel) : base(writer, indentationLevel)
         {
         }
 
         public override void Render(Namespace ns)
         {
-            _usedTypes = ns
+            var usedTypes = ns
                 .GetParentClasses()
                 .SelectMany(cls => cls.GetUsedTypes())
                 .ToList();
 
-            RenderImports(ns);
-            RenderTypeAliases(ns);
-            RenderTypeVars(ns);
+            RenderImports(usedTypes);
+            RenderTypeAliases(usedTypes);
+            RenderTypeVars(usedTypes);
+
+            WriteLine();
+
             RenderClasses(ns);
         }
 
-        private void RenderImports(Namespace ns)
+        private void RenderImports(IEnumerable<PythonType> usedTypes)
         {
             // Retrieve all used namespaces
-            var namespacesToImport = _usedTypes
+            var namespacesToImport = usedTypes
                 .Where(type => type.Namespace != null)
                 .Select(type => type.Namespace)
-                .Where(nsStr => nsStr != ns.Name)
                 .Distinct()
                 .OrderBy(namespaceToImport => namespaceToImport, StringComparer.Ordinal)
                 .ToList();
@@ -45,20 +44,31 @@ namespace QuantConnectStubsGenerator.Renderer
                 return;
             }
 
-            foreach (var namespaceToImport in namespacesToImport)
+            var normalNamespaces = namespacesToImport.Where(ns => char.IsLower(ns[0])).ToList();
+            var qcNamespaces = namespacesToImport.Where(ns => char.IsUpper(ns[0])).ToList();
+
+            foreach (var ns in normalNamespaces)
             {
-                WriteLine($"import {namespaceToImport}");
+                WriteLine($"import {ns}");
+            }
+
+            if (normalNamespaces.Count > 0 && qcNamespaces.Count > 0)
+            {
+                WriteLine();
+            }
+
+            foreach (var ns in qcNamespaces)
+            {
+                WriteLine($"import {ns}");
             }
 
             WriteLine();
-            WriteLine();
         }
 
-        private void RenderTypeAliases(Namespace ns)
+        private void RenderTypeAliases(IEnumerable<PythonType> usedTypes)
         {
-            var typeAliases = _usedTypes
+            var typeAliases = usedTypes
                 .Where(type => type.Alias != null)
-                .Where(type => type.Namespace != ns.Name)
                 .GroupBy(type => type.Alias)
                 .Select(group => group.First())
                 .ToList();
@@ -70,18 +80,17 @@ namespace QuantConnectStubsGenerator.Renderer
 
             foreach (var type in typeAliases)
             {
-                WriteLine($"{type.Alias} = {type.ToPythonString(ns, true)}");
+                WriteLine($"{type.Alias} = {type.ToPythonString(true)}");
             }
 
             WriteLine();
-            WriteLine();
         }
 
-        private void RenderTypeVars(Namespace ns)
+        private void RenderTypeVars(IEnumerable<PythonType> usedTypes)
         {
-            var typeVars = _usedTypes
+            var typeVars = usedTypes
                 .Where(type => type.IsNamedTypeParameter)
-                .Select(type => type.ToPythonString(ns))
+                .Select(type => type.ToPythonString())
                 .Distinct()
                 .ToList();
 
@@ -96,16 +105,10 @@ namespace QuantConnectStubsGenerator.Renderer
             }
 
             WriteLine();
-            WriteLine();
         }
 
         private void RenderClasses(Namespace ns)
         {
-            var typeAliasesByBaseName = _usedTypes
-                .Where(type => type.Alias != null)
-                .Where(type => type.Namespace == ns.Name)
-                .ToLookup(type => type.GetBaseName());
-
             var dependencyGraph = new DependencyGraph();
 
             foreach (var cls in ns.GetParentClasses())
@@ -126,22 +129,6 @@ namespace QuantConnectStubsGenerator.Renderer
             foreach (var cls in dependencyGraph.GetClassesInOrder())
             {
                 classRenderer.Render(cls);
-
-                if (!typeAliasesByBaseName.Contains(cls.Type.Name))
-                {
-                    continue;
-                }
-
-                var aliases = typeAliasesByBaseName[cls.Type.Name]
-                    .GroupBy(type => type.Alias)
-                    .Select(group => group.First());
-
-                foreach (var type in aliases)
-                {
-                    WriteLine($"{type.Alias} = {type.ToPythonString(ns, true)}");
-                }
-
-                WriteLine();
                 WriteLine();
             }
         }

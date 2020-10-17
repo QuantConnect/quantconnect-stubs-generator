@@ -129,7 +129,7 @@ namespace QuantConnectStubsGenerator
             new FileInfo(outputPath).Directory?.Create();
 
             using var pyiWriter = new StreamWriter(outputPath);
-            var renderer = new NamespaceRenderer(pyiWriter, 0, ns);
+            var renderer = new NamespaceRenderer(pyiWriter, 0);
             renderer.Render(ns);
         }
 

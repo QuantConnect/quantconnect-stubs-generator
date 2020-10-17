@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace QuantConnectStubsGenerator.Model
 {
@@ -18,6 +19,7 @@ namespace QuantConnectStubsGenerator.Model
         public IList<Class> InnerClasses { get; } = new List<Class>();
 
         public IList<Property> Properties { get; } = new List<Property>();
+        public IList<Method> Methods { get; } = new List<Method>();
 
         public Class(PythonType type)
         {
@@ -28,33 +30,8 @@ namespace QuantConnectStubsGenerator.Model
         {
             var types = new HashSet<PythonType>();
 
-            // Parse types and inherited types recursively to handle deep generics
-            var typesToProcess = new Queue<PythonType>();
-
-            typesToProcess.Enqueue(Type);
-
-            foreach (var inheritedType in InheritsFrom)
-            {
-                typesToProcess.Enqueue(inheritedType);
-            }
-
-            if (MetaClass != null)
-            {
-                typesToProcess.Enqueue(MetaClass);
-            }
-
-            foreach (var property in Properties)
-            {
-                if (property.Type != null)
-                {
-                    typesToProcess.Enqueue(property.Type);
-                }
-
-                if (property.Abstract)
-                {
-                    types.Add(new PythonType("abstractproperty", "abc"));
-                }
-            }
+            // Parse types recursively to properly return deep generics
+            var typesToProcess = new Queue<PythonType>(GetUsedTypesToIterateOver());
 
             while (typesToProcess.Count > 0)
             {
@@ -75,6 +52,18 @@ namespace QuantConnectStubsGenerator.Model
                 types.Add(new PythonType("TypeVar", "typing"));
             }
 
+            // PropertyRenderer adds the @abc.abstractproperty decorator to abstract properties
+            if (Properties.Any(p => p.Abstract))
+            {
+                types.Add(new PythonType("abstractproperty", "abc"));
+            }
+
+            // MethodRender adds the @typing.overload decorator to overloaded methods
+            if (Methods.Any(m => m.Overload))
+            {
+                types.Add(new PythonType("overload", "typing"));
+            }
+
             foreach (var innerClass in InnerClasses)
             {
                 foreach (var usedType in innerClass.GetUsedTypes())
@@ -84,6 +73,42 @@ namespace QuantConnectStubsGenerator.Model
             }
 
             return types;
+        }
+
+        /// <summary>
+        /// Returns the used types which need to be recursively iterated over in GetUsedTypes().
+        /// </summary>
+        private IEnumerable<PythonType> GetUsedTypesToIterateOver()
+        {
+            yield return Type;
+
+            foreach (var inheritedType in InheritsFrom)
+            {
+                yield return inheritedType;
+            }
+
+            if (MetaClass != null)
+            {
+                yield return MetaClass;
+            }
+
+            foreach (var property in Properties)
+            {
+                if (property.Type != null)
+                {
+                    yield return property.Type;
+                }
+            }
+
+            foreach (var method in Methods)
+            {
+                yield return method.ReturnType;
+
+                foreach (var parameter in method.Parameters)
+                {
+                    yield return parameter.Type;
+                }
+            }
         }
     }
 }

@@ -10,11 +10,14 @@ def fail(msg):
     sys.exit(1)
 
 
-def run_command(args, cwd=os.getcwd()):
+def run_command(args, cwd=os.getcwd(), append_empty_line=True):
     try:
         print(f'Running {[str(arg) for arg in args] if len(args) <= 10 else args[0]} in {cwd}', flush=True)
         proc = subprocess.run(args, cwd=cwd)
-        print(flush=True)
+
+        if append_empty_line:
+            print(flush=True)
+        
         return proc.returncode == 0
     except FileNotFoundError:
         return False
@@ -34,7 +37,7 @@ def get_python_files(dir):
 
 def main():
     ensure_command_availability('git')
-    ensure_command_availability('mypy')
+    ensure_command_availability('dotnet')
     ensure_command_availability('pyright')
 
     project_root = pathlib.Path(os.getcwd()).parent
@@ -57,18 +60,11 @@ def main():
 
     if not run_command(['dotnet', 'run', lean_dir, stubs_dir], cwd=generator_dir):
         fail('Could not run QuantConnectStubsGenerator')
+    
+    shutil.copy(project_root / 'integration' / 'pyrightconfig.json', stubs_dir / 'pyrightconfig.json')
 
-    mypy_success = run_command(['mypy'] + [file for file in get_python_files(stubs_dir)], cwd=stubs_dir)
-    pyright_success = run_command(['pyright', 'Oanda', 'QuantConnect'], cwd=stubs_dir)
-
-    if not mypy_success and not pyright_success:
-        fail('Mypy and Pyright found errors in the generated stubs')
-    elif not mypy_success:
-        fail('Mypy found errors in the generated stubs')
-    elif not pyright_success:
+    if not run_command(['pyright'], cwd=stubs_dir, append_empty_line=False):
         fail('Pyright found errors in the generated stubs')
-    else:
-        print('Mypy and Pyright found no errors in the generated stubs')
 
 
 if __name__ == '__main__':

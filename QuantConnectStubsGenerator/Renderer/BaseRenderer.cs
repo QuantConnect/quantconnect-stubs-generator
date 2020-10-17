@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Renderer
@@ -14,14 +13,10 @@ namespace QuantConnectStubsGenerator.Renderer
         private readonly string _indentation;
         private bool _isAtLineStart = true;
 
-        protected readonly Namespace CurrentNamespace;
-
-        protected BaseRenderer(StreamWriter writer, int indentationLevel, Namespace ns)
+        protected BaseRenderer(StreamWriter writer, int indentationLevel)
         {
             _writer = writer;
             _indentationLevel = indentationLevel;
-
-            CurrentNamespace = ns;
 
             _indentation = new string(' ', indentationLevel * 4);
         }
@@ -49,7 +44,7 @@ namespace QuantConnectStubsGenerator.Renderer
         protected TRenderer CreateRenderer<TRenderer>(bool indented = true)
         {
             var indentationLevel = _indentationLevel + (indented ? 1 : 0);
-            return (TRenderer) Activator.CreateInstance(typeof(TRenderer), _writer, indentationLevel, CurrentNamespace);
+            return (TRenderer) Activator.CreateInstance(typeof(TRenderer), _writer, indentationLevel);
         }
 
         protected void Write(string value)

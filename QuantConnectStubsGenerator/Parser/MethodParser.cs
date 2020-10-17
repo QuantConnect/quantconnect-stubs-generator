@@ -1,10 +1,13 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Xml;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using QuantConnectStubsGenerator.Model;
+using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Parser
 {
-    // ReSharper disable once ClassNeverInstantiated.Global
     public class MethodParser : BaseParser
     {
         public MethodParser(ParseContext context, SemanticModel model) : base(context, model)
@@ -13,23 +16,224 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
-            // TODO: Implement
-
-            base.VisitMethodDeclaration(node);
+            VisitMethod(node, node.Identifier.Text, node.ParameterList, _typeConverter.GetType(node.ReturnType));
         }
 
         public override void VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
         {
-            // TODO: Implement
+            if (HasModifier(node, "static"))
+            {
+                return;
+            }
 
-            base.VisitConstructorDeclaration(node);
+            VisitMethod(node, "__init__", node.ParameterList, new PythonType("None"));
         }
 
         public override void VisitDelegateDeclaration(DelegateDeclarationSyntax node)
         {
-            // TODO: Implement
+            if (_currentClass == null)
+            {
+                return;
+            }
 
-            base.VisitDelegateDeclaration(node);
+            VisitMethod(node, node.Identifier.Text, node.ParameterList, _typeConverter.GetType(node.ReturnType));
+        }
+
+        private void VisitMethod(
+            MemberDeclarationSyntax node,
+            string name,
+            ParameterListSyntax parameterList,
+            PythonType returnType)
+        {
+            if (HasModifier(node, "private"))
+            {
+                return;
+            }
+
+            var classContainingMethod = GetClassContainingMethod(parameterList);
+            if (classContainingMethod == null)
+            {
+                return;
+            }
+
+            var method = new Method(name, returnType)
+            {
+                Static = classContainingMethod.Static || HasModifier(node, "static")
+            };
+
+            var doc = ParseDocumentation(node);
+            if (doc["summary"] != null)
+            {
+                method.Summary = doc["summary"].GetText();
+            }
+
+            if (classContainingMethod != _currentClass)
+            {
+                var clsName = $"{_currentClass.Type.Namespace}.{_currentClass.Type.Name}";
+                method.Summary = PrefixSummary(method.Summary, $"This is an extension method defined in {clsName}.");
+            }
+
+            if (HasModifier(node, "protected"))
+            {
+                method.Summary = PrefixSummary(method.Summary, "This method is protected.");
+            }
+
+            var docStrings = new List<string>();
+
+            foreach (var parameter in parameterList.Parameters)
+            {
+                var parsedParameter = ParseParameter(parameter);
+
+                if (parsedParameter == null)
+                {
+                    continue;
+                }
+
+                foreach (XmlElement paramNode in doc.GetElementsByTagName("param"))
+                {
+                    if (paramNode.Attributes["name"]?.Value == parameter.Identifier.Text)
+                    {
+                        var text = paramNode.GetText();
+
+                        if (text.Trim().Length == 0)
+                        {
+                            continue;
+                        }
+
+                        docStrings.Add($":param {parsedParameter.Name}: {text}");
+                        break;
+                    }
+                }
+
+                method.Parameters.Add(parsedParameter);
+            }
+
+            if (doc["returns"] != null)
+            {
+                var text = doc["returns"].GetText();
+
+                if (text.Trim().Length > 0)
+                {
+                    docStrings.Add($":returns: {text}");
+                }
+            }
+
+            docStrings = docStrings.Select(str => str.Replace('\n', ' ')).ToList();
+
+            if (docStrings.Count > 0)
+            {
+                var paramText = string.Join("\n", docStrings);
+                method.Summary = method.Summary != null
+                    ? method.Summary + "\n\n" + paramText
+                    : paramText;
+            }
+
+            classContainingMethod.Methods.Add(method);
+
+            SetOverloadIfNecessary(classContainingMethod, method);
+        }
+
+        private Class GetClassContainingMethod(ParameterListSyntax parameterList)
+        {
+            if (parameterList.Parameters.Count == 0)
+            {
+                return _currentClass;
+            }
+
+            var firstParameter = parameterList.Parameters[0];
+            if (firstParameter.Modifiers.All(modifier => modifier.Text != "this"))
+            {
+                return _currentClass;
+            }
+
+            var classType = _typeConverter.GetType(firstParameter.Type);
+
+            // Skip extension methods on generic types
+            if (classType.IsNamedTypeParameter)
+            {
+                return null;
+            }
+
+            if (classType.Namespace == null || !_context.HasNamespace(classType.Namespace))
+            {
+                return null;
+            }
+
+            var ns = _context.GetNamespaceByName(classType.Namespace);
+            return ns.HasClass(classType) ? ns.GetClassByType(classType) : null;
+        }
+
+        private Parameter ParseParameter(ParameterSyntax syntax)
+        {
+            // Skip the parameter which marks this method as an extension method
+            if (syntax.Modifiers.Any(modifier => modifier.Text == "this"))
+            {
+                return null;
+            }
+
+            var originalName = syntax.Identifier.Text;
+            var parameter = new Parameter(FormatParameterName(originalName), _typeConverter.GetType(syntax.Type));
+
+            if (syntax.Modifiers.Any(modifier => modifier.Text == "params"))
+            {
+                parameter.VarArgs = true;
+                parameter.Type = parameter.Type.TypeParameters[0];
+            }
+
+            // Symbol parameters can be both a Symbol instance or a string containing the ticker
+            if (parameter.Type.Namespace == "QuantConnect" && parameter.Type.Name == "Symbol")
+            {
+                var unionType = new PythonType("Union", "typing");
+                unionType.TypeParameters.Add(parameter.Type);
+                unionType.TypeParameters.Add(new PythonType("str"));
+                parameter.Type = unionType;
+            }
+
+            if (syntax.Default != null)
+            {
+                parameter.Value = FormatValue(syntax.Default.Value.ToString());
+            }
+
+            return parameter;
+        }
+
+        private string FormatParameterName(string name)
+        {
+            // Remove "@" prefix
+            if (name.StartsWith("@"))
+            {
+                name = name.Substring(1);
+            }
+
+            // Escape keywords
+            return name switch
+            {
+                "from" => "_from",
+                "enum" => "_enum",
+                "lambda" => "_lambda",
+                _ => name
+            };
+        }
+
+        /// <summary>
+        /// Checks if the given method that has just been added to the given class is an overload.
+        /// If this is the case, all necessary method instances have their overload property set to true.
+        /// </summary>
+        private void SetOverloadIfNecessary(Class cls, Method method)
+        {
+            var methodsWithSameName = cls.Methods
+                .Where(m => m.Name == method.Name)
+                .ToList();
+
+            if (methodsWithSameName.Count <= 1)
+            {
+                return;
+            }
+
+            foreach (var m in methodsWithSameName)
+            {
+                m.Overload = true;
+            }
         }
     }
 }

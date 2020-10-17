@@ -25,7 +25,7 @@ namespace QuantConnectStubsGenerator.Model
             return Name.Contains('.') ? Name.Substring(0, Name.IndexOf('.')) : Name;
         }
 
-        public string ToPythonString(Namespace currentNamespace = null, bool ignoreAlias = false)
+        public string ToPythonString(bool ignoreAlias = false)
         {
             if (!ignoreAlias && Alias != null)
             {
@@ -39,7 +39,7 @@ namespace QuantConnectStubsGenerator.Model
 
             var str = "";
 
-            if (Namespace != null && Namespace != currentNamespace?.Name)
+            if (Namespace != null)
             {
                 str += $"{Namespace}.";
             }
@@ -59,13 +59,13 @@ namespace QuantConnectStubsGenerator.Model
                 str += "[";
                 str += string.Join(
                     ", ",
-                    TypeParameters.SkipLast(1).Select(type => type.ToPythonString(currentNamespace)));
+                    TypeParameters.SkipLast(1).Select(type => type.ToPythonString()));
                 str += "], ";
-                str += TypeParameters.Last().ToPythonString(currentNamespace);
+                str += TypeParameters.Last().ToPythonString();
             }
             else
             {
-                str += string.Join(", ", TypeParameters.Select(type => type.ToPythonString(currentNamespace)));
+                str += string.Join(", ", TypeParameters.Select(type => type.ToPythonString()));
             }
 
             str += "]";

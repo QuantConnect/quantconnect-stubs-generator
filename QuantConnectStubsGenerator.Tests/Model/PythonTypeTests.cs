@@ -25,7 +25,7 @@ namespace QuantConnectStubsGenerator.Tests.Model
                 Alias = "AnyAlias"
             };
 
-            Assert.AreEqual("typing.Any", type.ToPythonString(null, true));
+            Assert.AreEqual("typing.Any", type.ToPythonString(true));
         }
 
         [Test]
@@ -40,19 +40,11 @@ namespace QuantConnectStubsGenerator.Tests.Model
         }
 
         [Test]
-        public void ToPythonStringCorrectlyAddsNamespaceWhenNecessary()
+        public void ToPythonStringCorrectlyAddsNamespace()
         {
             var type = new PythonType("MyClass", "QuantConnect");
 
-            Assert.AreEqual("QuantConnect.MyClass", type.ToPythonString(new Namespace("NotQuantConnect")));
-        }
-
-        [Test]
-        public void ToPythonStringOmitsNamespaceWhenSameAsCurrentNamespace()
-        {
-            var type = new PythonType("MyClass", "QuantConnect");
-
-            Assert.AreEqual("MyClass", type.ToPythonString(new Namespace("QuantConnect")));
+            Assert.AreEqual("QuantConnect.MyClass", type.ToPythonString());
         }
 
         [Test]

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using QuantConnectStubsGenerator.Model;
@@ -69,7 +68,7 @@ namespace QuantConnectStubsGenerator.Parser
             var type = new PythonType(name, ns);
 
             // Process type parameter
-            if (symbol is ITypeParameterSymbol typeParameterSymbol)
+            if (symbol is ITypeParameterSymbol)
             {
                 type.IsNamedTypeParameter = true;
             }
@@ -77,8 +76,10 @@ namespace QuantConnectStubsGenerator.Parser
             // Process named type parameters
             if (symbol is INamedTypeSymbol namedTypeSymbol)
             {
-                // Delegates are not supported in Python
-                if (namedTypeSymbol.DelegateInvokeMethod != null)
+                // Delegates are not supported
+                if (namedTypeSymbol.DelegateInvokeMethod != null
+                    && !namedTypeSymbol.DelegateInvokeMethod.ToDisplayString().StartsWith("System.Func")
+                    && !namedTypeSymbol.DelegateInvokeMethod.ToDisplayString().StartsWith("System.Action"))
                 {
                     return new PythonType("Any", "typing")
                     {
@@ -158,8 +159,12 @@ namespace QuantConnectStubsGenerator.Parser
                         break;
                     case "Func":
                     case "Action":
-                        type.Name = "Callable";
-                        type.Namespace = "typing";
+                        if (type.TypeParameters.Count > 0)
+                        {
+                            type.Name = "Callable";
+                            type.Namespace = "typing";
+                        }
+
                         break;
                 }
             }

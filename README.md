@@ -6,7 +6,7 @@
 
 QuantConnect Stubs Generator is a program which generates Python stubs based on [QuantConnect/Lean](https://github.com/QuantConnect/Lean)'s C# codebase.
 
-I initially created this project when I noticed QuantConnect started on this effort themselves, after which I got intrigued and wanted to try it for myself. The first version worked fine, but had quite a bulky codebase, no tests and generated stubs which were only tested to work in IntelliJ IDEA with the Python plugin. In the second and current version the goal is to solve these problems. Although this version is a ground-up rewrite, much of the code from the first version is reused.
+I initially created this project when I noticed QuantConnect started on this effort themselves, after which I got intrigued and wanted to try it for myself. The first version worked fine, but had quite a bulky codebase and no tests. In the second and current version the goal is to solve these problems. Although this version is a ground-up rewrite, much of the code from the first version is reused.
 
 ## Comparison with the official stubs
 

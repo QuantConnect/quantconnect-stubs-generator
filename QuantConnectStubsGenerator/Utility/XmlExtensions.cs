@@ -11,23 +11,35 @@ namespace QuantConnectStubsGenerator.Utility
             for (int i = 0, iMax = clone.ChildNodes.Count; i < iMax; i++)
             {
                 var child = clone.ChildNodes[i];
+                string newText = null;
 
-                if (child.Name != "see")
+                switch (child.Name)
                 {
-                    continue;
+                    case "typeparamref":
+                        newText = child.Attributes["name"].Value;
+                        break;
+                    case "see":
+                    {
+                        // Replace cref, paramref and langword tags with their content
+                        var attribute = child.Attributes["cref"]
+                                        ?? child.Attributes["paramref"]
+                                        ?? child.Attributes["langword"];
+
+                        newText = attribute.InnerText;
+
+                        // Convert "T:System.Object" to "System.Object"
+                        if (newText.Length > 2 && newText[1] == ':')
+                        {
+                            newText = newText.Substring(2);
+                        }
+
+                        break;
+                    }
                 }
 
-                // Replace cref, paramref and langword tags with their content
-                var attribute = child.Attributes["cref"]
-                                ?? child.Attributes["paramref"]
-                                ?? child.Attributes["langword"];
-
-                var newText = attribute.InnerText;
-
-                // Convert "T:System.Object" to "System.Object"
-                if (newText.Length > 2 && newText[1] == ':')
+                if (newText == null)
                 {
-                    newText = newText.Substring(2);
+                    continue;
                 }
 
                 var newNode = clone.OwnerDocument.CreateTextNode(newText);

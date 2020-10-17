@@ -16,7 +16,11 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
-            VisitMethod(node, node.Identifier.Text, node.ParameterList, _typeConverter.GetType(node.ReturnType));
+            VisitMethod(
+                node,
+                node.Identifier.Text,
+                node.ParameterList.Parameters,
+                _typeConverter.GetType(node.ReturnType));
         }
 
         public override void VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
@@ -26,7 +30,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            VisitMethod(node, "__init__", node.ParameterList, new PythonType("None"));
+            VisitMethod(node, "__init__", node.ParameterList.Parameters, new PythonType("None"));
         }
 
         public override void VisitDelegateDeclaration(DelegateDeclarationSyntax node)
@@ -36,13 +40,28 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            VisitMethod(node, node.Identifier.Text, node.ParameterList, _typeConverter.GetType(node.ReturnType));
+            VisitMethod(
+                node,
+                node.Identifier.Text,
+                node.ParameterList.Parameters,
+                _typeConverter.GetType(node.ReturnType));
+        }
+
+        public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
+        {
+            VisitMethod(node, "__getitem__", node.ParameterList.Parameters, _typeConverter.GetType(node.Type));
+
+            var symbol = _typeConverter.GetSymbol(node);
+            if (symbol is IPropertySymbol propertySymbol && !propertySymbol.IsReadOnly)
+            {
+                VisitMethod(node, "__setitem__", node.ParameterList.Parameters, new PythonType("None"));
+            }
         }
 
         private void VisitMethod(
             MemberDeclarationSyntax node,
             string name,
-            ParameterListSyntax parameterList,
+            SeparatedSyntaxList<ParameterSyntax> parameterList,
             PythonType returnType)
         {
             if (HasModifier(node, "private"))
@@ -80,9 +99,9 @@ namespace QuantConnectStubsGenerator.Parser
 
             var docStrings = new List<string>();
 
-            foreach (var parameter in parameterList.Parameters)
+            foreach (var parameter in parameterList)
             {
-                var parsedParameter = ParseParameter(parameter);
+                var parsedParameter = ParseParameter(parameter, method.Name);
 
                 if (parsedParameter == null)
                 {
@@ -133,14 +152,14 @@ namespace QuantConnectStubsGenerator.Parser
             SetOverloadIfNecessary(classContainingMethod, method);
         }
 
-        private Class GetClassContainingMethod(ParameterListSyntax parameterList)
+        private Class GetClassContainingMethod(SeparatedSyntaxList<ParameterSyntax> parameterList)
         {
-            if (parameterList.Parameters.Count == 0)
+            if (parameterList.Count == 0)
             {
                 return _currentClass;
             }
 
-            var firstParameter = parameterList.Parameters[0];
+            var firstParameter = parameterList[0];
             if (firstParameter.Modifiers.All(modifier => modifier.Text != "this"))
             {
                 return _currentClass;
@@ -163,7 +182,7 @@ namespace QuantConnectStubsGenerator.Parser
             return ns.HasClass(classType) ? ns.GetClassByType(classType) : null;
         }
 
-        private Parameter ParseParameter(ParameterSyntax syntax)
+        private Parameter ParseParameter(ParameterSyntax syntax, string methodName)
         {
             // Skip the parameter which marks this method as an extension method
             if (syntax.Modifiers.Any(modifier => modifier.Text == "this"))
@@ -180,8 +199,10 @@ namespace QuantConnectStubsGenerator.Parser
                 parameter.Type = parameter.Type.TypeParameters[0];
             }
 
-            // Symbol parameters can be both a Symbol instance or a string containing the ticker
-            if (parameter.Type.Namespace == "QuantConnect" && parameter.Type.Name == "Symbol")
+            // Symbol parameters can be both a Symbol instance or a string containing the ticker in Add* methods
+            if (methodName.StartsWith("Add")
+                && parameter.Type.Namespace == "QuantConnect"
+                && parameter.Type.Name == "Symbol")
             {
                 var unionType = new PythonType("Union", "typing");
                 unionType.TypeParameters.Add(parameter.Type);

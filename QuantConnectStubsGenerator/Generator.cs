@@ -87,6 +87,9 @@ namespace QuantConnectStubsGenerator
 
             // Ensure all directories contain a __init__.py file so import resolutions work properly
             EnsureAllModulesReachable();
+
+            // Render setup.py file supporting local installation
+            GenerateSetup();
         }
 
         private void ParseSyntaxTrees<T>(
@@ -135,8 +138,15 @@ namespace QuantConnectStubsGenerator
 
         private void EnsureAllModulesReachable()
         {
-            var directories = new DirectoryInfo(_outputDirectory).GetDirectories("*.*", SearchOption.AllDirectories);
-            foreach (var directory in directories)
+            var oandaDirectories =
+                new DirectoryInfo(Path.GetFullPath("Oanda", _outputDirectory))
+                    .GetDirectories("*.*", SearchOption.AllDirectories);
+
+            var qcDirectories =
+                new DirectoryInfo(Path.GetFullPath("QuantConnect", _outputDirectory))
+                    .GetDirectories("*.*", SearchOption.AllDirectories);
+
+            foreach (var directory in oandaDirectories.Concat(qcDirectories))
             {
                 var initPath = Path.GetFullPath("__init__.pyi", directory.FullName);
 
@@ -151,6 +161,73 @@ namespace QuantConnectStubsGenerator
                 initWriter.WriteLine("# This namespace is empty");
                 initWriter.WriteLine("# This file exists to make import resolution work properly");
             }
+        }
+
+        private void GenerateSetup()
+        {
+            var namespaces = Directory.GetFiles(_outputDirectory, "*.pyi", SearchOption.AllDirectories)
+                .Select(file =>
+                {
+                    var ns = file.Replace(_outputDirectory, "").Substring(1);
+                    ns = ns.Substring(0, ns.LastIndexOf('/'));
+                    return ns.Replace('/', '.');
+                }).Distinct().OrderBy(name => name).ToList();
+
+            var setupPath = Path.GetFullPath("setup.py", _outputDirectory);
+            using var setupWriter = new StreamWriter(setupPath);
+
+            Logger.Info($"Generating {setupPath}");
+
+            setupWriter.WriteLine("from setuptools import setup");
+            setupWriter.WriteLine();
+            setupWriter.WriteLine("setup(");
+            setupWriter.WriteLine("    name='quantconnect-stubs',");
+            setupWriter.WriteLine($"    version='{GetLatestTag()}',");
+            setupWriter.WriteLine("    description='Unofficial stubs for QuantConnect\\'s Lean',");
+            setupWriter.WriteLine("    python_requires='>=3.6',");
+            setupWriter.WriteLine("    packages=[");
+
+            foreach (var ns in namespaces)
+            {
+                setupWriter.WriteLine($"        '{ns}',");
+            }
+
+            setupWriter.WriteLine("    ],");
+            setupWriter.WriteLine("    package_data={");
+
+            foreach (var ns in namespaces)
+            {
+                setupWriter.WriteLine($"        '{ns}': ['*.pyi'],");
+            }
+
+            setupWriter.WriteLine("    }");
+            setupWriter.WriteLine(")");
+        }
+
+        private int GetLatestTag()
+        {
+            var tagsDirectory = new DirectoryInfo(Path.GetFullPath(".git/refs/tags", _leanPath));
+
+            if (!tagsDirectory.Exists)
+            {
+                throw new Exception("Provided Lean path is not a Git repository");
+            }
+
+            var files = tagsDirectory
+                .GetFiles()
+                .Select(file => file.Name)
+                .Select(name => int.TryParse(name, out int n) ? n : (int?) null)
+                .Where(tag => tag.HasValue)
+                .Select(tag => tag.Value)
+                .OrderBy(tag => tag)
+                .ToList();
+
+            if (files.Count == 0)
+            {
+                throw new Exception("Provided Lean path is not a Git repository with tags");
+            }
+
+            return files.Last();
         }
 
         private string FormatPath(string path)

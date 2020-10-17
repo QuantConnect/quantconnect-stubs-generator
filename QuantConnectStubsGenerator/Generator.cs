@@ -183,7 +183,7 @@ namespace QuantConnectStubsGenerator
             setupWriter.WriteLine("setup(");
             setupWriter.WriteLine("    name='quantconnect-stubs',");
             setupWriter.WriteLine($"    version='{GetLatestTag()}',");
-            setupWriter.WriteLine("    description='Unofficial stubs for QuantConnect\\'s Lean',");
+            setupWriter.WriteLine("    description='Unofficial type stubs for QuantConnect\\'s Lean',");
             setupWriter.WriteLine("    python_requires='>=3.6',");
             setupWriter.WriteLine("    packages=[");
 

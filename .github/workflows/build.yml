@@ -35,6 +35,7 @@ jobs:
         run: |
           pip install mypy
           npm install --global pyright
+          
       - name: Run integration tests
         run: python integration_tests.py
         working-directory: integration

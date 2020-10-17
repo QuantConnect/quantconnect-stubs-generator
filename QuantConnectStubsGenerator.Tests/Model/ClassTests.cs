@@ -26,16 +26,29 @@ namespace QuantConnectStubsGenerator.Tests.Model
 
             childCls.InheritsFrom.Add(new PythonType("Any", "typing"));
 
+            childCls.Properties.Add(new Property("Property")
+            {
+                Type = new PythonType("PropertyType", "QuantConnect")
+            });
+
+            childCls.Methods.Add(new Method("Method", new PythonType("ReturnType", "QuantConnect"))
+            {
+                Parameters = {new Parameter("Parameter", new PythonType("ParameterType", "QuantConnect"))}
+            });
+
             var usedTypes = parentCls.GetUsedTypes().ToList();
 
-            Assert.AreEqual(7, usedTypes.Count);
-            Assert.IsTrue(usedTypes.Any(type => type.Namespace == "QuantConnect" && type.Name == "ParentClass"));
-            Assert.IsTrue(usedTypes.Any(type => type.Namespace == "QuantConnect" && type.Name == "ChildClass"));
-            Assert.IsTrue(usedTypes.Any(type => type.Namespace == "QuantConnect" && type.Name == "ChildClass.T"));
-            Assert.IsTrue(usedTypes.Any(type => type.Namespace == "typing" && type.Name == "Generic"));
-            Assert.IsTrue(usedTypes.Any(type => type.Namespace == "typing" && type.Name == "TypeVar"));
-            Assert.IsTrue(usedTypes.Any(type => type.Namespace == "typing" && type.Name == "Any"));
-            Assert.IsTrue(usedTypes.Any(type => type.Namespace == "abc" && type.Name == "ABCMeta"));
+            Assert.AreEqual(10, usedTypes.Count);
+            Assert.IsTrue(usedTypes.Any(t => t.Namespace == "QuantConnect" && t.Name == "ParentClass"));
+            Assert.IsTrue(usedTypes.Any(t => t.Namespace == "QuantConnect" && t.Name == "ChildClass"));
+            Assert.IsTrue(usedTypes.Any(t => t.Namespace == "QuantConnect" && t.Name == "ChildClass.T"));
+            Assert.IsTrue(usedTypes.Any(t => t.Namespace == "QuantConnect" && t.Name == "PropertyType"));
+            Assert.IsTrue(usedTypes.Any(t => t.Namespace == "QuantConnect" && t.Name == "ReturnType"));
+            Assert.IsTrue(usedTypes.Any(t => t.Namespace == "QuantConnect" && t.Name == "ParameterType"));
+            Assert.IsTrue(usedTypes.Any(t => t.Namespace == "typing" && t.Name == "Generic"));
+            Assert.IsTrue(usedTypes.Any(t => t.Namespace == "typing" && t.Name == "TypeVar"));
+            Assert.IsTrue(usedTypes.Any(t => t.Namespace == "typing" && t.Name == "Any"));
+            Assert.IsTrue(usedTypes.Any(t => t.Namespace == "abc" && t.Name == "ABCMeta"));
         }
     }
 }

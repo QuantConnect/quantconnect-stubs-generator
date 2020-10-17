@@ -199,8 +199,8 @@ namespace QuantConnectStubsGenerator.Parser
                 parameter.Type = parameter.Type.TypeParameters[0];
             }
 
-            // Symbol parameters can be both a Symbol instance or a string containing the ticker in Add* methods
-            if (methodName.StartsWith("Add")
+            // Symbol parameters can be both a Symbol or a string containing the ticker in Add* and Set* methods
+            if ((methodName.StartsWith("Add") || methodName.StartsWith("Set"))
                 && parameter.Type.Namespace == "QuantConnect"
                 && parameter.Type.Name == "Symbol")
             {

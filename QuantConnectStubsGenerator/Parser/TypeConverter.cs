@@ -36,7 +36,21 @@ namespace QuantConnectStubsGenerator.Parser
 
             if (symbol == null)
             {
-                return new PythonType("Any", "typing");
+                return node.ToFullString().Trim() switch
+                {
+                    "PyList" => new PythonType("List", "typing")
+                    {
+                        TypeParameters = new List<PythonType> {new PythonType("Any", "typing")}
+                    },
+                    "PyDict" => new PythonType("Dict", "typing")
+                    {
+                        TypeParameters = new List<PythonType>
+                        {
+                            new PythonType("Any", "typing"), new PythonType("Any", "typing")
+                        }
+                    },
+                    _ => new PythonType("Any", "typing")
+                };
             }
 
             return GetType(symbol);

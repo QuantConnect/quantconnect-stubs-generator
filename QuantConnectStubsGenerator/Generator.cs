@@ -182,7 +182,7 @@ namespace QuantConnectStubsGenerator
             setupWriter.WriteLine();
             setupWriter.WriteLine("setup(");
             setupWriter.WriteLine("    name='quantconnect-stubs',");
-            setupWriter.WriteLine($"    version='{GetLatestTag()}',");
+            setupWriter.WriteLine($"    version='{GetVersion()}',");
             setupWriter.WriteLine("    description='Unofficial type stubs for QuantConnect\\'s Lean',");
             setupWriter.WriteLine("    python_requires='>=3.6',");
             setupWriter.WriteLine("    packages=[");
@@ -204,30 +204,33 @@ namespace QuantConnectStubsGenerator
             setupWriter.WriteLine(")");
         }
 
-        private int GetLatestTag()
+        private string GetVersion()
         {
+            const string defaultVersion = "1.0.0";
             var tagsDirectory = new DirectoryInfo(Path.GetFullPath(".git/refs/tags", _leanPath));
 
             if (!tagsDirectory.Exists)
             {
-                throw new Exception("Provided Lean path is not a Git repository");
+                Logger.Warn($"Provided Lean path is not a Git repository, setting version to {defaultVersion}");
+                return defaultVersion;
             }
 
             var files = tagsDirectory
                 .GetFiles()
                 .Select(file => file.Name)
-                .Select(name => int.TryParse(name, out int n) ? n : (int?) null)
+                .Select(name => int.TryParse(name, out var n) ? n : (int?) null)
                 .Where(tag => tag.HasValue)
                 .Select(tag => tag.Value)
                 .OrderBy(tag => tag)
                 .ToList();
 
-            if (files.Count == 0)
+            if (files.Count != 0)
             {
-                throw new Exception("Provided Lean path is not a Git repository with tags");
+                return files.Last().ToString();
             }
 
-            return files.Last();
+            Logger.Warn($"Provided Lean path is not a Git repository with tags, setting version to {defaultVersion}");
+            return defaultVersion;
         }
 
         private string FormatPath(string path)

@@ -52,10 +52,10 @@ namespace QuantConnectStubsGenerator.Model
                 types.Add(new PythonType("TypeVar", "typing"));
             }
 
-            // PropertyRenderer adds the @abc.abstractproperty decorator to abstract properties
-            if (Properties.Any(p => p.Abstract))
+            // PropertyRenderer adds the @abc.abstractmethod decorator to abstract properties
+            if (Properties.Any(p => !p.Static && p.Abstract))
             {
-                types.Add(new PythonType("abstractproperty", "abc"));
+                types.Add(new PythonType("abstractmethod", "abc"));
             }
 
             // MethodRender adds the @typing.overload decorator to overloaded methods

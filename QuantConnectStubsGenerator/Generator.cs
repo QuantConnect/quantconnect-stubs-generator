@@ -184,6 +184,8 @@ namespace QuantConnectStubsGenerator
                 .ToList();
 
             writer.WriteLine($@"
+# pyright: reportMissingImports=false
+
 import os
 import sys
 

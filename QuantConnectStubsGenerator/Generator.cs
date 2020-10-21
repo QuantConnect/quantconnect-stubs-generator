@@ -151,14 +151,6 @@ namespace QuantConnectStubsGenerator
             var namespacePath = ns.Name.Replace('.', '/');
             var outputPath = Path.GetFullPath($"{namespacePath}/__init__.pyi", _outputDirectory);
 
-            // QuantConnect.API stubs are placed in QuantConnect/API/__init__.pyi
-            // QuantConnect.Api stubs are placed in QuantConnect/Api.pyi
-            // This is done to prevent case-sensitivity issues
-            if (ns.Name == "QuantConnect.Api")
-            {
-                outputPath = Path.GetFullPath($"{namespacePath}.pyi", _outputDirectory);
-            }
-
             Logger.Info($"Generating {outputPath}");
 
             // Make sure the parent directories of outputPath exist

@@ -1,6 +1,6 @@
 # QuantConnect Stubs Generator
 
-[![Build Status](https://github.com/jmerle/quantconnect-stubs-generator/workflows/Build/badge.svg)](https://github.com/jmerle/quantconnect-stubs-generator/actions?query=workflow%3ABuild)
+[![Build Status](https://github.com/QuantConnect/quantconnect-stubs-generator/workflows/Build/badge.svg)](https://github.com/QuantConnect/quantconnect-stubs-generator/actions?query=workflow%3ABuild)
 
 QuantConnect Stubs Generator is a program which generates Python stubs based on [QuantConnect/Lean](https://github.com/QuantConnect/Lean)'s C# codebase.
 

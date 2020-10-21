@@ -79,14 +79,15 @@ namespace QuantConnectStubsGenerator
             ParseSyntaxTrees<PropertyParser>(context, syntaxTrees, compilation);
             ParseSyntaxTrees<MethodParser>(context, syntaxTrees, compilation);
 
+            // Create empty namespaces to fill gaps in between namespaces like "A.B" and "A.B.C.D"
+            // This is needed to make import resolution work correctly
+            CreateEmptyNamespaces(context);
+
             // Render .pyi files containing stubs for all parsed namespaces
             foreach (var ns in context.GetNamespaces())
             {
-                RenderNamespace(ns);
+                RenderNamespace(context, ns);
             }
-
-            // Ensure all directories contain a __init__.py file so import resolutions work properly
-            EnsureAllModulesReachable();
 
             // Render setup.py file supporting local installation
             GenerateSetup();
@@ -113,7 +114,39 @@ namespace QuantConnectStubsGenerator
             }
         }
 
-        private void RenderNamespace(Namespace ns)
+        private void CreateEmptyNamespaces(ParseContext context)
+        {
+            // The key is the namespace, the value is whether there is already a namespace for it
+            // After adding all namespaces, the keys of entries with a false value represent the gap namespaces
+            var namespaceMapping = new Dictionary<string, bool>();
+
+            foreach (var ns in context.GetNamespaces())
+            {
+                namespaceMapping[ns.Name] = true;
+
+                var parts = ns.Name.Split(".");
+
+                for (var i = 1; i <= parts.Length; i++)
+                {
+                    var partialNamespace = string.Join(".", parts.Take(i));
+
+                    if (!namespaceMapping.ContainsKey(partialNamespace))
+                    {
+                        namespaceMapping[partialNamespace] = false;
+                    }
+                }
+            }
+
+            foreach (var (ns, exists) in namespaceMapping)
+            {
+                if (!exists)
+                {
+                    context.RegisterNamespace(new Namespace(ns));
+                }
+            }
+        }
+
+        private void RenderNamespace(ParseContext context, Namespace ns)
         {
             var namespacePath = ns.Name.Replace('.', '/');
             var outputPath = Path.GetFullPath($"{namespacePath}/__init__.pyi", _outputDirectory);
@@ -131,36 +164,60 @@ namespace QuantConnectStubsGenerator
             // Make sure the parent directories of outputPath exist
             new FileInfo(outputPath).Directory?.Create();
 
-            using var pyiWriter = new StreamWriter(outputPath);
-            var renderer = new NamespaceRenderer(pyiWriter, 0);
+            using var writer = new StreamWriter(outputPath);
+            var renderer = new NamespaceRenderer(writer, 0);
             renderer.Render(ns);
+
+            CreatePyLoader(context, ns.Name, outputPath.Replace(".pyi", ".py"));
         }
 
-        private void EnsureAllModulesReachable()
+        private void CreatePyLoader(ParseContext context, string ns, string path)
         {
-            var oandaDirectories =
-                new DirectoryInfo(Path.GetFullPath("Oanda", _outputDirectory))
-                    .GetDirectories("*.*", SearchOption.AllDirectories);
+            Logger.Info($"Generating {path}");
 
-            var qcDirectories =
-                new DirectoryInfo(Path.GetFullPath("QuantConnect", _outputDirectory))
-                    .GetDirectories("*.*", SearchOption.AllDirectories);
+            using var writer = new StreamWriter(path);
+            var namespaceRoots = context
+                .GetNamespaces()
+                .Select(n => n.Name.Split(".")[0])
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList();
 
-            foreach (var directory in oandaDirectories.Concat(qcDirectories))
-            {
-                var initPath = Path.GetFullPath("__init__.pyi", directory.FullName);
+            writer.WriteLine($@"
+import os
+import sys
 
-                if (new FileInfo(initPath).Exists)
-                {
-                    continue;
-                }
+# Lean uses Python.NET to load C# dependencies in Python code.
+#
+# If quantconnect-stubs is installed via Pip and Lean is ran locally,
+# importing anything from the QuantConnect namespace makes the Python
+# interpreter look in the quantconnect-stubs package for the implementation.
+#
+# The desired behavior is for the interpreter to use the implementation
+# provided by the AddReference() call from Python.NET.
+#
+# To fix this, we temporarily remove the directory containing the
+# quantconnect-stubs package from sys.path and re-import the current namespace
+# so the relevant C# namespace is used when running Lean locally.
 
-                Logger.Info($"Generating empty {initPath}");
+# Find the directory containing quantconnect-stubs (usually site-packages)
+current_path = os.path.dirname(__file__)
+while os.path.basename(current_path) not in [{string.Join(", ", namespaceRoots.Select(n => $"'{n}'"))}]:
+    current_path = os.path.dirname(current_path)
+current_path = os.path.dirname(current_path)
 
-                using var initWriter = new StreamWriter(initPath);
-                initWriter.WriteLine("# This namespace is empty");
-                initWriter.WriteLine("# This file exists to make import resolution work properly");
-            }
+# Temporarily remove the directory containing quantconnect-stubs from sys.path
+sys.path.remove(current_path)
+
+# Import the C# version of the current namespace
+del sys.modules['{ns}']
+from clr import AddReference
+AddReference('{ns}')
+from {ns} import *
+
+# Restore sys.path
+sys.path.append(current_path)
+            ".Trim());
         }
 
         private void GenerateSetup()
@@ -174,34 +231,52 @@ namespace QuantConnectStubsGenerator
                 }).Distinct().OrderBy(name => name).ToList();
 
             var setupPath = Path.GetFullPath("setup.py", _outputDirectory);
-            using var setupWriter = new StreamWriter(setupPath);
+            using var writer = new StreamWriter(setupPath);
 
             Logger.Info($"Generating {setupPath}");
 
-            setupWriter.WriteLine("from setuptools import setup");
-            setupWriter.WriteLine();
-            setupWriter.WriteLine("setup(");
-            setupWriter.WriteLine("    name='quantconnect-stubs',");
-            setupWriter.WriteLine($"    version='{GetVersion()}',");
-            setupWriter.WriteLine("    description='Unofficial type stubs for QuantConnect\\'s Lean',");
-            setupWriter.WriteLine("    python_requires='>=3.6',");
-            setupWriter.WriteLine("    packages=[");
+            writer.WriteLine($@"
+from setuptools import setup
 
-            foreach (var ns in namespaces)
-            {
-                setupWriter.WriteLine($"        '{ns}',");
-            }
+long_description = '''
+# QuantConnect Stubs
 
-            setupWriter.WriteLine("    ],");
-            setupWriter.WriteLine("    package_data={");
+This package contains unofficial type stubs for QuantConnect's Lean.
+These stubs provide more type information than the official stubs, are more accurate and are easier to install.
 
-            foreach (var ns in namespaces)
-            {
-                setupWriter.WriteLine($"        '{ns}': ['*.pyi'],");
-            }
+See the [repository](https://github.com/jmerle/quantconnect-stubs-generator) for more details.
 
-            setupWriter.WriteLine("    }");
-            setupWriter.WriteLine(")");
+## Installation
+
+```
+pip install quantconnect-stubs
+```
+'''.strip()
+
+setup(
+    name='quantconnect-stubs',
+    version='{GetVersion()}',
+    description='Unofficial type stubs for QuantConnect\'s Lean',
+    author='Jasper van Merle',
+    author_email='jaspervmerle@gmail.com',
+    url='https://github.com/jmerle/quantconnect-stubs-generator',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Financial and Insurance Industry',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3'
+    ],
+    packages=[
+{string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"'{ns}'"))}
+    ],
+    package_data={{
+{string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"'{ns}': ['*.py', '*.pyi']"))}
+    }}
+)
+".Trim());
         }
 
         private string GetVersion()

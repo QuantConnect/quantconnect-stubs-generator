@@ -236,10 +236,9 @@ from setuptools import setup
 long_description = '''
 # QuantConnect Stubs
 
-This package contains unofficial type stubs for QuantConnect's Lean.
-These stubs are more accurate and are easier to install than the official stubs.
+This package contains type stubs for QuantConnect's Lean.
 
-See the [repository](https://github.com/jmerle/quantconnect-stubs-generator) for more details.
+See the [repository](https://github.com/QuantConnect/quantconnect-stubs-generator) for more information.
 
 ## Installation
 
@@ -251,10 +250,10 @@ pip install quantconnect-stubs
 setup(
     name='quantconnect-stubs',
     version='{GetVersion()}',
-    description='Unofficial type stubs for QuantConnect\'s Lean',
-    author='Jasper van Merle',
-    author_email='jaspervmerle@gmail.com',
-    url='https://github.com/jmerle/quantconnect-stubs-generator',
+    description='Type stubs for QuantConnect\'s Lean',
+    author='QuantConnect',
+    author_email='support@quantconnect.com',
+    url='https://github.com/QuantConnect/quantconnect-stubs-generator',
     long_description=long_description,
     long_description_content_type='text/markdown',
     classifiers=[

@@ -167,17 +167,12 @@ namespace QuantConnectStubsGenerator.Parser
         }
 
         /// <summary>
-        /// Prefixes the given summary with the prefix.
-        /// An empty line is placed between the prefix and the current summary.
+        /// Appends the given text to the given summary.
+        /// An empty line is placed between the current summary and the given text.
         /// </summary>
-        protected string PrefixSummary(string currentSummary, string prefix)
+        protected string AppendSummary(string currentSummary, string text)
         {
-            if (currentSummary == null)
-            {
-                return prefix;
-            }
-
-            return currentSummary.Contains(prefix) ? currentSummary : prefix + "\n\n" + currentSummary;
+            return currentSummary != null ? currentSummary + "\n\n" + text : text;
         }
 
         /// <summary>

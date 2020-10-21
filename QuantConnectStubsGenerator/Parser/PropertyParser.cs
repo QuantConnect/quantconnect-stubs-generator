@@ -40,7 +40,7 @@ namespace QuantConnectStubsGenerator.Parser
 
             if (HasModifier(node, "protected"))
             {
-                property.Summary = PrefixSummary(property.Summary, "This property is protected.");
+                property.Summary = AppendSummary(property.Summary, "This property is protected.");
             }
 
             _currentClass.Properties.Add(property);
@@ -76,7 +76,7 @@ namespace QuantConnectStubsGenerator.Parser
 
                 if (HasModifier(node, "protected"))
                 {
-                    property.Summary = PrefixSummary(property.Summary, "This field is protected.");
+                    property.Summary = AppendSummary(property.Summary, "This field is protected.");
                 }
 
                 _currentClass.Properties.Add(property);

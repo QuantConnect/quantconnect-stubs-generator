@@ -35,8 +35,8 @@ namespace QuantConnectStubsGenerator.Renderer
                 summary = summary.Substring(0, summary.Length - 1) + "\\\"";
             }
 
-            var summarySuffix = summary.Contains("\n") ? "\n" : "";
-            var docstring = $"\"\"\"{summary}{summarySuffix}\"\"\"";
+            var newline = summary.Contains("\n") ? "\n" : "";
+            var docstring = $"\"\"\"{newline}{summary}{newline}\"\"\"";
 
             WriteLine(docstring.Indent(indented ? 1 : 0));
         }

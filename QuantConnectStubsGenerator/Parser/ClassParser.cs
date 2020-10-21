@@ -61,7 +61,7 @@ namespace QuantConnectStubsGenerator.Parser
 
             if (HasModifier(node, "protected"))
             {
-                summary = PrefixSummary(summary, "This class is protected.");
+                summary = AppendSummary(summary, "This class is protected.");
             }
 
             return summary;

@@ -89,12 +89,12 @@ namespace QuantConnectStubsGenerator.Parser
             if (classContainingMethod != _currentClass)
             {
                 var clsName = $"{_currentClass.Type.Namespace}.{_currentClass.Type.Name}";
-                method.Summary = PrefixSummary(method.Summary, $"This is an extension method defined in {clsName}.");
+                method.Summary = AppendSummary(method.Summary, $"This is an extension method defined in {clsName}.");
             }
 
             if (HasModifier(node, "protected"))
             {
-                method.Summary = PrefixSummary(method.Summary, "This method is protected.");
+                method.Summary = AppendSummary(method.Summary, "This method is protected.");
             }
 
             var docStrings = new List<string>();

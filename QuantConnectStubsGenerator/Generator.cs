@@ -279,7 +279,7 @@ setup(
 {string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"'{ns}': ['*.py', '*.pyi']"))}
     }}
 )
-".Trim());
+            ".Trim());
         }
 
         private string GetVersion()

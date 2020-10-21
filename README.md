@@ -6,7 +6,7 @@ QuantConnect Stubs Generator is a program which generates Python stubs based on 
 
 ## Installation
 
-Soon: `pip install quantconnect`.
+Soon: `pip install quantconnect-stubs`.
 
 ## Development
 

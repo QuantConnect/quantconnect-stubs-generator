@@ -209,6 +209,7 @@ while os.path.basename(current_path) not in [{string.Join(", ", namespaceRoots.S
 current_path = os.path.dirname(current_path)
 
 # Temporarily remove the directory containing quantconnect-stubs from sys.path
+original_path = sys.path[:]
 sys.path.remove(current_path)
 
 # Import the C# version of the current namespace
@@ -218,7 +219,7 @@ AddReference('{ns}')
 from {ns} import *
 
 # Restore sys.path
-sys.path.append(current_path)
+sys.path = original_path
             ".Trim());
         }
 
@@ -244,7 +245,7 @@ long_description = '''
 # QuantConnect Stubs
 
 This package contains unofficial type stubs for QuantConnect's Lean.
-These stubs provide more type information than the official stubs, are more accurate and are easier to install.
+These stubs are more accurate and are easier to install than the official stubs.
 
 See the [repository](https://github.com/jmerle/quantconnect-stubs-generator) for more details.
 

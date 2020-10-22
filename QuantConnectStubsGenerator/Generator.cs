@@ -181,7 +181,7 @@ namespace QuantConnectStubsGenerator
 import os
 import sys
 
-# Lean uses Python.NET to support importing C# code in Python code.
+# Lean uses Python.NET to load C# dependencies in Python code.
 #
 # If quantconnect-stubs is installed via pip and Lean is ran locally,
 # importing anything from the QuantConnect namespace makes the Python

@@ -86,7 +86,11 @@ namespace QuantConnectStubsGenerator
             // Render .pyi files containing stubs for all parsed namespaces
             foreach (var ns in context.GetNamespaces())
             {
-                RenderNamespace(context, ns);
+                var namespacePath = ns.Name.Replace('.', '/');
+                var basePath = Path.GetFullPath($"{namespacePath}/__init__", _outputDirectory);
+
+                RenderNamespace(context, ns, basePath + ".pyi");
+                GeneratePyLoader(context, ns.Name, basePath + ".py");
             }
 
             // Render setup.py
@@ -146,10 +150,13 @@ namespace QuantConnectStubsGenerator
             }
         }
 
-        private void RenderNamespace(ParseContext context, Namespace ns)
+        private void RenderNamespace(ParseContext context, Namespace ns, string outputPath)
         {
-            var namespacePath = ns.Name.Replace('.', '/');
-            var outputPath = Path.GetFullPath($"{namespacePath}/__init__.pyi", _outputDirectory);
+            // Don't generate empty .pyi files
+            if (!ns.GetParentClasses().Any())
+            {
+                return;
+            }
 
             Logger.Info($"Generating {outputPath}");
 
@@ -160,14 +167,14 @@ namespace QuantConnectStubsGenerator
             var renderer = new NamespaceRenderer(writer, 0);
             renderer.Render(ns);
 
-            CreatePyLoader(context, ns.Name, outputPath.Replace(".pyi", ".py"));
+            GeneratePyLoader(context, ns.Name, outputPath.Replace(".pyi", ".py"));
         }
 
-        private void CreatePyLoader(ParseContext context, string ns, string path)
+        private void GeneratePyLoader(ParseContext context, string ns, string outputPath)
         {
-            Logger.Info($"Generating {path}");
+            Logger.Info($"Generating {outputPath}");
 
-            using var writer = new StreamWriter(path);
+            using var writer = new StreamWriter(outputPath);
             var namespaceRoots = context
                 .GetNamespaces()
                 .Select(n => n.Name.Split(".")[0])

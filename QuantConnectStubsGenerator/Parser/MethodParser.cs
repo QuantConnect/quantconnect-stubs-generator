@@ -69,27 +69,15 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            var classContainingMethod = GetClassContainingMethod(parameterList);
-            if (classContainingMethod == null)
-            {
-                return;
-            }
-
             var method = new Method(name, returnType)
             {
-                Static = classContainingMethod.Static || HasModifier(node, "static")
+                Static = HasModifier(node, "static")
             };
 
             var doc = ParseDocumentation(node);
             if (doc["summary"] != null)
             {
                 method.Summary = doc["summary"].GetText();
-            }
-
-            if (classContainingMethod != _currentClass)
-            {
-                var clsName = $"{_currentClass.Type.Namespace}.{_currentClass.Type.Name}";
-                method.Summary = AppendSummary(method.Summary, $"This is an extension method defined in {clsName}.");
             }
 
             if (HasModifier(node, "protected"))
@@ -147,49 +135,13 @@ namespace QuantConnectStubsGenerator.Parser
                     : paramText;
             }
 
-            classContainingMethod.Methods.Add(method);
+            _currentClass.Methods.Add(method);
 
-            SetOverloadIfNecessary(classContainingMethod, method);
-        }
-
-        private Class GetClassContainingMethod(SeparatedSyntaxList<ParameterSyntax> parameterList)
-        {
-            if (parameterList.Count == 0)
-            {
-                return _currentClass;
-            }
-
-            var firstParameter = parameterList[0];
-            if (firstParameter.Modifiers.All(modifier => modifier.Text != "this"))
-            {
-                return _currentClass;
-            }
-
-            var classType = _typeConverter.GetType(firstParameter.Type);
-
-            // Skip extension methods on generic types
-            if (classType.IsNamedTypeParameter)
-            {
-                return null;
-            }
-
-            if (classType.Namespace == null || !_context.HasNamespace(classType.Namespace))
-            {
-                return null;
-            }
-
-            var ns = _context.GetNamespaceByName(classType.Namespace);
-            return ns.HasClass(classType) ? ns.GetClassByType(classType) : null;
+            SetOverloadIfNecessary(method);
         }
 
         private Parameter ParseParameter(ParameterSyntax syntax, string methodName)
         {
-            // Skip the parameter which marks this method as an extension method
-            if (syntax.Modifiers.Any(modifier => modifier.Text == "this"))
-            {
-                return null;
-            }
-
             var originalName = syntax.Identifier.Text;
             var parameter = new Parameter(FormatParameterName(originalName), _typeConverter.GetType(syntax.Type));
 
@@ -240,9 +192,9 @@ namespace QuantConnectStubsGenerator.Parser
         /// Checks if the given method that has just been added to the given class is an overload.
         /// If this is the case, all necessary method instances have their overload property set to true.
         /// </summary>
-        private void SetOverloadIfNecessary(Class cls, Method method)
+        private void SetOverloadIfNecessary(Method method)
         {
-            var methodsWithSameName = cls.Methods
+            var methodsWithSameName = _currentClass.Methods
                 .Where(m => m.Name == method.Name)
                 .ToList();
 

@@ -166,8 +166,6 @@ namespace QuantConnectStubsGenerator
             using var writer = new StreamWriter(outputPath);
             var renderer = new NamespaceRenderer(writer, 0);
             renderer.Render(ns);
-
-            GeneratePyLoader(context, ns.Name, outputPath.Replace(".pyi", ".py"));
         }
 
         private void GeneratePyLoader(ParseContext context, string ns, string outputPath)

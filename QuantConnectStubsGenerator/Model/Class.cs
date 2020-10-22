@@ -58,7 +58,7 @@ namespace QuantConnectStubsGenerator.Model
                 types.Add(new PythonType("abstractmethod", "abc"));
             }
 
-            // MethodRender adds the @typing.overload decorator to overloaded methods
+            // MethodRenderer adds the @typing.overload decorator to overloaded methods
             if (Methods.Any(m => m.Overload))
             {
                 types.Add(new PythonType("overload", "typing"));

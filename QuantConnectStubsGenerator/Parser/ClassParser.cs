@@ -22,6 +22,10 @@ namespace QuantConnectStubsGenerator.Parser
             if (_currentNamespace.HasClass(type))
             {
                 _currentClass = _currentNamespace.GetClassByType(type);
+
+                // Add documentation if the current node has it and the partial class has been registered without it
+                _currentClass.Summary ??= ParseSummary(node);
+
                 return;
             }
 

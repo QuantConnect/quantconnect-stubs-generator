@@ -86,12 +86,7 @@ namespace QuantConnectStubsGenerator.Parser
                 var ns = symbol.BaseType.ContainingNamespace.Name;
                 var name = symbol.BaseType.Name;
 
-                // Don't make classes extend from System.Object, System.Enum or System.ValueType to reduce noise
-                var isObject = ns == "System" && name == "Object";
-                var isEnum = ns == "System" && name == "Enum";
-                var isValueType = ns == "System" && name == "ValueType";
-
-                if (!isObject && !isEnum && !isValueType)
+                if (!ShouldSkipInheritance(ns, name))
                 {
                     types.Add(_typeConverter.GetType(symbol.BaseType));
                 }
@@ -103,7 +98,10 @@ namespace QuantConnectStubsGenerator.Parser
             var usedInterfaces = new HashSet<INamedTypeSymbol>();
             foreach (var typeSymbol in symbol.Interfaces)
             {
-                if (usedInterfaces.Add(typeSymbol.ConstructedFrom))
+                var ns = typeSymbol.ContainingNamespace.Name;
+                var name = typeSymbol.Name;
+
+                if (usedInterfaces.Add(typeSymbol.ConstructedFrom) && !ShouldSkipInheritance(ns, name))
                 {
                     types.Add(_typeConverter.GetType(typeSymbol));
                 }
@@ -160,6 +158,19 @@ namespace QuantConnectStubsGenerator.Parser
             {
                 Alias = $"{type.Namespace.Replace('.', '_')}_{type.Name.Replace('.', '_')}"
             };
+        }
+
+        /// <summary>
+        /// Returns true if classes should not inherit from the given class.
+        ///
+        /// Certain types are deliberately skipped to reduce noise in the stubs.
+        /// </summary>
+        private bool ShouldSkipInheritance(string ns, string name)
+        {
+            return (ns == "System" && name == "Object")
+                   || (ns == "System" && name == "Enum")
+                   || (ns == "System" && name == "ValueType")
+                   || (ns == "System" && name == "IEquatable");
         }
     }
 }

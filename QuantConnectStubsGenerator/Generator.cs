@@ -41,7 +41,7 @@ namespace QuantConnectStubsGenerator
                 "ToolBox"
             };
 
-            // Path prefixes for all blacklistedProjects
+            // Path prefixes for all blacklisted projects
             var blacklistedPrefixes = blacklistedProjects
                 .Select(project => $"{_leanPath}/{project}")
                 .ToList();
@@ -89,7 +89,7 @@ namespace QuantConnectStubsGenerator
                 RenderNamespace(context, ns);
             }
 
-            // Render setup.py file supporting local installation
+            // Render setup.py
             GenerateSetup();
         }
 

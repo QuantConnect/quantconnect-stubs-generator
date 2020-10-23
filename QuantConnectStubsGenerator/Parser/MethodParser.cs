@@ -16,27 +16,17 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
-            if (node.Identifier.Text == "GetEnumerator"
-                && !_currentClass.InheritsFrom.Any(t => t.Namespace == "typing" && t.Name == "Iterable"))
-            {
-                var parsedReturnType = _typeConverter.GetType(node.ReturnType);
-
-                // Some GetEnumerator() methods return an IEnumerator, some return an IEnumerator<T>
-                // typing.Iterable requires a type parameter, so we don't extend it if an IEnumerator is returned
-                if (parsedReturnType.TypeParameters.Count == 1)
-                {
-                    _currentClass.InheritsFrom.Add(new PythonType("Iterable", "typing")
-                    {
-                        TypeParameters = parsedReturnType.TypeParameters
-                    });
-                }
-            }
-
             VisitMethod(
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
                 _typeConverter.GetType(node.ReturnType));
+
+            // Make the current class extend from typing.Iterable if this is an applicable GetEnumerator() method
+            ExtendIterableIfNecessary(node);
+
+            // Add __contains__ and __len__ methods to containers in System.Collections.Generic
+            AddContainerMethodsIfNecessary(node);
         }
 
         public override void VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
@@ -229,6 +219,53 @@ namespace QuantConnectStubsGenerator.Parser
             foreach (var m in methodsWithSameName)
             {
                 m.Overload = true;
+            }
+        }
+
+        private void ExtendIterableIfNecessary(MethodDeclarationSyntax node)
+        {
+            if (node.Identifier.Text != "GetEnumerator")
+            {
+                return;
+            }
+
+            if (_currentClass.InheritsFrom.Any(t => t.Namespace == "typing" && t.Name == "Iterable"))
+            {
+                return;
+            }
+
+            var parsedReturnType = _typeConverter.GetType(node.ReturnType);
+
+            // Some GetEnumerator() methods return an IEnumerator, some return an IEnumerator<T>
+            // typing.Iterable requires a type parameter, so we don't extend it if an IEnumerator is returned
+            if (parsedReturnType.TypeParameters.Count == 0)
+            {
+                return;
+            }
+
+            _currentClass.InheritsFrom.Add(new PythonType("Iterable", "typing")
+            {
+                TypeParameters = parsedReturnType.TypeParameters
+            });
+        }
+
+        private void AddContainerMethodsIfNecessary(MethodDeclarationSyntax node)
+        {
+            if (node.Identifier.Text != "Contains" && node.Identifier.Text != "ContainsKey")
+            {
+                return;
+            }
+
+            if (_currentNamespace.Name != "System.Collections.Generic")
+            {
+                return;
+            }
+
+            VisitMethod(node, "__contains__", node.ParameterList.Parameters, _typeConverter.GetType(node.ReturnType));
+
+            if (_currentClass.Methods.All(m => m.Name != "__len__"))
+            {
+                VisitMethod(node, "__len__", new SeparatedSyntaxList<ParameterSyntax>(), new PythonType("int"));
             }
         }
     }

@@ -164,8 +164,8 @@ namespace QuantConnectStubsGenerator.Parser
                 parameter.Type = parameter.Type.TypeParameters[0];
             }
 
-            // Symbol parameters can be both a Symbol or a string containing the ticker in Add* and Set* methods
-            if ((methodName.StartsWith("Add") || methodName.StartsWith("Set"))
+            // Symbol parameters can be both a Symbol or a string in some methods
+            if ((methodName.StartsWith("Add") || methodName.StartsWith("Set") || methodName.EndsWith("item__"))
                 && parameter.Type.Namespace == "QuantConnect"
                 && parameter.Type.Name == "Symbol")
             {
@@ -265,7 +265,7 @@ namespace QuantConnectStubsGenerator.Parser
 
             if (_currentClass.Methods.All(m => m.Name != "__len__"))
             {
-                VisitMethod(node, "__len__", new SeparatedSyntaxList<ParameterSyntax>(), new PythonType("int"));
+                _currentClass.Methods.Add(new Method("__len__", new PythonType("int")));
             }
         }
     }

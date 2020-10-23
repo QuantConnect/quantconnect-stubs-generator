@@ -2,7 +2,7 @@ namespace QuantConnectStubsGenerator.Model
 {
     public class Property
     {
-        public string Name { get; set; }
+        public string Name { get; }
         public PythonType Type { get; set; }
 
         public bool ReadOnly { get; set; }

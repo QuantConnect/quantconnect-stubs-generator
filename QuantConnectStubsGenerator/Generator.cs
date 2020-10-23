@@ -102,7 +102,7 @@ namespace QuantConnectStubsGenerator
                 var basePath = Path.GetFullPath($"{namespacePath}/__init__", _outputDirectory);
 
                 RenderNamespace(ns, basePath + ".pyi");
-                GeneratePyLoader(context, ns.Name, basePath + ".py");
+                GeneratePyLoader(ns.Name, basePath + ".py");
             }
 
             // Create setup.py
@@ -179,7 +179,7 @@ namespace QuantConnectStubsGenerator
             renderer.Render(ns);
         }
 
-        private void GeneratePyLoader(ParseContext context, string ns, string outputPath)
+        private void GeneratePyLoader(string ns, string outputPath)
         {
             Logger.Info($"Generating {outputPath}");
 

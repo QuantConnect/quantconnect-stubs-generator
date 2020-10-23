@@ -8,8 +8,6 @@ namespace QuantConnectStubsGenerator.Model
         public bool VarArgs { get; set; }
         public string Value { get; set; }
 
-        public string Summary { get; set; }
-
         public Parameter(string name, PythonType type)
         {
             Name = name;

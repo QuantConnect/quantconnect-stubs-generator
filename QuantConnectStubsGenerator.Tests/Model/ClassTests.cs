@@ -90,7 +90,7 @@ namespace QuantConnectStubsGenerator.Tests.Model
                 {
                     new Parameter("parameter1", new PythonType("Parameter1", "QuantConnect")),
                     new Parameter("parameter2", new PythonType("Parameter2", "QuantConnect")),
-                    new Parameter("parameter3", new PythonType("Parameter3", "QuantConnect")),
+                    new Parameter("parameter3", new PythonType("Parameter3", "QuantConnect"))
                 }
             });
 

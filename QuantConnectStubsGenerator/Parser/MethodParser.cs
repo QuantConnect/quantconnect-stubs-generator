@@ -111,18 +111,20 @@ namespace QuantConnectStubsGenerator.Parser
 
                 foreach (XmlElement paramNode in doc.GetElementsByTagName("param"))
                 {
-                    if (paramNode.Attributes["name"]?.Value == parameter.Identifier.Text)
+                    if (paramNode.Attributes["name"]?.Value != parameter.Identifier.Text)
                     {
-                        var text = paramNode.GetText();
-
-                        if (text.Trim().Length == 0)
-                        {
-                            continue;
-                        }
-
-                        docStrings.Add($":param {parsedParameter.Name}: {text}");
-                        break;
+                        continue;
                     }
+
+                    var text = paramNode.GetText();
+
+                    if (text.Trim().Length == 0)
+                    {
+                        continue;
+                    }
+
+                    docStrings.Add($":param {parsedParameter.Name}: {text}");
+                    break;
                 }
 
                 method.Parameters.Add(parsedParameter);

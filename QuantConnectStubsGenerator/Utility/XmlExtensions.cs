@@ -1,3 +1,4 @@
+using System.Net;
 using System.Xml;
 
 namespace QuantConnectStubsGenerator.Utility
@@ -47,7 +48,15 @@ namespace QuantConnectStubsGenerator.Utility
                 clone.ReplaceChild(newNode, child);
             }
 
-            return clone.InnerText.Trim().Replace("\\", "\\\\");
+            var text = clone.InnerText.Trim();
+
+            // Escape backslashes
+            text = text.Replace("\\", "\\\\");
+
+            // Decode HTML entities
+            text = WebUtility.HtmlDecode(text);
+
+            return text;
         }
     }
 }

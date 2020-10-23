@@ -217,7 +217,10 @@ namespace QuantConnectStubsGenerator.Parser
                     value = value.Substring(1);
                 }
 
-                return value.Replace("\\", "\\\\");
+                // Escape backslashes
+                value = value.Replace("\\", "\\\\");
+
+                return value;
             }
 
             return "...";

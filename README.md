@@ -10,6 +10,6 @@ Soon: `pip install quantconnect-stubs`.
 
 ## Development
 
-To run the generator locally, clone the repository, `cd` into the QuantConnectStubsGenerator project and run `dotnet run <Lean directory> <runtime directory> <output directory>`. Make sure `<Lean directory>` points to a directory containing the [QuantConnect/Lean](https://github.com/QuantConnect/Lean) repository and the `runtime directory` points to a directory containing the [dotnet/runtime](https://github.com/dotnet/runtime) repository.
+To run the generator locally, clone the repository, `cd` into the QuantConnectStubsGenerator project and run `dotnet run <Lean directory> <runtime directory> <output directory>`. Make sure `<Lean directory>` points to a directory containing the [QuantConnect/Lean](https://github.com/QuantConnect/Lean) repository and `<runtime directory>` points to a directory containing the [dotnet/runtime](https://github.com/dotnet/runtime) repository.
 
 To run the unit tests, run `dotnet test` in the root of the project. To run the integration tests read [`integration/README.md`](./integration/README.md).

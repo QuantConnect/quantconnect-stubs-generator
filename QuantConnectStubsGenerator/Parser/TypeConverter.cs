@@ -30,7 +30,7 @@ namespace QuantConnectStubsGenerator.Parser
         /// Returns the Python type of the given node.
         /// Returns an aliased typing.Any if there is no Python type for the given symbol.
         /// </summary>
-        public PythonType GetType(SyntaxNode node)
+        public PythonType GetType(SyntaxNode node, bool skipPythonTypeCheck = false)
         {
             var symbol = GetSymbol(node);
 
@@ -53,14 +53,14 @@ namespace QuantConnectStubsGenerator.Parser
                 };
             }
 
-            return GetType(symbol);
+            return GetType(symbol, skipPythonTypeCheck);
         }
 
         /// <summary>
         /// Returns the Python type of the given symbol.
         /// Returns an aliased typing.Any if there is no Python type for the given symbol.
         /// </summary>
-        public PythonType GetType(ISymbol symbol)
+        public PythonType GetType(ISymbol symbol, bool skipPythonTypeCheck = false)
         {
             // Handle arrays
             if (symbol is IArrayTypeSymbol arrayTypeSymbol)
@@ -114,7 +114,7 @@ namespace QuantConnectStubsGenerator.Parser
                 }
             }
 
-            return CSharpTypeToPythonType(type);
+            return CSharpTypeToPythonType(type, skipPythonTypeCheck);
         }
 
         private string GetTypeName(ISymbol symbol)
@@ -137,9 +137,9 @@ namespace QuantConnectStubsGenerator.Parser
         /// This method handles conversions like the one from System.String to str.
         /// If the Type object doesn't need to be converted, the originally provided type is returned.
         /// </summary>
-        private PythonType CSharpTypeToPythonType(PythonType type)
+        private PythonType CSharpTypeToPythonType(PythonType type, bool skipPythonTypeCheck = false)
         {
-            if (type.Namespace == "System")
+            if (type.Namespace == "System" && !skipPythonTypeCheck)
             {
                 switch (type.Name)
                 {
@@ -183,29 +183,10 @@ namespace QuantConnectStubsGenerator.Parser
                 }
             }
 
-            // Dictionaries
-            if (type.Namespace == "System.Collections.Generic" && type.Name == "IDictionary")
-            {
-                type.Name = "Dict";
-                type.Namespace = "typing";
-            }
-
-            // Lists
-            if ((type.Namespace == "System.Collections" && type.Name == "IList")
-                || (type.Namespace == "System.Collections.Generic" && type.Name == "List")
-                || (type.Namespace == "System.Collections.Generic" && type.Name == "ICollection")
-                || (type.Namespace == "System.Collections.Generic" && type.Name == "IEnumerable")
-                || (type.Namespace == "System.Collections.Generic" && type.Name == "IReadOnlyList"))
-            {
-                type.Name = "List";
-                type.Namespace = "typing";
-            }
-
-            // C# types that do not have a Python-equivalent are converted to an aliased version of Any
-            if (type.Namespace.StartsWith("System") || type.Namespace == "<global namespace>")
+            // C# types that don't have a Python-equivalent or that we don't parse are converted to an aliased Any
+            if (type.Namespace == "<global namespace>" || type.Namespace == "System.Linq")
             {
                 var alias = type.Name.Replace('.', '_');
-
                 if (type.Namespace.StartsWith("System"))
                 {
                     alias = $"{type.Namespace.Replace('.', '_')}_{alias}";

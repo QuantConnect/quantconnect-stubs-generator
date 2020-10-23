@@ -37,7 +37,6 @@ namespace QuantConnectStubsGenerator.Parser
 
             _currentNamespace = _context.GetNamespaceByName(name);
             base.VisitNamespaceDeclaration(node);
-            _currentNamespace = null;
         }
 
         public override void VisitClassDeclaration(ClassDeclarationSyntax node)
@@ -95,12 +94,12 @@ namespace QuantConnectStubsGenerator.Parser
         /// </summary>
         protected virtual void EnterClass(BaseTypeDeclarationSyntax node)
         {
-            _currentClass = _currentNamespace.GetClassByType(_typeConverter.GetType(node));
+            _currentClass = _currentNamespace.GetClassByType(_typeConverter.GetType(node, true));
         }
 
         private void ExitClass()
         {
-            _currentClass = _currentClass.ParentClass;
+            _currentClass = _currentClass?.ParentClass;
         }
 
         /// <summary>
@@ -218,7 +217,7 @@ namespace QuantConnectStubsGenerator.Parser
                     value = value.Substring(1);
                 }
 
-                return value;
+                return value.Replace("\\", "\\\\");
             }
 
             return "...";

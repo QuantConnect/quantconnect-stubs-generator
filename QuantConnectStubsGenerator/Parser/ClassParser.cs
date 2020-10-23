@@ -16,20 +16,23 @@ namespace QuantConnectStubsGenerator.Parser
 
         protected override void EnterClass(BaseTypeDeclarationSyntax node)
         {
-            var type = _typeConverter.GetType(node);
-
-            // Prevent multiple registrations of partial classes
-            if (_currentNamespace.HasClass(type))
-            {
-                _currentClass = _currentNamespace.GetClassByType(type);
-
-                // Add documentation if the current node has it and the partial class has been registered without it
-                _currentClass.Summary ??= ParseSummary(node);
-
-                return;
-            }
-
             var cls = ParseClass(node);
+
+            if (_currentNamespace.HasClass(cls.Type))
+            {
+                var existingClass = _currentNamespace.GetClassByType(cls.Type);
+
+                // Some classes in C# exist multiple times with varying amounts of generics
+                // We keep the one with the most generics
+                if (existingClass.Type.TypeParameters.Count >= cls.Type.TypeParameters.Count)
+                {
+                    // Add documentation if the existing class has been registered without it and it is available here
+                    existingClass.Summary ??= cls.Summary;
+
+                    _currentClass = existingClass;
+                    return;
+                }
+            }
 
             if (_currentClass != null)
             {
@@ -43,7 +46,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         private Class ParseClass(BaseTypeDeclarationSyntax node)
         {
-            return new Class(_typeConverter.GetType(node))
+            return new Class(_typeConverter.GetType(node, true))
             {
                 Static = HasModifier(node, "static"),
                 Summary = ParseSummary(node),
@@ -81,30 +84,61 @@ namespace QuantConnectStubsGenerator.Parser
                 return types;
             }
 
+            var currentType = _typeConverter.GetType(node, true);
+
             if (symbol.BaseType != null)
             {
                 var ns = symbol.BaseType.ContainingNamespace.Name;
                 var name = symbol.BaseType.Name;
 
-                if (!ShouldSkipInheritance(ns, name))
+                if (!ShouldSkipBaseType(currentType, ns, name))
                 {
                     types.Add(_typeConverter.GetType(symbol.BaseType));
                 }
             }
 
-            var currentType = _typeConverter.GetType(node);
-
-            // C# classes can extend the same interface twice with different generics, Python classes can't
-            var usedInterfaces = new HashSet<INamedTypeSymbol>();
             foreach (var typeSymbol in symbol.Interfaces)
             {
-                var ns = typeSymbol.ContainingNamespace.Name;
-                var name = typeSymbol.Name;
+                var type = _typeConverter.GetType(typeSymbol);
 
-                if (usedInterfaces.Add(typeSymbol.ConstructedFrom) && !ShouldSkipInheritance(ns, name))
+                // In C# a class can be extended multiple times with different amounts of generics
+                // In Python this is not possible, so we keep the type with the most generics
+                var existingType = types.FirstOrDefault(t => t.Namespace == type.Namespace && t.Name == type.Name);
+                if (existingType != null)
                 {
-                    types.Add(_typeConverter.GetType(typeSymbol));
+                    if (existingType.TypeParameters.Count < type.TypeParameters.Count)
+                    {
+                        existingType.TypeParameters = type.TypeParameters;
+                    }
+
+                    continue;
                 }
+
+                // "Cannot create consistent method ordering" errors appear when a Python class
+                // extends from both System.Collections.ISomething and System.Collections.Generic.ISomething[T]
+                // We keep the latter as it contains more type information
+                if (type.Namespace == "System.Collections.Generic"
+                    && type.Name.StartsWith("I")
+                    && type.TypeParameters.Count > 0)
+                {
+                    var existing = types
+                        .FirstOrDefault(t => t.Namespace == "System.Collections" && t.Name == type.Name);
+
+                    if (existing != null)
+                    {
+                        types.Remove(existing);
+                    }
+                }
+
+                // "Cannot create consistent method ordering" errors appear when a Python class
+                // extends from multiple classes in the System.Collections.Generic namespace
+                if (type.Namespace == "System.Collections.Generic" &&
+                    types.Any(t => t.Namespace == "System.Collections.Generic"))
+                {
+                    continue;
+                }
+
+                types.Add(type);
             }
 
             // Ensure classes don't extend from both typing.List and typing.Dict, that causes conflicting definitions
@@ -154,23 +188,28 @@ namespace QuantConnectStubsGenerator.Parser
 
         private PythonType ToAnyAlias(PythonType type)
         {
+            var alias = type.Name.Replace('.', '_');
+            if (type.Namespace != null)
+            {
+                alias = $"{type.Namespace.Replace('.', '_')}_{alias}";
+            }
+
             return new PythonType("Any", "typing")
             {
-                Alias = $"{type.Namespace.Replace('.', '_')}_{type.Name.Replace('.', '_')}"
+                Alias = alias
             };
         }
 
-        /// <summary>
-        /// Returns true if classes should not inherit from the given class.
-        ///
-        /// Certain types are deliberately skipped to reduce noise in the stubs.
-        /// </summary>
-        private bool ShouldSkipInheritance(string ns, string name)
+        private bool ShouldSkipBaseType(PythonType currentType, string ns, string name)
         {
-            return (ns == "System" && name == "Object")
-                   || (ns == "System" && name == "Enum")
-                   || (ns == "System" && name == "ValueType")
-                   || (ns == "System" && name == "IEquatable");
+            // System.Object extends from System.Object in the AST, we skip this base type in Python
+            if (currentType.Namespace == "System" && currentType.Name == "Object" && ns == "System" && name == "Object")
+            {
+                return true;
+            }
+
+            // We don't parse a ValueType, so we can't extend from it without errors
+            return ns == "System" && name == "ValueType";
         }
     }
 }

@@ -18,9 +18,9 @@ namespace QuantConnectStubsGenerator
                 LogManager.GetRepository(Assembly.GetEntryAssembly()),
                 new FileInfo("log4net.config"));
 
-            if (args.Length != 2)
+            if (args.Length != 3)
             {
-                Logger.Error("Usage: dotnet run <Lean directory> <output directory>");
+                Logger.Error("Usage: dotnet run <Lean directory> <runtime directory> <output directory>");
                 Environment.Exit(1);
             }
 
@@ -32,7 +32,7 @@ namespace QuantConnectStubsGenerator
 
             try
             {
-                new Generator(args[0], args[1]).Run();
+                new Generator(args[0], args[1], args[2]).Run();
             }
             catch (Exception e)
             {

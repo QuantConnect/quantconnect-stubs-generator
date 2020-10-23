@@ -28,6 +28,15 @@ def ensure_command_availability(command):
         fail(f'{command} is not available')
 
 
+def ensure_repository_up_to_date(repo, repo_dir):
+    if repo_dir.exists():
+        if not run_command(['git', 'pull'], cwd=repo_dir):
+            fail(f'Could not pull {repo}')
+    else:
+        if not run_command(['git', 'clone', '--depth', '1', f'https://github.com/{repo}.git', repo_dir]):
+            fail(f'Could not clone {repo}')
+
+
 def get_python_files(dir):
     for dirpath, _, files in os.walk(dir):
         for file in files:
@@ -43,25 +52,31 @@ def main():
     project_root = pathlib.Path(os.getcwd()).parent
     generated_dir = project_root / 'generated'
     lean_dir = generated_dir / 'Lean'
+    runtime_dir = generated_dir / 'runtime'
     stubs_dir = generated_dir / 'stubs'
     generator_dir = project_root / 'QuantConnectStubsGenerator'
 
     generated_dir.mkdir(parents=True, exist_ok=True)
 
-    if lean_dir.exists():
-        if not run_command(['git', 'pull'], cwd=lean_dir):
-            fail('Could not pull QuantConnect/Lean')
-    else:
-        if not run_command(['git', 'clone', '--depth', '1', 'https://github.com/QuantConnect/Lean.git', lean_dir]):
-            fail('Could not clone QuantConnect/Lean')
+    ensure_repository_up_to_date('QuantConnect/Lean', lean_dir)
+    ensure_repository_up_to_date('dotnet/runtime', runtime_dir)
 
     if stubs_dir.exists():
         shutil.rmtree(stubs_dir)
 
-    if not run_command(['dotnet', 'run', lean_dir, stubs_dir], cwd=generator_dir):
+    if not run_command(['dotnet', 'run', lean_dir, runtime_dir, stubs_dir], cwd=generator_dir):
         fail('Could not run QuantConnectStubsGenerator')
-    
-    shutil.copy(project_root / 'integration' / 'pyrightconfig.json', stubs_dir / 'pyrightconfig.json')
+
+    root_namespaces = os.listdir(stubs_dir)
+    pyright_config = f"""
+{{
+    "include": [{', '.join([f'"{ns}/**"' for ns in root_namespaces])}],
+    "reportGeneralTypeIssues": false
+}}
+    """.strip()
+
+    with open(stubs_dir / 'pyrightconfig.json', 'w') as file:
+        file.write(pyright_config)
 
     if not run_command(['pyright'], cwd=stubs_dir, append_empty_line=False):
         fail('Pyright found errors in the generated stubs')

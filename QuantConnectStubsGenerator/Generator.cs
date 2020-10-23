@@ -16,17 +16,19 @@ namespace QuantConnectStubsGenerator
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Generator));
 
         private readonly string _leanPath;
+        private readonly string _runtimePath;
         private readonly string _outputDirectory;
 
-        public Generator(string leanPath, string outputDirectory)
+        public Generator(string leanPath, string runtimePath, string outputDirectory)
         {
             _leanPath = FormatPath(leanPath);
+            _runtimePath = FormatPath(runtimePath);
             _outputDirectory = FormatPath(outputDirectory);
         }
 
         public void Run()
         {
-            // Projects not to generate stubs for
+            // Lean projects not to generate stubs for
             var blacklistedProjects = new[]
             {
                 // Example projects
@@ -46,11 +48,21 @@ namespace QuantConnectStubsGenerator
                 .Select(project => $"{_leanPath}/{project}")
                 .ToList();
 
-            // Find all C# files in non-blacklisted projects
-            var sourceFiles = Directory
+            // Find all C# files in non-blacklisted projects in Lean
+            var leanFiles = Directory
                 .EnumerateFiles(_leanPath, "*.cs", SearchOption.AllDirectories)
                 .Where(file => !blacklistedPrefixes.Any(file.StartsWith))
                 .ToList();
+
+            // Find all relevant C# files in the C# runtime
+            var coreLibPath = Path.GetFullPath("src/libraries/System.Private.CoreLib/src", _runtimePath);
+            var runtimeFiles = Directory
+                .EnumerateFiles(coreLibPath, "*.cs", SearchOption.AllDirectories)
+                .Where(path => !path.EndsWith(".Mono.cs") && !path.EndsWith(".CoreCLR.cs"))
+                .ToList();
+
+            // Gather all C# files that need to be parsed
+            var sourceFiles = leanFiles.Concat(runtimeFiles).ToList();
 
             Logger.Info($"Parsing {sourceFiles.Count} C# files");
 
@@ -160,8 +172,7 @@ namespace QuantConnectStubsGenerator
 
             Logger.Info($"Generating {outputPath}");
 
-            // Make sure the parent directories of outputPath exist
-            new FileInfo(outputPath).Directory?.Create();
+            EnsureParentDirectoriesExist(outputPath);
 
             using var writer = new StreamWriter(outputPath);
             var renderer = new NamespaceRenderer(writer, 0);
@@ -172,14 +183,9 @@ namespace QuantConnectStubsGenerator
         {
             Logger.Info($"Generating {outputPath}");
 
-            using var writer = new StreamWriter(outputPath);
-            var namespaceRoots = context
-                .GetNamespaces()
-                .Select(n => n.Name.Split(".")[0])
-                .Distinct()
-                .OrderBy(n => n)
-                .ToList();
+            EnsureParentDirectoriesExist(outputPath);
 
+            using var writer = new StreamWriter(outputPath);
             writer.WriteLine($@"
 # pyright: reportMissingImports=false
 
@@ -199,7 +205,7 @@ import sys
 
 # Find the directory containing quantconnect-stubs (usually site-packages)
 current_path = os.path.dirname(__file__)
-while os.path.basename(current_path) not in [{string.Join(", ", namespaceRoots.Select(n => $"'{n}'"))}]:
+while os.path.basename(current_path) != '{ns.Split(".")[0]}':
     current_path = os.path.dirname(current_path)
 current_path = os.path.dirname(current_path)
 
@@ -303,6 +309,11 @@ setup(
 
             Logger.Warn($"Provided Lean path is not a Git repository with tags, setting version to {defaultVersion}");
             return defaultVersion;
+        }
+
+        private void EnsureParentDirectoriesExist(string path)
+        {
+            new FileInfo(path).Directory?.Create();
         }
 
         private string FormatPath(string path)

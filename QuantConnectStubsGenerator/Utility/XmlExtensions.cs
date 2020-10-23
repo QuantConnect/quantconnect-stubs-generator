@@ -20,10 +20,11 @@ namespace QuantConnectStubsGenerator.Utility
                         break;
                     case "see":
                     {
-                        // Replace cref, paramref and langword tags with their content
+                        // Replace cref, paramref, langword and href tags with their content
                         var attribute = child.Attributes["cref"]
                                         ?? child.Attributes["paramref"]
-                                        ?? child.Attributes["langword"];
+                                        ?? child.Attributes["langword"]
+                                        ?? child.Attributes["href"];
 
                         newText = attribute.InnerText;
 

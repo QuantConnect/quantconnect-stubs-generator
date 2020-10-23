@@ -19,6 +19,11 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
+            if (_currentClass == null)
+            {
+                return;
+            }
+
             if (_currentClass.Properties.Any(p => p.Name == node.Identifier.Text))
             {
                 return;
@@ -49,6 +54,11 @@ namespace QuantConnectStubsGenerator.Parser
         public override void VisitFieldDeclaration(FieldDeclarationSyntax node)
         {
             if (HasModifier(node, "private"))
+            {
+                return;
+            }
+
+            if (_currentClass == null)
             {
                 return;
             }

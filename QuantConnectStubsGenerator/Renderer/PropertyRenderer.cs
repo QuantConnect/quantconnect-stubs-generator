@@ -24,8 +24,8 @@ namespace QuantConnectStubsGenerator.Renderer
 
         private void RenderAttribute(Property property)
         {
-            // Some attributes are named "None" in C#, which is a keyword in Python
-            if (property.Name == "None")
+            // Some attributes have names in C# that are illegal in Python
+            if (property.Name == "None" || property.Name == "True" || property.Name == "False")
             {
                 Write("# Cannot convert to Python: ");
             }

@@ -16,6 +16,22 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
+            if (node.Identifier.Text == "GetEnumerator"
+                && !_currentClass.InheritsFrom.Any(t => t.Namespace == "typing" && t.Name == "Iterable"))
+            {
+                var parsedReturnType = _typeConverter.GetType(node.ReturnType);
+
+                // Some GetEnumerator() methods return an IEnumerator, some return an IEnumerator<T>
+                // typing.Iterable requires a type parameter, so we don't extend it if an IEnumerator is returned
+                if (parsedReturnType.TypeParameters.Count == 1)
+                {
+                    _currentClass.InheritsFrom.Add(new PythonType("Iterable", "typing")
+                    {
+                        TypeParameters = parsedReturnType.TypeParameters
+                    });
+                }
+            }
+
             VisitMethod(
                 node,
                 node.Identifier.Text,
@@ -35,11 +51,6 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitDelegateDeclaration(DelegateDeclarationSyntax node)
         {
-            if (_currentClass == null)
-            {
-                return;
-            }
-
             VisitMethod(
                 node,
                 node.Identifier.Text,
@@ -65,6 +76,18 @@ namespace QuantConnectStubsGenerator.Parser
             PythonType returnType)
         {
             if (HasModifier(node, "private"))
+            {
+                return;
+            }
+
+            if (_currentClass == null)
+            {
+                return;
+            }
+
+            // Some methods in the AST have parameters without names
+            // Because these parameters cause syntax errors in the generated Python code we skip those methods
+            if (parameterList.Any(parameter => FormatParameterName(parameter.Identifier.Text) == ""))
             {
                 return;
             }

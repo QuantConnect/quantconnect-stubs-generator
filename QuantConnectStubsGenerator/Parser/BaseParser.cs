@@ -41,7 +41,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitClassDeclaration(ClassDeclarationSyntax node)
         {
-            if (HasModifier(node, "private"))
+            if (HasModifier(node, "private") || HasModifier(node, "internal"))
             {
                 return;
             }
@@ -53,7 +53,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitStructDeclaration(StructDeclarationSyntax node)
         {
-            if (HasModifier(node, "private"))
+            if (HasModifier(node, "private") || HasModifier(node, "internal"))
             {
                 return;
             }
@@ -65,7 +65,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitEnumDeclaration(EnumDeclarationSyntax node)
         {
-            if (HasModifier(node, "private"))
+            if (HasModifier(node, "private") || HasModifier(node, "internal"))
             {
                 return;
             }
@@ -77,7 +77,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitInterfaceDeclaration(InterfaceDeclarationSyntax node)
         {
-            if (HasModifier(node, "private"))
+            if (HasModifier(node, "private") || HasModifier(node, "internal"))
             {
                 return;
             }
@@ -88,7 +88,7 @@ namespace QuantConnectStubsGenerator.Parser
         }
 
         /// <summary>
-        /// EnterClass is the method that is called whenever a class/struct/interface/enum is entered.
+        /// EnterClass is the method that is called whenever a class/struct/enum/interface is entered.
         /// In the BaseParser it is assumed that the class that is entered is already registered in the namespace.
         /// In the ClassParser, which runs before any other parsers, this method is overridden to register classes.
         /// </summary>

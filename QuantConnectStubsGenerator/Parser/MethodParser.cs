@@ -75,7 +75,7 @@ namespace QuantConnectStubsGenerator.Parser
             SeparatedSyntaxList<ParameterSyntax> parameterList,
             PythonType returnType)
         {
-            if (HasModifier(node, "private"))
+            if (HasModifier(node, "private") || HasModifier(node, "internal"))
             {
                 return;
             }

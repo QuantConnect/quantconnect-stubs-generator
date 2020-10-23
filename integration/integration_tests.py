@@ -71,7 +71,8 @@ def main():
         file.write(f"""
 {{
     "include": [{', '.join([f'"{ns}/**"' for ns in os.listdir(stubs_dir)])}],
-    "reportGeneralTypeIssues": false
+    "reportGeneralTypeIssues": false,
+    "reportMissingModuleSource": false
 }}
         """.strip())
 

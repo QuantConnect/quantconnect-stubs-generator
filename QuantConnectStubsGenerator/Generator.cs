@@ -105,6 +105,9 @@ namespace QuantConnectStubsGenerator
                 GeneratePyLoader(ns.Name, basePath + ".py");
             }
 
+            // Add stubs for the clr module
+            GenerateClrStubs();
+
             // Create setup.py
             GenerateSetup();
         }
@@ -224,13 +227,48 @@ sys.path = original_path
             ".Trim());
         }
 
+        private void GenerateClrStubs()
+        {
+            var outputPath = Path.GetFullPath("clr/__init__.pyi", _outputDirectory);
+            Logger.Info($"Generating {outputPath}");
+
+            EnsureParentDirectoriesExist(outputPath);
+            using var writer = new StreamWriter(outputPath);
+
+            writer.WriteLine($@"
+import typing
+
+import System
+import System.Reflection
+
+
+def getPreload() -> bool:
+    ...
+
+def setPreload(preloadFlag: bool) -> None:
+    ...
+
+def AddReference(name: str) -> System.Reflection.Assembly:
+    ...
+
+def GetClrType(type: typing.Type[typing.Any]) -> System.Type:
+    ...
+
+def FindAssembly(name: str) -> str:
+    ...
+
+def ListAssemblies(verbose: bool) -> typing.List[System.Reflection.Assembly]:
+    ...
+            ".Trim());
+        }
+
         private void GenerateSetup()
         {
-            var namespaces = Directory.GetFiles(_outputDirectory, "*.pyi", SearchOption.AllDirectories)
+            var namespaces = Directory.GetFiles(_outputDirectory, "__init__.py*", SearchOption.AllDirectories)
                 .Select(file =>
                 {
                     var ns = file.Replace(_outputDirectory, "").Substring(1);
-                    ns = ns.Substring(0, ns.LastIndexOf('/'));
+                    ns = ns.Substring(0, ns.Contains('/') ? ns.LastIndexOf('/') : ns.Length);
                     return ns.Replace('/', '.');
                 }).Distinct().OrderBy(name => name).ToList();
 

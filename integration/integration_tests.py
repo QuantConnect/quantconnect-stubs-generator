@@ -67,16 +67,13 @@ def main():
     if not run_command(['dotnet', 'run', lean_dir, runtime_dir, stubs_dir], cwd=generator_dir):
         fail('Could not run QuantConnectStubsGenerator')
 
-    root_namespaces = os.listdir(stubs_dir)
-    pyright_config = f"""
+    with open(stubs_dir / 'pyrightconfig.json', 'w') as file:
+        file.write(f"""
 {{
-    "include": [{', '.join([f'"{ns}/**"' for ns in root_namespaces])}],
+    "include": [{', '.join([f'"{ns}/**"' for ns in os.listdir(stubs_dir)])}],
     "reportGeneralTypeIssues": false
 }}
-    """.strip()
-
-    with open(stubs_dir / 'pyrightconfig.json', 'w') as file:
-        file.write(pyright_config)
+        """.strip())
 
     if not run_command(['pyright'], cwd=stubs_dir, append_empty_line=False):
         fail('Pyright found errors in the generated stubs')

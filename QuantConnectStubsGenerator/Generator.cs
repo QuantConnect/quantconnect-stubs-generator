@@ -56,13 +56,18 @@ namespace QuantConnectStubsGenerator
 
             // Find all relevant C# files in the C# runtime
             var coreLibPath = Path.GetFullPath("src/libraries/System.Private.CoreLib/src", _runtimePath);
-            var runtimeFiles = Directory
+            var monoCoreLibPath = Path.GetFullPath("src/mono/netcore/System.Private.CoreLib/src", _runtimePath);
+
+            var coreLibFiles = Directory
                 .EnumerateFiles(coreLibPath, "*.cs", SearchOption.AllDirectories)
-                .Where(path => !path.EndsWith(".Mono.cs") && !path.EndsWith(".CoreCLR.cs"))
+                .ToList();
+
+            var monoCoreLibFiles = Directory
+                .EnumerateFiles(monoCoreLibPath, "*.Mono.cs", SearchOption.AllDirectories)
                 .ToList();
 
             // Gather all C# files that need to be parsed
-            var sourceFiles = leanFiles.Concat(runtimeFiles).ToList();
+            var sourceFiles = leanFiles.Concat(coreLibFiles).Concat(monoCoreLibFiles).ToList();
 
             Logger.Info($"Parsing {sourceFiles.Count} C# files");
 
@@ -105,7 +110,7 @@ namespace QuantConnectStubsGenerator
                 GeneratePyLoader(ns.Name, basePath + ".py");
             }
 
-            // Add stubs for the clr module
+            // Generate stubs for the clr module
             GenerateClrStubs();
 
             // Create setup.py
@@ -233,8 +238,8 @@ sys.path = original_path
             Logger.Info($"Generating {outputPath}");
 
             EnsureParentDirectoriesExist(outputPath);
-            using var writer = new StreamWriter(outputPath);
 
+            using var writer = new StreamWriter(outputPath);
             writer.WriteLine($@"
 import typing
 

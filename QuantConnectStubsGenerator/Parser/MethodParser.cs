@@ -166,10 +166,8 @@ namespace QuantConnectStubsGenerator.Parser
                 parameter.Type = parameter.Type.TypeParameters[0];
             }
 
-            // Symbol parameters can be both a Symbol or a string in some methods
-            if ((methodName.StartsWith("Add") || methodName.StartsWith("Set") || methodName.EndsWith("item__"))
-                && parameter.Type.Namespace == "QuantConnect"
-                && parameter.Type.Name == "Symbol")
+            // Symbol parameters can be both a Symbol or a string in most methods
+            if (parameter.Type.Namespace == "QuantConnect" && parameter.Type.Name == "Symbol")
             {
                 var unionType = new PythonType("Union", "typing");
                 unionType.TypeParameters.Add(parameter.Type);

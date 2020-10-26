@@ -49,25 +49,26 @@ namespace QuantConnectStubsGenerator
                 .ToList();
 
             // Find all C# files in non-blacklisted projects in Lean
-            var leanFiles = Directory
+            var sourceFiles = Directory
                 .EnumerateFiles(_leanPath, "*.cs", SearchOption.AllDirectories)
                 .Where(file => !blacklistedPrefixes.Any(file.StartsWith))
                 .ToList();
 
             // Find all relevant C# files in the C# runtime
-            var coreLibPath = Path.GetFullPath("src/libraries/System.Private.CoreLib/src", _runtimePath);
-            var monoCoreLibPath = Path.GetFullPath("src/mono/netcore/System.Private.CoreLib/src", _runtimePath);
+            foreach (var (relativePath, searchPattern) in new Dictionary<string, string>
+            {
+                {"src/libraries/System.Private.CoreLib/src", "*.cs"},
+                {"src/mono/netcore/System.Private.CoreLib/src", "*.Mono.cs"},
+                {"src/libraries/System.Drawing.Primitives/src", "*.cs"}
+            })
+            {
+                var absolutePath = Path.GetFullPath(relativePath, _runtimePath);
+                var files = Directory
+                    .EnumerateFiles(absolutePath, searchPattern, SearchOption.AllDirectories)
+                    .ToList();
 
-            var coreLibFiles = Directory
-                .EnumerateFiles(coreLibPath, "*.cs", SearchOption.AllDirectories)
-                .ToList();
-
-            var monoCoreLibFiles = Directory
-                .EnumerateFiles(monoCoreLibPath, "*.Mono.cs", SearchOption.AllDirectories)
-                .ToList();
-
-            // Gather all C# files that need to be parsed
-            var sourceFiles = leanFiles.Concat(coreLibFiles).Concat(monoCoreLibFiles).ToList();
+                sourceFiles.AddRange(files);
+            }
 
             Logger.Info($"Parsing {sourceFiles.Count} C# files");
 

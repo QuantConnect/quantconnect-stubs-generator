@@ -56,6 +56,9 @@ namespace QuantConnectStubsGenerator.Parser
             if (symbol is IPropertySymbol propertySymbol && !propertySymbol.IsReadOnly)
             {
                 VisitMethod(node, "__setitem__", node.ParameterList.Parameters, new PythonType("None"));
+
+                var valueParameter = new Parameter("value", _typeConverter.GetType(node.Type));
+                _currentClass.Methods.Last().Parameters.Add(valueParameter);
             }
         }
 

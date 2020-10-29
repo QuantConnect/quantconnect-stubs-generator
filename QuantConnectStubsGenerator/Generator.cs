@@ -329,6 +329,11 @@ setup(
 
         private string GetVersion()
         {
+            if (Environment.GetEnvironmentVariables().Contains("STUBS_VERSION"))
+            {
+                return Environment.GetEnvironmentVariables()["STUBS_VERSION"]?.ToString();
+            }
+
             const string defaultVersion = "1.0.0";
             var tagsDirectory = new DirectoryInfo(Path.GetFullPath(".git/refs/tags", _leanPath));
 

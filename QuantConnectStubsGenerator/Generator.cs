@@ -51,6 +51,7 @@ namespace QuantConnectStubsGenerator
             // Find all C# files in non-blacklisted projects in Lean
             var sourceFiles = Directory
                 .EnumerateFiles(_leanPath, "*.cs", SearchOption.AllDirectories)
+                .Where(file => !file.Contains("/bin/"))
                 .Where(file => !blacklistedPrefixes.Any(file.StartsWith))
                 .ToList();
 

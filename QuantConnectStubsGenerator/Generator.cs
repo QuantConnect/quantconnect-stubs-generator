@@ -298,12 +298,6 @@ long_description = """"""
 This package contains type stubs for QuantConnect's Lean.
 
 See the [repository](https://github.com/QuantConnect/quantconnect-stubs-generator) for more information.
-
-## Installation
-
-```
-pip install quantconnect-stubs
-```
 """""".strip()
 
 setup(

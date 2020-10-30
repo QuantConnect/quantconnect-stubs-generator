@@ -215,7 +215,7 @@ import sys
 
 # Find the directory containing quantconnect-stubs (usually site-packages)
 current_path = os.path.dirname(__file__)
-while os.path.basename(current_path) != '{ns.Split(".")[0]}':
+while os.path.basename(current_path) != ""{ns.Split(".")[0]}"":
     current_path = os.path.dirname(current_path)
 current_path = os.path.dirname(current_path)
 
@@ -224,9 +224,9 @@ original_path = sys.path[:]
 sys.path.remove(current_path)
 
 # Import the C# version of the current namespace
-del sys.modules['{ns}']
+del sys.modules[""{ns}""]
 from clr import AddReference
-AddReference('{ns}')
+AddReference(""{ns}"")
 from {ns} import *
 
 # Restore sys.path
@@ -287,7 +287,7 @@ def ListAssemblies(verbose: bool) -> typing.List[System.Reflection.Assembly]:
             writer.WriteLine($@"
 from setuptools import setup
 
-long_description = '''
+long_description = """"""
 # QuantConnect Stubs
 
 This package contains type stubs for QuantConnect's Lean.
@@ -299,29 +299,29 @@ See the [repository](https://github.com/QuantConnect/quantconnect-stubs-generato
 ```
 pip install quantconnect-stubs
 ```
-'''.strip()
+"""""".strip()
 
 setup(
-    name='quantconnect-stubs',
-    version='{GetVersion()}',
-    description='Type stubs for QuantConnect\'s Lean',
-    author='QuantConnect',
-    author_email='support@quantconnect.com',
-    url='https://github.com/QuantConnect/quantconnect-stubs-generator',
+    name=""quantconnect-stubs"",
+    version=""{GetVersion()}"",
+    description=""Type stubs for QuantConnect's Lean"",
+    author=""QuantConnect"",
+    author_email=""support@quantconnect.com"",
+    url=""https://github.com/QuantConnect/quantconnect-stubs-generator"",
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type=""text/markdown"",
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Developers',
-        'Intended Audience :: Financial and Insurance Industry',
-        'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 3'
+        ""Development Status :: 5 - Production/Stable"",
+        ""Intended Audience :: Developers"",
+        ""Intended Audience :: Financial and Insurance Industry"",
+        ""License :: OSI Approved :: Apache Software License"",
+        ""Programming Language :: Python :: 3""
     ],
     packages=[
-{string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"'{ns}'"))}
+{string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"\"{ns}\""))}
     ],
     package_data={{
-{string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"'{ns}': ['*.py', '*.pyi']"))}
+{string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"\"{ns}\": [\"*.py\", \"*.pyi\"]"))}
     }}
 )
             ".Trim());

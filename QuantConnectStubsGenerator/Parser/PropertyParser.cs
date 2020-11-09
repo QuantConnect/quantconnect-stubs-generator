@@ -14,6 +14,56 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
+            VisitProperty(node, _typeConverter.GetType(node.Type), node.Identifier.Text);
+        }
+
+        public override void VisitFieldDeclaration(FieldDeclarationSyntax node)
+        {
+            VisitField(node, _typeConverter.GetType(node.Declaration.Type));
+        }
+
+        public override void VisitEventDeclaration(EventDeclarationSyntax node)
+        {
+            var type = new PythonType("List", "typing")
+            {
+                TypeParameters = {_typeConverter.GetType(node.Type)}
+            };
+
+            VisitProperty(node, type, node.Identifier.Text);
+        }
+
+        public override void VisitEventFieldDeclaration(EventFieldDeclarationSyntax node)
+        {
+            var type = new PythonType("List", "typing")
+            {
+                TypeParameters = {_typeConverter.GetType(node.Declaration.Type)}
+            };
+
+            VisitField(node, type);
+        }
+
+        public override void VisitEnumMemberDeclaration(EnumMemberDeclarationSyntax node)
+        {
+            var property = new Property(node.Identifier.Text)
+            {
+                Value = node.EqualsValue != null
+                    ? FormatValue(node.EqualsValue.Value.ToString())
+                    : _currentClass.Properties.Count.ToString(),
+                Static = true,
+                Abstract = _currentClass.Interface || HasModifier(node, "abstract")
+            };
+
+            var doc = ParseDocumentation(node);
+            if (doc["summary"] != null)
+            {
+                property.Summary = doc["summary"].GetText();
+            }
+
+            _currentClass.Properties.Add(property);
+        }
+
+        private void VisitProperty(BasePropertyDeclarationSyntax node, PythonType type, string name)
+        {
             if (HasModifier(node, "private"))
             {
                 return;
@@ -24,15 +74,15 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            if (_currentClass.Properties.Any(p => p.Name == node.Identifier.Text))
+            if (_currentClass.Properties.Any(p => p.Name == name))
             {
                 return;
             }
 
-            var property = new Property(node.Identifier.Text)
+            var property = new Property(name)
             {
-                Type = _typeConverter.GetType(node.Type),
-                ReadOnly = ((IPropertySymbol) _typeConverter.GetSymbol(node)).IsReadOnly,
+                Type = type,
+                ReadOnly = _typeConverter.GetSymbol(node) is IPropertySymbol symbol && symbol.IsReadOnly,
                 Static = _currentClass.Static || HasModifier(node, "static"),
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract")
             };
@@ -51,7 +101,7 @@ namespace QuantConnectStubsGenerator.Parser
             _currentClass.Properties.Add(property);
         }
 
-        public override void VisitFieldDeclaration(FieldDeclarationSyntax node)
+        private void VisitField(BaseFieldDeclarationSyntax node, PythonType type)
         {
             if (HasModifier(node, "private"))
             {
@@ -67,7 +117,7 @@ namespace QuantConnectStubsGenerator.Parser
             {
                 var property = new Property(variable.Identifier.Text)
                 {
-                    Type = _typeConverter.GetType(node.Declaration.Type),
+                    Type = type,
                     ReadOnly = HasModifier(node, "readonly") || HasModifier(node, "const"),
                     Static = _currentClass.Static || HasModifier(node, "static") || HasModifier(node, "const"),
                     Abstract = _currentClass.Interface || HasModifier(node, "abstract")
@@ -91,26 +141,6 @@ namespace QuantConnectStubsGenerator.Parser
 
                 _currentClass.Properties.Add(property);
             }
-        }
-
-        public override void VisitEnumMemberDeclaration(EnumMemberDeclarationSyntax node)
-        {
-            var property = new Property(node.Identifier.Text)
-            {
-                Value = node.EqualsValue != null
-                    ? FormatValue(node.EqualsValue.Value.ToString())
-                    : _currentClass.Properties.Count.ToString(),
-                Static = true,
-                Abstract = _currentClass.Interface || HasModifier(node, "abstract")
-            };
-
-            var doc = ParseDocumentation(node);
-            if (doc["summary"] != null)
-            {
-                property.Summary = doc["summary"].GetText();
-            }
-
-            _currentClass.Properties.Add(property);
         }
     }
 }

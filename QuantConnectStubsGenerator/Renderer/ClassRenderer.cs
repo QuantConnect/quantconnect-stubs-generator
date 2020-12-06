@@ -5,7 +5,7 @@ using QuantConnectStubsGenerator.Model;
 
 namespace QuantConnectStubsGenerator.Renderer
 {
-    public class ClassRenderer : BaseRenderer<Class>
+    public class ClassRenderer : ObjectRenderer<Class>
     {
         public ClassRenderer(StreamWriter writer, int indentationLevel) : base(writer, indentationLevel)
         {

@@ -7,7 +7,7 @@ using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Renderer
 {
-    public class NamespaceRenderer : BaseRenderer<Namespace>
+    public class NamespaceRenderer : ObjectRenderer<Namespace>
     {
         public NamespaceRenderer(StreamWriter writer, int indentationLevel) : base(writer, indentationLevel)
         {

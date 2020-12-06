@@ -4,7 +4,7 @@ using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Renderer
 {
-    public class PropertyRenderer : BaseRenderer<Property>
+    public class PropertyRenderer : ObjectRenderer<Property>
     {
         public PropertyRenderer(StreamWriter writer, int indentationLevel) : base(writer, indentationLevel)
         {

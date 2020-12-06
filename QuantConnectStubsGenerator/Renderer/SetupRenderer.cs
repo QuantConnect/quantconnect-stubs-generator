@@ -30,9 +30,9 @@ from setuptools import setup
 long_description = """"""
 # QuantConnect Stubs
 
-This package contains type stubs for QuantConnect's Lean.
+This package contains type stubs for QuantConnect's [Lean](https://github.com/QuantConnect/Lean) algorithmic trading engine and for parts of the .NET library that are used by Lean.
 
-See the [repository](https://github.com/QuantConnect/quantconnect-stubs-generator) for more information.
+These stubs can be used by editors to provide type-aware features like autocompletion and auto-imports in QuantConnect strategies written in Python.
 """""".strip()
 
 setup(

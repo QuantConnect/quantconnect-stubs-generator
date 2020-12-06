@@ -175,6 +175,7 @@ namespace QuantConnectStubsGenerator.Parser
                     case "Action":
                         if (type.TypeParameters.Count > 0)
                         {
+                            type.IsAction = type.Name == "Action";
                             type.Name = "Callable";
                             type.Namespace = "typing";
                         }

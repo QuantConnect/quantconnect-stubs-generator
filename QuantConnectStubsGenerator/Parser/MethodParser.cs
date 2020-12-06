@@ -85,6 +85,26 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
+
+            var originalReturnType = returnType;
+            var returnTypeIsEnum = false;
+
+            if (returnType.Namespace != null)
+            {
+                var ns = _context.HasNamespace(returnType.Namespace)
+                    ? _context.GetNamespaceByName(returnType.Namespace)
+                    : null;
+
+                var cls = ns?.HasClass(returnType) == true ? ns.GetClassByType(returnType) : null;
+
+                // Python.NET converts an enum return type to an int
+                if (cls?.IsEnum() == true)
+                {
+                    returnType = new PythonType("int");
+                    returnTypeIsEnum = true;
+                }
+            }
+
             var method = new Method(name, returnType)
             {
                 Static = HasModifier(node, "static")
@@ -133,14 +153,28 @@ namespace QuantConnectStubsGenerator.Parser
                 method.Parameters.Add(parsedParameter);
             }
 
+            var returnsParts = new List<string>();
+
             if (doc["returns"] != null)
             {
                 var text = doc["returns"].GetText();
 
                 if (text.Trim().Length > 0)
                 {
-                    docStrings.Add($":returns: {text}");
+                    returnsParts.Add(text);
                 }
+            }
+
+            if (returnTypeIsEnum)
+            {
+                returnsParts.Add(
+                    $"This method returns the int value of a member of the {originalReturnType.ToPythonString()} enum.");
+            }
+
+            if (returnsParts.Count > 0)
+            {
+                var parts = returnsParts.Select(part => part.EndsWith(".") ? part : part + ".");
+                docStrings.Add($":returns: {string.Join(" ", parts)}");
             }
 
             docStrings = docStrings.Select(str => str.Replace('\n', ' ')).ToList();
@@ -176,6 +210,12 @@ namespace QuantConnectStubsGenerator.Parser
                 unionType.TypeParameters.Add(parameter.Type);
                 unionType.TypeParameters.Add(new PythonType("str"));
                 parameter.Type = unionType;
+            }
+
+            // System.Object parameters can accept anything
+            if (parameter.Type.Namespace == "System" && parameter.Type.Name == "Object")
+            {
+                parameter.Type = new PythonType("Any", "typing");
             }
 
             if (syntax.Default != null)

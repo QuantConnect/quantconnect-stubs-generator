@@ -79,6 +79,25 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
+            var originalType = type;
+            var typeIsEnum = false;
+
+            if (type.Namespace != null)
+            {
+                var ns = _context.HasNamespace(type.Namespace)
+                    ? _context.GetNamespaceByName(type.Namespace)
+                    : null;
+
+                var cls = ns?.HasClass(type) == true ? ns.GetClassByType(type) : null;
+
+                // Python.NET converts an enum return type to an int
+                if (cls?.IsEnum() == true)
+                {
+                    type = new PythonType("int");
+                    typeIsEnum = true;
+                }
+            }
+
             var property = new Property(name)
             {
                 Type = type,
@@ -91,6 +110,13 @@ namespace QuantConnectStubsGenerator.Parser
             if (doc["summary"] != null)
             {
                 property.Summary = doc["summary"].GetText();
+            }
+
+            if (typeIsEnum)
+            {
+                property.Summary = AppendSummary(
+                    property.Summary,
+                    $"This property contains the int value of a member of the {originalType.ToPythonString()} enum.");
             }
 
             if (HasModifier(node, "protected"))

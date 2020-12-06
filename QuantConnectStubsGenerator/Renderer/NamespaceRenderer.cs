@@ -101,7 +101,7 @@ namespace QuantConnectStubsGenerator.Renderer
 
             foreach (var name in typeVars)
             {
-                WriteLine($"{name} = typing.TypeVar('{name}')");
+                WriteLine($"{name} = typing.TypeVar(\"{name}\")");
             }
 
             WriteLine();

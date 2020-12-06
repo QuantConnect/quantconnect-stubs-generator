@@ -160,7 +160,15 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             var doc = new XmlDocument();
-            doc.LoadXml($"<root>{xml}</root>");
+
+            try
+            {
+                doc.LoadXml($"<root>{xml}</root>");
+            }
+            catch
+            {
+                doc.LoadXml("<root></root>");
+            }
 
             return doc["root"];
         }

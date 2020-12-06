@@ -184,7 +184,7 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             // C# types that don't have a Python-equivalent or that we don't parse are converted to an aliased Any
-            if (type.Namespace == "<global namespace>" || type.Namespace == "System.Linq")
+            if (type.Namespace == "<global namespace>")
             {
                 var alias = type.Name.Replace('.', '_');
                 if (type.Namespace.StartsWith("System"))

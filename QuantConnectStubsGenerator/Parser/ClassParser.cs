@@ -138,6 +138,24 @@ namespace QuantConnectStubsGenerator.Parser
                     continue;
                 }
 
+                // "Cannot create consistent method ordering" errors appear when a Python class
+                // extends from both IEnumerable[T] and an interface in the System.Collections namespace
+                if (type.Namespace.StartsWith("System.Collections")
+                    && type.Name.StartsWith("I")
+                    && type.TypeParameters.Count > 0)
+                {
+                    var enumerable = types
+                        .FirstOrDefault(t =>
+                            t.Namespace == "System.Collections.Generic"
+                            && t.Name == "IEnumerable"
+                            && t.TypeParameters.Count == 1);
+
+                    if (enumerable != null)
+                    {
+                        types.Remove(enumerable);
+                    }
+                }
+
                 types.Add(type);
             }
 

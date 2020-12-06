@@ -180,6 +180,10 @@ namespace QuantConnectStubsGenerator.Parser
                         }
 
                         break;
+                    case "Type":
+                        type.Name = "Type";
+                        type.Namespace = "typing";
+                        break;
                 }
             }
 

@@ -81,8 +81,8 @@ namespace QuantConnectStubsGenerator.Parser
 
             var type = new PythonType(name, ns);
 
-            // Process type parameter
-            if (symbol is ITypeParameterSymbol)
+            // Process type parameters
+            if (symbol is ITypeParameterSymbol typeParameterSymbol)
             {
                 type.IsNamedTypeParameter = true;
             }
@@ -129,6 +129,15 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             nameParts.Reverse();
+
+            if (symbol is ITypeParameterSymbol typeParameterSymbol)
+            {
+                if (typeParameterSymbol.DeclaringMethod != null)
+                {
+                    nameParts.Insert(1, typeParameterSymbol.DeclaringMethod.Name);
+                }
+            }
+
             return string.Join(".", nameParts);
         }
 

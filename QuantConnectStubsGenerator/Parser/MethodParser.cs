@@ -190,6 +190,7 @@ namespace QuantConnectStubsGenerator.Parser
             _currentClass.Methods.Add(method);
 
             SetOverloadIfNecessary(method);
+            ImprovePythonAccessorIfNecessary(method);
         }
 
         private Parameter ParseParameter(ParameterSyntax syntax, string methodName)
@@ -310,6 +311,43 @@ namespace QuantConnectStubsGenerator.Parser
             {
                 _currentClass.Methods.Add(new Method("__len__", new PythonType("int")));
             }
+        }
+
+        /// <summary>
+        /// There are several Python-friendly accessors like Slice.Get(Type) instead of Slice.Get&lt;T&gt;().
+        /// If we spot such a Python-friendly accessor, we remove the non-Python-friendly accessor and improve
+        /// the Python-friendly accessor's definition.
+        /// </summary>
+        private void ImprovePythonAccessorIfNecessary(Method newMethod)
+        {
+            if (newMethod.Parameters.Count != 1 || newMethod.Parameters[0].Type.ToPythonString() != "typing.Type")
+            {
+                return;
+            }
+
+            var existingMethod = _currentClass.Methods
+                .FirstOrDefault(m => m.Name == newMethod.Name && m.Parameters.Count == 0);
+
+            if (existingMethod == null)
+            {
+                return;
+            }
+
+            var typeParameter = existingMethod.ReturnType;
+            while (!typeParameter.IsNamedTypeParameter && typeParameter.TypeParameters.Count > 0)
+            {
+                typeParameter = typeParameter.TypeParameters[0];
+            }
+
+            if (!typeParameter.IsNamedTypeParameter)
+            {
+                return;
+            }
+
+            newMethod.Parameters[0].Type = typeParameter;
+            newMethod.ReturnType = existingMethod.ReturnType;
+
+            _currentClass.Methods.Remove(existingMethod);
         }
     }
 }

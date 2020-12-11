@@ -98,6 +98,12 @@ namespace QuantConnectStubsGenerator.Parser
                 }
             }
 
+            // Security.Data is of type dynamic but can be used like it is of type DynamicSecurityData
+            if (_currentClass.Type.ToPythonString() == "QuantConnect.Securities.Security" && name == "Data")
+            {
+                type = new PythonType("DynamicSecurityData", "QuantConnect.Securities");
+            }
+
             var property = new Property(name)
             {
                 Type = type,
@@ -124,7 +130,7 @@ namespace QuantConnectStubsGenerator.Parser
                 property.Summary = AppendSummary(property.Summary, "This property is protected.");
             }
 
-            AddProperty(property);
+            _currentClass.Properties.Add(property);
         }
 
         private void VisitField(BaseFieldDeclarationSyntax node, PythonType type)
@@ -165,19 +171,8 @@ namespace QuantConnectStubsGenerator.Parser
                     property.Summary = AppendSummary(property.Summary, "This field is protected.");
                 }
 
-                AddProperty(property);
+                _currentClass.Properties.Add(property);
             }
-        }
-
-        private void AddProperty(Property property)
-        {
-            // Security.Data should be of type DynamicSecurityData instead of dynamic to make autocompletion possible
-            if (_currentClass.Type.ToPythonString() == "QuantConnect.Securities.Security" && property.Name == "Data")
-            {
-                property.Type = new PythonType("DynamicSecurityData", "QuantConnect.Securities");
-            }
-
-            _currentClass.Properties.Add(property);
         }
     }
 }

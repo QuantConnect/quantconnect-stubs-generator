@@ -50,14 +50,36 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
         {
-            VisitMethod(node, "__getitem__", node.ParameterList.Parameters, _typeConverter.GetType(node.Type));
+            var type = _typeConverter.GetType(node.Type);
+
+            // Improve the autocompletion on data[symbol] if data is a Slice and symbol a Symbol
+            // In C# this is a dynamic, which by default gets converted to a typing.Any
+            // To improve the autocompletion a bit we convert it to Union[TradeBar, QuoteBar, List[Tick], Any]
+            if (_currentClass?.Type.ToPythonString() == "QuantConnect.Data.Slice")
+            {
+                type = new PythonType("Union", "typing")
+                {
+                    TypeParameters =
+                    {
+                        new PythonType("TradeBar", "QuantConnect.Data.Market"),
+                        new PythonType("QuoteBar", "QuantConnect.Data.Market"),
+                        new PythonType("List", "System.Collections.Generic")
+                        {
+                            TypeParameters = {new PythonType("Tick", "QuantConnect.Data.Market")}
+                        },
+                        new PythonType("Any", "typing")
+                    }
+                };
+            }
+
+            VisitMethod(node, "__getitem__", node.ParameterList.Parameters, type);
 
             var symbol = _typeConverter.GetSymbol(node);
             if (symbol is IPropertySymbol propertySymbol && !propertySymbol.IsReadOnly)
             {
                 VisitMethod(node, "__setitem__", node.ParameterList.Parameters, new PythonType("None"));
 
-                var valueParameter = new Parameter("value", _typeConverter.GetType(node.Type));
+                var valueParameter = new Parameter("value", type);
                 _currentClass.Methods.Last().Parameters.Add(valueParameter);
             }
         }

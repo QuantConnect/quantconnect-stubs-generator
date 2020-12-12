@@ -53,7 +53,7 @@ namespace QuantConnectStubsGenerator.Parser
             var type = _typeConverter.GetType(node.Type);
 
             // Improve the autocompletion on data[symbol] if data is a Slice and symbol a Symbol
-            // In C# this is a dynamic, which by default gets converted to a typing.Any
+            // In C# this is of type dynamic, which by default gets converted to typing.Any
             // To improve the autocompletion a bit we convert it to Union[TradeBar, QuoteBar, List[Tick], Any]
             if (_currentClass?.Type.ToPythonString() == "QuantConnect.Data.Slice")
             {
@@ -129,7 +129,8 @@ namespace QuantConnectStubsGenerator.Parser
 
             var method = new Method(name, returnType)
             {
-                Static = HasModifier(node, "static")
+                Static = HasModifier(node, "static"),
+                File = _model.SyntaxTree.FilePath
             };
 
             var doc = ParseDocumentation(node);
@@ -168,6 +169,11 @@ namespace QuantConnectStubsGenerator.Parser
                         continue;
                     }
 
+                    if (CheckDocSuggestsPandasDataFrame(text))
+                    {
+                        parsedParameter.Type = new PythonType("DataFrame", "pandas");
+                    }
+
                     docStrings.Add($":param {parsedParameter.Name}: {text}");
                     break;
                 }
@@ -196,7 +202,14 @@ namespace QuantConnectStubsGenerator.Parser
             if (returnsParts.Count > 0)
             {
                 var parts = returnsParts.Select(part => part.EndsWith(".") ? part : part + ".");
-                docStrings.Add($":returns: {string.Join(" ", parts)}");
+                var text = string.Join(" ", parts);
+
+                docStrings.Add($":returns: {text}");
+
+                if (CheckDocSuggestsPandasDataFrame(text))
+                {
+                    method.ReturnType = new PythonType("DataFrame", "pandas");
+                }
             }
 
             docStrings = docStrings.Select(str => str.Replace('\n', ' ')).ToList();
@@ -211,7 +224,6 @@ namespace QuantConnectStubsGenerator.Parser
 
             _currentClass.Methods.Add(method);
 
-            SetOverloadIfNecessary(method);
             ImprovePythonAccessorIfNecessary(method);
         }
 
@@ -265,27 +277,6 @@ namespace QuantConnectStubsGenerator.Parser
                 "lambda" => "_lambda",
                 _ => name
             };
-        }
-
-        /// <summary>
-        /// Checks if the given method that has just been added to the given class is an overload.
-        /// If this is the case, all necessary method instances have their overload property set to true.
-        /// </summary>
-        private void SetOverloadIfNecessary(Method method)
-        {
-            var methodsWithSameName = _currentClass.Methods
-                .Where(m => m.Name == method.Name)
-                .ToList();
-
-            if (methodsWithSameName.Count <= 1)
-            {
-                return;
-            }
-
-            foreach (var m in methodsWithSameName)
-            {
-                m.Overload = true;
-            }
         }
 
         private void ExtendIterableIfNecessary(MethodDeclarationSyntax node)
@@ -370,6 +361,14 @@ namespace QuantConnectStubsGenerator.Parser
             newMethod.ReturnType = existingMethod.ReturnType;
 
             _currentClass.Methods.Remove(existingMethod);
+        }
+
+        /// <summary>
+        /// Returns whether the provided documentation string suggests that a certain type is a pandas DataFrame.
+        /// </summary>
+        private bool CheckDocSuggestsPandasDataFrame(string doc)
+        {
+            return doc.Contains("pandas DataFrame") || doc.Contains("pandas.DataFrame");
         }
     }
 }

@@ -9,6 +9,29 @@ namespace QuantConnectStubsGenerator.Tests.Model
     public class NamespaceTests
     {
         [Test]
+        public void GetClassesShouldReturnAllRegisteredClasses()
+        {
+            var ns = new Namespace("Test");
+
+            var parentCls = new Class(new PythonType("ParentClass", "QuantConnect"));
+            var childCls = new Class(new PythonType("ChildClass", "QuantConnect"))
+            {
+                ParentClass = parentCls
+            };
+
+            parentCls.InnerClasses.Add(childCls);
+
+            ns.RegisterClass(parentCls);
+            ns.RegisterClass(childCls);
+
+            var classes = ns.GetClasses().ToList();
+
+            Assert.AreEqual(2, classes.Count);
+            Assert.AreEqual(parentCls, classes[0]);
+            Assert.AreEqual(childCls, classes[1]);
+        }
+
+        [Test]
         public void GetParentClassesShouldReturnAllRegisteredParentClasses()
         {
             var ns = new Namespace("Test");

@@ -15,6 +15,11 @@ namespace QuantConnectStubsGenerator.Model
             Name = name;
         }
 
+        public IEnumerable<Class> GetClasses()
+        {
+            return _classes.Values;
+        }
+
         public IEnumerable<Class> GetParentClasses()
         {
             return _classes.Values.Where(cls => cls.ParentClass == null);

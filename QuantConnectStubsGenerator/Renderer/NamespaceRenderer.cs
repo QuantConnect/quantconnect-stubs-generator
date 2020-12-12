@@ -44,20 +44,20 @@ namespace QuantConnectStubsGenerator.Renderer
                 return;
             }
 
-            var normalNamespaces = namespacesToImport.Where(ns => char.IsLower(ns[0])).ToList();
-            var qcNamespaces = namespacesToImport.Where(ns => char.IsUpper(ns[0])).ToList();
+            var systemNamespaces = namespacesToImport.Where(ns => char.IsLower(ns[0]) && ns != "pandas").ToList();
+            var nonSystemNamespaces = namespacesToImport.Where(ns => char.IsUpper(ns[0]) || ns == "pandas").ToList();
 
-            foreach (var ns in normalNamespaces)
+            foreach (var ns in systemNamespaces)
             {
                 WriteLine($"import {ns}");
             }
 
-            if (normalNamespaces.Count > 0 && qcNamespaces.Count > 0)
+            if (systemNamespaces.Count > 0 && nonSystemNamespaces.Count > 0)
             {
                 WriteLine();
             }
 
-            foreach (var ns in qcNamespaces)
+            foreach (var ns in nonSystemNamespaces)
             {
                 WriteLine($"import {ns}");
             }

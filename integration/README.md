@@ -6,7 +6,7 @@ Please note that these integration tests are not meant to show no errors/warning
 
 ## Usage
 
-Before running `integration_tests.py`, make sure the following commands are available on your `PATH`:
+Before running `integration_tests.py`, make sure `pandas` is installed in your Python environment and the following commands are available on your `PATH`:
 - `git`, to clone/pull the latest version of Lean
 - `dotnet`, to run the generator
 - `pyright`, to check the generated stubs using the [Pyright](https://github.com/microsoft/pyright) type checker used in [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance) (`npm i -g pyright` or `yarn global add pyright`)

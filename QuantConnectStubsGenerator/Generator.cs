@@ -99,6 +99,21 @@ namespace QuantConnectStubsGenerator
             ParseSyntaxTrees<PropertyParser>(context, syntaxTrees, compilation);
             ParseSyntaxTrees<MethodParser>(context, syntaxTrees, compilation);
 
+            // Perform post-processing on all parsed classes
+            foreach (var ns in context.GetNamespaces())
+            {
+                foreach (var cls in ns.GetClasses())
+                {
+                    // Remove Python implementations for methods where there is both a Python as well as a C# implementation
+                    // The parsed C# implementation is usually more useful for autocompletion
+                    // To improve it a little bit we move the return type of the Python implementation to the C# implementation
+                    PostProcessClass(cls);
+
+                    // Mark methods which appear multiple times as overloaded
+                    MarkOverloads(cls);
+                }
+            }
+
             // Create empty namespaces to fill gaps in between namespaces like "A.B" and "A.B.C.D"
             // This is needed to make import resolution work correctly
             CreateEmptyNamespaces(context);
@@ -138,6 +153,47 @@ namespace QuantConnectStubsGenerator
                 }
 
                 parser.Visit(tree.GetRoot());
+            }
+        }
+
+        private void PostProcessClass(Class cls)
+        {
+            var pythonMethods = new Dictionary<string, PythonType>();
+            var pythonMethodsToRemove = new List<Method>();
+
+            foreach (var method in cls.Methods.Where(m => m.File != null && m.File.EndsWith(".Python.cs")))
+            {
+                pythonMethods[method.Name] = method.ReturnType;
+                pythonMethodsToRemove.Add(method);
+            }
+
+            foreach (var method in pythonMethodsToRemove)
+            {
+                cls.Methods.Remove(method);
+            }
+
+            foreach (var (methodName, returnType) in pythonMethods)
+            {
+                foreach (var method in cls.Methods.Where(m => m.Name == methodName))
+                {
+                    method.ReturnType = returnType;
+                }
+            }
+        }
+
+        private void MarkOverloads(Class cls)
+        {
+            var duplicateMethodNames = cls.Methods
+                .GroupBy(m => m.Name)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key);
+
+            foreach (var name in duplicateMethodNames)
+            {
+                foreach (var method in cls.Methods.Where(m => m.Name == name))
+                {
+                    method.Overload = true;
+                }
             }
         }
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using log4net;
 
 namespace QuantConnectStubsGenerator.Renderer
@@ -21,8 +22,11 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public void Render()
         {
-            var version = GetVersion();
+            var packageVersion = GetPackageVersion();
             var namespaces = GetNamespaces();
+
+            var pandasVersion = GetPandasVersion();
+            var pandasVersionConstraint = pandasVersion != null ? $">={pandasVersion}" : "";
 
             WriteLine($@"
 from setuptools import setup
@@ -37,7 +41,7 @@ These stubs can be used by editors to provide type-aware features like autocompl
 
 setup(
     name=""quantconnect-stubs"",
-    version=""{version}"",
+    version=""{packageVersion}"",
     description=""Type stubs for QuantConnect's Lean"",
     author=""QuantConnect"",
     author_email=""support@quantconnect.com"",
@@ -51,6 +55,7 @@ setup(
         ""License :: OSI Approved :: Apache Software License"",
         ""Programming Language :: Python :: 3""
     ],
+    install_requires=[""pandas{pandasVersionConstraint}""],
     packages=[
 {string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"\"{ns}\""))}
     ],
@@ -61,7 +66,7 @@ setup(
             ".Trim());
         }
 
-        private string GetVersion()
+        private string GetPackageVersion()
         {
             if (Environment.GetEnvironmentVariables().Contains("STUBS_VERSION"))
             {
@@ -104,6 +109,24 @@ setup(
                     ns = ns.Substring(0, ns.Contains('/') ? ns.LastIndexOf('/') : ns.Length);
                     return ns.Replace('/', '.');
                 }).Distinct().OrderBy(name => name).ToList();
+        }
+
+        private string GetPandasVersion()
+        {
+            var dockerFilePath = Path.GetFullPath("DockerfileLeanFoundation", _leanPath);
+            if (File.Exists(dockerFilePath))
+            {
+                var dockerFileContents = File.ReadAllText(dockerFilePath);
+                var versionMatch = new Regex(@"pandas=(\d+\.\d+\.\d+)").Match(dockerFileContents);
+
+                if (versionMatch.Success)
+                {
+                    return versionMatch.Groups[1].Value;
+                }
+            }
+
+            Logger.Warn("Provided Lean path does not contain a Dockerfile pinning pandas to a specific version");
+            return null;
         }
     }
 }

@@ -33,7 +33,7 @@ jobs:
 
       - name: Install integration test dependencies
         run: |
-          pip install mypy
+          pip install pandas
           npm install --global pyright
 
       - name: Run integration tests

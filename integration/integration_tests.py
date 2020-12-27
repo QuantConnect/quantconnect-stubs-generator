@@ -72,7 +72,8 @@ def main():
 {{
     "include": [{", ".join([f'"{ns}/**"' for ns in os.listdir(stubs_dir)])}],
     "reportGeneralTypeIssues": false,
-    "reportMissingModuleSource": false
+    "reportMissingModuleSource": false,
+    "reportInvalidTypeVarUse": false
 }}
         """.strip())
 

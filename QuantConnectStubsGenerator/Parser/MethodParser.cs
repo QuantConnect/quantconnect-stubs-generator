@@ -203,9 +203,10 @@ namespace QuantConnectStubsGenerator.Parser
             // The first item is the return value of the method, the following items are the out parameters
             if (outTypes.Count > 0)
             {
-                var unionMembers = new List<PythonType> {method.ReturnType};
-                unionMembers.AddRange(outTypes);
-                method.ReturnType = new PythonType("Union", "typing") {TypeParameters = unionMembers};
+                var unionType = new PythonType("Union", "typing");
+                unionType.TypeParameters.Add(method.ReturnType);
+                outTypes.ForEach(type => unionType.TypeParameters.Add(type));
+                method.ReturnType = unionType;
             }
 
             var returnsParts = new List<string>();
@@ -271,6 +272,17 @@ namespace QuantConnectStubsGenerator.Parser
                 var unionType = new PythonType("Union", "typing");
                 unionType.TypeParameters.Add(parameter.Type);
                 unionType.TypeParameters.Add(new PythonType("str"));
+                parameter.Type = unionType;
+            }
+
+            // IDataConsolidator parameters can be either IDataConsolidator, PythonConsolidator or timedelta
+            if (parameter.Type.Namespace == "QuantConnect.Data.Consolidators"
+                && parameter.Type.Name == "IDataConsolidator")
+            {
+                var unionType = new PythonType("Union", "typing");
+                unionType.TypeParameters.Add(parameter.Type);
+                unionType.TypeParameters.Add(new PythonType("PythonConsolidator", "QuantConnect.Python"));
+                unionType.TypeParameters.Add(new PythonType("timedelta", "datetime"));
                 parameter.Type = unionType;
             }
 

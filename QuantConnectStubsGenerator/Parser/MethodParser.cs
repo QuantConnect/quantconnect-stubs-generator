@@ -289,7 +289,10 @@ namespace QuantConnectStubsGenerator.Parser
             // datetime parameters also accept dates
             if (parameter.Type.Namespace == "datetime" && parameter.Type.Name == "datetime")
             {
-                parameter.Type.Name = "date";
+                var unionType = new PythonType("Union", "typing");
+                unionType.TypeParameters.Add(parameter.Type);
+                unionType.TypeParameters.Add(new PythonType("date", "datetime"));
+                parameter.Type = unionType;
             }
 
             // Methods like AddData<T> and History<T> have Python implementations accepting "T" as first parameter

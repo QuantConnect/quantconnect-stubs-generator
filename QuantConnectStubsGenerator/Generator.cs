@@ -158,21 +158,29 @@ namespace QuantConnectStubsGenerator
 
         private void PostProcessClass(Class cls)
         {
-            var pythonMethods = new Dictionary<string, PythonType>();
-            var pythonMethodsToRemove = new List<Method>();
-
-            foreach (var method in cls.Methods.Where(m => m.File != null && m.File.EndsWith(".Python.cs")))
+            // A list of methods that should not be removed, even if they come from *.Python.cs files
+            var methodsToIgnore = new List<string>
             {
-                pythonMethods[method.Name] = method.ReturnType;
-                pythonMethodsToRemove.Add(method);
-            }
+                "QCAlgorithm.AddData",
+                "QCAlgorithm.Debug",
+                "QCAlgorithm.Error",
+                "QCAlgorithm.Log",
+                "QCAlgorithm.Quit"
+            };
 
-            foreach (var method in pythonMethodsToRemove)
+            var returnTypes = new Dictionary<string, PythonType>();
+            var pythonMethods = cls.Methods
+                .Where(m => m.File != null && m.File.EndsWith(".Python.cs"))
+                .Where(m => !methodsToIgnore.Contains($"{cls.Type.Name}.{m.Name}"))
+                .ToList();
+
+            foreach (var method in pythonMethods)
             {
+                returnTypes[method.Name] = method.ReturnType;
                 cls.Methods.Remove(method);
             }
 
-            foreach (var (methodName, returnType) in pythonMethods)
+            foreach (var (methodName, returnType) in returnTypes)
             {
                 foreach (var method in cls.Methods.Where(m => m.Name == methodName))
                 {

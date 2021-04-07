@@ -72,6 +72,11 @@ namespace QuantConnectStubsGenerator.Parser
                 };
             }
 
+            if (type.Namespace == "System" && type.Name == "Object")
+            {
+                type = new PythonType("Any", "typing");
+            }
+
             VisitMethod(node, "__getitem__", node.ParameterList.Parameters, type);
 
             var symbol = _typeConverter.GetSymbol(node);

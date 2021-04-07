@@ -286,6 +286,12 @@ namespace QuantConnectStubsGenerator.Parser
                 parameter.Type = unionType;
             }
 
+            // datetime parameters also accept dates
+            if (parameter.Type.Namespace == "datetime" && parameter.Type.Name == "datetime")
+            {
+                parameter.Type.Name = "date";
+            }
+
             // System.Object parameters can accept anything
             if (parameter.Type.Namespace == "System" && parameter.Type.Name == "Object")
             {

@@ -158,34 +158,40 @@ namespace QuantConnectStubsGenerator
 
         private void PostProcessClass(Class cls)
         {
-            // A list of methods that should not be removed, even if they come from *.Python.cs files
-            var methodsToIgnore = new List<string>
+            var loggingMethods = new List<string>
             {
-                "QCAlgorithm.AddData",
                 "QCAlgorithm.Debug",
                 "QCAlgorithm.Error",
                 "QCAlgorithm.Log",
                 "QCAlgorithm.Quit"
             };
 
-            var returnTypes = new Dictionary<string, PythonType>();
-            var pythonMethods = cls.Methods
+            var pythonMethodsToRemove = cls.Methods
                 .Where(m => m.File != null && m.File.EndsWith(".Python.cs"))
-                .Where(m => !methodsToIgnore.Contains($"{cls.Type.Name}.{m.Name}"))
+                // Python implementations of logging methods accept any parameter type
+                // C# implementations only accept strings/numbers, so we cannot remove the Python implementations
+                .Where(m => !loggingMethods.Contains($"{cls.Type.Name}.{m.Name}"))
+                // A few C# methods like AddData<T>(...) have a Python implementation like AddData(dataType, ...)
+                // We cannot remove the Python implementation here as it contains useful information
+                .Where(m =>
+                {
+                    if (m.Parameters.Count == 0)
+                    {
+                        return true;
+                    }
+
+                    return m.Parameters[0].Name != "type" && m.Parameters[0].Name != "dataType";
+                })
                 .ToList();
 
-            foreach (var method in pythonMethods)
+            foreach (var pythonMethod in pythonMethodsToRemove)
             {
-                returnTypes[method.Name] = method.ReturnType;
-                cls.Methods.Remove(method);
-            }
-
-            foreach (var (methodName, returnType) in returnTypes)
-            {
-                foreach (var method in cls.Methods.Where(m => m.Name == methodName))
+                foreach (var otherMethod in cls.Methods.Where(m => m.Name == pythonMethod.Name))
                 {
-                    method.ReturnType = returnType;
+                    otherMethod.ReturnType = pythonMethod.ReturnType;
                 }
+
+                cls.Methods.Remove(pythonMethod);
             }
         }
 

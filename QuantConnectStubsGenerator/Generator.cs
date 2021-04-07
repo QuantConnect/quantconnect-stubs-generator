@@ -158,7 +158,7 @@ namespace QuantConnectStubsGenerator
 
         private void PostProcessClass(Class cls)
         {
-            var loggingMethods = new List<string>
+            var loggingMethods = new HashSet<string>
             {
                 "QCAlgorithm.Debug",
                 "QCAlgorithm.Error",

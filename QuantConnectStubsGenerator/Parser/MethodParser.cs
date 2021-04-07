@@ -112,7 +112,6 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-
             var originalReturnType = returnType;
             var returnTypeIsEnum = false;
 
@@ -150,10 +149,11 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             var docStrings = new List<string>();
+            var outTypes = new List<PythonType>();
 
             foreach (var parameter in parameterList)
             {
-                var parsedParameter = ParseParameter(parameter, method.Name);
+                var parsedParameter = ParseParameter(parameter);
 
                 if (parsedParameter == null)
                 {
@@ -184,6 +184,28 @@ namespace QuantConnectStubsGenerator.Parser
                 }
 
                 method.Parameters.Add(parsedParameter);
+
+                if (parameter.Modifiers.Any(m => m.Text == "out"))
+                {
+                    var actualType = parsedParameter.Type;
+
+                    // Python.NET allows passing None to out parameters
+                    parsedParameter.Type = new PythonType("Optional", "typing")
+                    {
+                        TypeParameters = {actualType}
+                    };
+
+                    outTypes.Add(actualType);
+                }
+            }
+
+            // Python.NET returns a tuple if a method has out parameters
+            // The first item is the return value of the method, the following items are the out parameters
+            if (outTypes.Count > 0)
+            {
+                var unionMembers = new List<PythonType> {method.ReturnType};
+                unionMembers.AddRange(outTypes);
+                method.ReturnType = new PythonType("Union", "typing") {TypeParameters = unionMembers};
             }
 
             var returnsParts = new List<string>();
@@ -232,7 +254,7 @@ namespace QuantConnectStubsGenerator.Parser
             ImprovePythonAccessorIfNecessary(method);
         }
 
-        private Parameter ParseParameter(ParameterSyntax syntax, string methodName)
+        private Parameter ParseParameter(ParameterSyntax syntax)
         {
             var originalName = syntax.Identifier.Text;
             var parameter = new Parameter(FormatParameterName(originalName), _typeConverter.GetType(syntax.Type));

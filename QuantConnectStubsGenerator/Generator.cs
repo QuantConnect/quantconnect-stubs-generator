@@ -180,7 +180,8 @@ namespace QuantConnectStubsGenerator
                         return true;
                     }
 
-                    return m.Parameters[0].Name != "type" && m.Parameters[0].Name != "dataType";
+                    var paramName = m.Parameters[0].Name;
+                    return paramName != "type" && paramName != "dataType" && paramName != "T";
                 })
                 .ToList();
 

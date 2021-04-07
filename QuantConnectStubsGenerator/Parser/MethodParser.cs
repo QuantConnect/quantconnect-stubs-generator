@@ -292,6 +292,14 @@ namespace QuantConnectStubsGenerator.Parser
                 parameter.Type.Name = "date";
             }
 
+            // Methods like AddData<T> and History<T> have Python implementations accepting "T" as first parameter
+            // We set the types of these parameters to typing.Type instead of the default typing.Any
+            if (_model.SyntaxTree.FilePath.EndsWith(".Python.cs")
+                && (parameter.Name == "type" || parameter.Name == "dataType" || parameter.Name == "T"))
+            {
+                parameter.Type = new PythonType("Type", "typing");
+            }
+
             // System.Object parameters can accept anything
             if (parameter.Type.Namespace == "System" && parameter.Type.Name == "Object")
             {

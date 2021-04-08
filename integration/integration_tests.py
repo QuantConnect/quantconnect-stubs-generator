@@ -78,6 +78,7 @@ def main():
         file.write(f"""
 {{
     "include": [{", ".join([f'"{ns}/**"' for ns in os.listdir(stubs_dir)])}],
+    "exclude": ["System/Collections/Immutable/**"],
     "reportGeneralTypeIssues": false,
     "reportInvalidTypeVarUse": false,
     "reportWildcardImportFromLibrary": false

@@ -41,7 +41,27 @@ namespace QuantConnectStubsGenerator.Renderer
 
             WriteLine($"def {method.Name}({argsStr}) -> {method.ReturnType.ToPythonString()}:");
             WriteSummary(method.Summary, true);
-            WriteLine("...".Indent());
+
+            // PyCharm has several issues with warnings.warn() calls in overloaded methods
+            //
+            // Example 1:
+            // def my_method() -> None: warnings.warn("Reason 1")
+            // def my_method(var: int) -> None: warnings.warn("Reason 2")
+            //
+            // Example 2:
+            // def my_method() -> None: warnings.warn("Reason 1")
+            // def my_method(var: int) -> None: ...
+            //
+            // In both examples PyCharm will flag "my_method(2)" as being deprecated with message "Reason 1"
+            // We therefore only add warnings.warn() to non-overloaded deprecated methods
+            if (method.DeprecationReason != null && !method.Overload)
+            {
+                WriteLine($"warnings.warn(\"{method.DeprecationReason}\", DeprecationWarning)".Indent());
+            }
+            else
+            {
+                WriteLine("...".Indent());
+            }
 
             WriteLine();
         }

@@ -68,7 +68,15 @@ namespace QuantConnectStubsGenerator.Renderer
             // Add the getter
             WriteLine($"def {property.Name}(self) -> {property.Type.ToPythonString()}:");
             WriteSummary(property.Summary, true);
-            WriteLine("...".Indent());
+
+            if (property.DeprecationReason != null)
+            {
+                WriteLine($"warnings.warn(\"{property.DeprecationReason}\", DeprecationWarning)".Indent());
+            }
+            else
+            {
+                WriteLine("...".Indent());
+            }
 
             WriteLine();
 
@@ -87,7 +95,15 @@ namespace QuantConnectStubsGenerator.Renderer
             // Add the setter
             WriteLine($"def {property.Name}(self, value: {property.Type.ToPythonString()}):");
             WriteSummary(property.Summary, true);
-            WriteLine("...".Indent());
+
+            if (property.DeprecationReason != null)
+            {
+                WriteLine($"warnings.warn(\"{property.DeprecationReason}\", DeprecationWarning)".Indent());
+            }
+            else
+            {
+                WriteLine("...".Indent());
+            }
 
             WriteLine();
         }

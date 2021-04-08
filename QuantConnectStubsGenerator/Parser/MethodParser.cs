@@ -50,14 +50,14 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
         {
-            var type = _typeConverter.GetType(node.Type);
+            var returnType = _typeConverter.GetType(node.Type);
 
             // Improve the autocompletion on data[symbol] if data is a Slice and symbol a Symbol
             // In C# this is of type dynamic, which by default gets converted to typing.Any
             // To improve the autocompletion a bit we convert it to Union[TradeBar, QuoteBar, List[Tick], Any]
             if (_currentClass?.Type.ToPythonString() == "QuantConnect.Data.Slice")
             {
-                type = new PythonType("Union", "typing")
+                returnType = new PythonType("Union", "typing")
                 {
                     TypeParameters =
                     {
@@ -72,19 +72,19 @@ namespace QuantConnectStubsGenerator.Parser
                 };
             }
 
-            if (type.Namespace == "System" && type.Name == "Object")
+            if (returnType.Namespace == "System" && returnType.Name == "Object")
             {
-                type = new PythonType("Any", "typing");
+                returnType = new PythonType("Any", "typing");
             }
 
-            VisitMethod(node, "__getitem__", node.ParameterList.Parameters, type);
+            VisitMethod(node, "__getitem__", node.ParameterList.Parameters, returnType);
 
             var symbol = _typeConverter.GetSymbol(node);
             if (symbol is IPropertySymbol propertySymbol && !propertySymbol.IsReadOnly)
             {
                 VisitMethod(node, "__setitem__", node.ParameterList.Parameters, new PythonType("None"));
 
-                var valueParameter = new Parameter("value", type);
+                var valueParameter = new Parameter("value", returnType);
                 _currentClass.Methods.Last().Parameters.Add(valueParameter);
             }
         }
@@ -134,7 +134,8 @@ namespace QuantConnectStubsGenerator.Parser
             var method = new Method(name, returnType)
             {
                 Static = HasModifier(node, "static"),
-                File = _model.SyntaxTree.FilePath
+                File = _model.SyntaxTree.FilePath,
+                DeprecationReason = GetDeprecationReason(node)
             };
 
             var doc = ParseDocumentation(node);
@@ -146,6 +147,11 @@ namespace QuantConnectStubsGenerator.Parser
             if (HasModifier(node, "protected"))
             {
                 method.Summary = AppendSummary(method.Summary, "This method is protected.");
+            }
+
+            if (method.DeprecationReason != null)
+            {
+                method.Summary = AppendSummary(method.Summary, method.DeprecationReason);
             }
 
             var docStrings = new List<string>();

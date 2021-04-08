@@ -50,13 +50,19 @@ namespace QuantConnectStubsGenerator.Parser
                     ? FormatValue(node.EqualsValue.Value.ToString())
                     : _currentClass.Properties.Count.ToString(),
                 Static = true,
-                Abstract = _currentClass.Interface || HasModifier(node, "abstract")
+                Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
+                DeprecationReason = GetDeprecationReason(node)
             };
 
             var doc = ParseDocumentation(node);
             if (doc["summary"] != null)
             {
                 property.Summary = doc["summary"].GetText();
+            }
+
+            if (property.DeprecationReason != null)
+            {
+                property.Summary = AppendSummary(property.Summary, property.DeprecationReason);
             }
 
             _currentClass.Properties.Add(property);
@@ -109,7 +115,8 @@ namespace QuantConnectStubsGenerator.Parser
                 Type = type,
                 ReadOnly = _typeConverter.GetSymbol(node) is IPropertySymbol symbol && symbol.IsReadOnly,
                 Static = _currentClass.Static || HasModifier(node, "static"),
-                Abstract = _currentClass.Interface || HasModifier(node, "abstract")
+                Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
+                DeprecationReason = GetDeprecationReason(node)
             };
 
             var doc = ParseDocumentation(node);
@@ -128,6 +135,11 @@ namespace QuantConnectStubsGenerator.Parser
             if (HasModifier(node, "protected"))
             {
                 property.Summary = AppendSummary(property.Summary, "This property is protected.");
+            }
+
+            if (property.DeprecationReason != null)
+            {
+                property.Summary = AppendSummary(property.Summary, property.DeprecationReason);
             }
 
             _currentClass.Properties.Add(property);
@@ -152,7 +164,8 @@ namespace QuantConnectStubsGenerator.Parser
                     Type = type,
                     ReadOnly = HasModifier(node, "readonly") || HasModifier(node, "const"),
                     Static = _currentClass.Static || HasModifier(node, "static") || HasModifier(node, "const"),
-                    Abstract = _currentClass.Interface || HasModifier(node, "abstract")
+                    Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
+                    DeprecationReason = GetDeprecationReason(node)
                 };
 
                 if (variable.Initializer != null)
@@ -169,6 +182,11 @@ namespace QuantConnectStubsGenerator.Parser
                 if (HasModifier(node, "protected"))
                 {
                     property.Summary = AppendSummary(property.Summary, "This field is protected.");
+                }
+
+                if (property.DeprecationReason != null)
+                {
+                    property.Summary = AppendSummary(property.Summary, property.DeprecationReason);
                 }
 
                 _currentClass.Properties.Add(property);

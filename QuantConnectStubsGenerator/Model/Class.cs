@@ -63,10 +63,22 @@ namespace QuantConnectStubsGenerator.Model
                 types.Add(new PythonType("abstractmethod", "abc"));
             }
 
+            // PropertyRenderer adds warnings.warn() to deprecated non-static properties
+            if (Properties.Any(p => p.DeprecationReason != null && !p.Static))
+            {
+                types.Add(new PythonType("warn", "warnings"));
+            }
+
             // MethodRenderer adds the @typing.overload decorator to overloaded methods
             if (Methods.Any(m => m.Overload))
             {
                 types.Add(new PythonType("overload", "typing"));
+            }
+
+            // MethodRenderer adds warnings.warn() to non-overloaded deprecated methods
+            if (Methods.Any(m => m.DeprecationReason != null && !m.Overload))
+            {
+                types.Add(new PythonType("warn", "warnings"));
             }
 
             foreach (var innerClass in InnerClasses)

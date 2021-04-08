@@ -76,7 +76,15 @@ namespace QuantConnectStubsGenerator.Renderer
         {
             var methodRenderer = CreateRenderer<MethodRenderer>();
 
-            foreach (var method in cls.Methods)
+            // Some methods have two variants where one is deprecated
+            // PyCharm complains if you override the second/third/fourth/etc. overload of a method
+            // We therefore need to render deprecated methods after non-deprecated ones
+            // This way PyCharm doesn't complain if you override the non-deprecated method
+            var orderedMethods = cls.Methods
+                .OrderBy(m => m.Name)
+                .ThenBy(m => m.DeprecationReason == null ? 0 : 1);
+
+            foreach (var method in orderedMethods)
             {
                 methodRenderer.Render(method);
             }

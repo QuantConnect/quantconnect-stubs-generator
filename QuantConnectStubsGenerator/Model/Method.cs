@@ -14,6 +14,8 @@ namespace QuantConnectStubsGenerator.Model
 
         public string File { get; set; }
 
+        public string DeprecationReason { get; set; }
+
         public IList<Parameter> Parameters { get; } = new List<Parameter>();
 
         public Method(string name, PythonType returnType)

@@ -71,6 +71,12 @@ namespace QuantConnectStubsGenerator.Parser
                 summary = AppendSummary(summary, "This class is protected.");
             }
 
+            var deprecationReason = GetDeprecationReason(node);
+            if (deprecationReason != null)
+            {
+                summary = AppendSummary(summary, deprecationReason);
+            }
+
             return summary;
         }
 

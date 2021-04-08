@@ -111,6 +111,43 @@ namespace QuantConnectStubsGenerator.Parser
         }
 
         /// <summary>
+        /// Returns the deprecation message if the node is marked obsolete, or null if it is not.
+        /// </summary>
+        protected string GetDeprecationReason(MemberDeclarationSyntax node)
+        {
+            foreach (var attributeList in node.AttributeLists)
+            {
+                foreach (var attribute in attributeList.Attributes)
+                {
+                    if (attribute.Name.ToString() == "Obsolete")
+                    {
+                        if (attribute.ArgumentList == null)
+                        {
+                            return "This member is marked as obsolete.";
+                        }
+
+                        var arguments = attribute.ArgumentList.Arguments;
+                        if (arguments.Count == 0)
+                        {
+                            return "This member is marked as obsolete.";
+                        }
+
+                        var reason = arguments[0].Expression.ToString().Trim('"');
+
+                        // The stubs are meant to make writing algorithms easier
+                        // If a member is not deprecated for algorithm use, we don't mark it as deprecated at all
+                        if (!reason.Contains("provided for algorithm use only"))
+                        {
+                            return reason;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Parses the documentation above a node to an XML element.
         /// If the documentation contains a summary, this is then accessible with element["summary"].
         /// </summary>

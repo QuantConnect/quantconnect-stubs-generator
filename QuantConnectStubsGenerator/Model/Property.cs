@@ -13,6 +13,8 @@ namespace QuantConnectStubsGenerator.Model
 
         public string Summary { get; set; }
 
+        public string DeprecationReason { get; set; }
+
         public Property(string name)
         {
             Name = name;

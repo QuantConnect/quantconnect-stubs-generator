@@ -27,7 +27,7 @@ namespace QuantConnectStubsGenerator.Utility
                                         ?? child.Attributes["langword"]
                                         ?? child.Attributes["href"];
 
-                        newText = attribute.InnerText;
+                        newText = attribute != null ? attribute.InnerText : child.InnerText;
 
                         // Convert "T:System.Object" to "System.Object"
                         if (newText.Length > 2 && newText[1] == ':')

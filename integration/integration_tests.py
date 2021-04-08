@@ -1,8 +1,9 @@
 import os
-import pathlib
 import shutil
 import subprocess
 import sys
+from importlib.util import find_spec
+from pathlib import Path
 
 
 def fail(msg):
@@ -45,11 +46,17 @@ def get_python_files(dir):
 
 
 def main():
+    if find_spec("QuantConnect") is not None:
+        fail("Integration tests must run in an environment in which the stubs are not already installed")
+    
+    if find_spec("pandas") is None:
+        fail("pandas must be installed when running the integration tests")
+
     ensure_command_availability("git")
     ensure_command_availability("dotnet")
     ensure_command_availability("pyright")
 
-    project_root = pathlib.Path(os.getcwd()).parent
+    project_root = Path(__file__).absolute().parent.parent
     generated_dir = project_root / "generated"
     lean_dir = generated_dir / "Lean"
     runtime_dir = generated_dir / "runtime"
@@ -71,10 +78,9 @@ def main():
         file.write(f"""
 {{
     "include": [{", ".join([f'"{ns}/**"' for ns in os.listdir(stubs_dir)])}],
-    "exclude": ["System/Collections/Immutable/**"],
     "reportGeneralTypeIssues": false,
-    "reportMissingModuleSource": false,
-    "reportInvalidTypeVarUse": false
+    "reportInvalidTypeVarUse": false,
+    "reportWildcardImportFromLibrary": false
 }}
         """.strip())
 

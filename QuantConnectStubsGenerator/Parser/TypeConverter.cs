@@ -93,7 +93,8 @@ namespace QuantConnectStubsGenerator.Parser
                 // Delegates are not supported
                 if (namedTypeSymbol.DelegateInvokeMethod != null
                     && !namedTypeSymbol.DelegateInvokeMethod.ToDisplayString().StartsWith("System.Func")
-                    && !namedTypeSymbol.DelegateInvokeMethod.ToDisplayString().StartsWith("System.Action"))
+                    && !namedTypeSymbol.DelegateInvokeMethod.ToDisplayString().StartsWith("System.Action")
+                    && !namedTypeSymbol.DelegateInvokeMethod.ToDisplayString().StartsWith("System.EventHandler"))
                 {
                     return new PythonType("Any", "typing")
                     {
@@ -182,14 +183,28 @@ namespace QuantConnectStubsGenerator.Parser
                         break;
                     case "Func":
                     case "Action":
-                        if (type.TypeParameters.Count > 0)
+                        type.Name = "Callable";
+                        type.Namespace = "typing";
+
+                        if (type.Name == "Action" || type.TypeParameters.Count == 0)
                         {
-                            type.IsAction = type.Name == "Action";
-                            type.Name = "Callable";
-                            type.Namespace = "typing";
+                            type.TypeParameters.Add(new PythonType("None"));
                         }
 
                         break;
+                    case "EventHandler":
+                        return new PythonType("Callable", "typing")
+                        {
+                            TypeParameters =
+                            {
+                                new PythonType("Optional", "typing")
+                                {
+                                    TypeParameters = {new PythonType("Any", "typing")}
+                                },
+                                new PythonType("EventArgs", "System"),
+                                new PythonType("None")
+                            }
+                        };
                     case "Type":
                         type.Name = "Type";
                         type.Namespace = "typing";
@@ -200,15 +215,9 @@ namespace QuantConnectStubsGenerator.Parser
             // C# types that don't have a Python-equivalent or that we don't parse are converted to an aliased Any
             if (type.Namespace == "<global namespace>")
             {
-                var alias = type.Name.Replace('.', '_');
-                if (type.Namespace.StartsWith("System"))
-                {
-                    alias = $"{type.Namespace.Replace('.', '_')}_{alias}";
-                }
-
                 return new PythonType("Any", "typing")
                 {
-                    Alias = alias
+                    Alias = type.Name.Replace('.', '_')
                 };
             }
 

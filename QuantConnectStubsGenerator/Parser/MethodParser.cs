@@ -50,6 +50,11 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
         {
+            if (HasModifier(node, "private") || HasModifier(node, "internal"))
+            {
+                return;
+            }
+
             var returnType = _typeConverter.GetType(node.Type);
 
             // Improve the autocompletion on data[symbol] if data is a Slice and symbol a Symbol

@@ -61,7 +61,13 @@ namespace QuantConnectStubsGenerator
                 {"src/libraries/System.Private.CoreLib/src", "*.cs"},
                 {"src/mono/System.Private.CoreLib/src", "*.Mono.cs"},
                 {"src/libraries/System.Drawing.Primitives/src", "*.cs"},
-                {"src/libraries/System.Collections.Immutable/src", "*.cs"}
+                {"src/libraries/System.Collections/src", "*.cs"},
+                {"src/libraries/System.Collections.Immutable/src", "*.cs"},
+                {"src/libraries/System.Collections.Concurrent/src", "*.cs"},
+                {"src/libraries/System.ComponentModel.Annotations/src", "*.cs"},
+                {"src/libraries/System.Net.Primitives/src", "*.cs"},
+                {"src/libraries/System.Linq/src", "*.cs"},
+                {"src/libraries/System.Console/src", "*.cs"}
             })
             {
                 var absolutePath = Path.GetFullPath(relativePath, _runtimePath);

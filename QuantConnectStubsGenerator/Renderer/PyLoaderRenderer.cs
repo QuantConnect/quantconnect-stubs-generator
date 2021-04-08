@@ -11,8 +11,6 @@ namespace QuantConnectStubsGenerator.Renderer
         public void Render(string ns)
         {
             WriteLine($@"
-# pyright: reportMissingImports=false
-
 import os
 import sys
 

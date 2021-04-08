@@ -14,8 +14,6 @@ namespace QuantConnectStubsGenerator.Model
 
         public IList<PythonType> TypeParameters { get; set; } = new List<PythonType>();
 
-        public bool IsAction { get; set; }
-
         public PythonType(string name, string ns = null)
         {
             Name = name;
@@ -58,21 +56,12 @@ namespace QuantConnectStubsGenerator.Model
             // Callable requires Callable[[ParameterType1, ParameterType2, ...], ReturnType]
             if (Namespace == "typing" && Name == "Callable")
             {
-                if (IsAction)
-                {
-                    str += "[";
-                    str += string.Join(", ", TypeParameters.Select(type => type.ToPythonString()));
-                    str += "], None";
-                }
-                else
-                {
-                    str += "[";
-                    str += string.Join(
-                        ", ",
-                        TypeParameters.SkipLast(1).Select(type => type.ToPythonString()));
-                    str += "], ";
-                    str += TypeParameters.Last().ToPythonString();
-                }
+                str += "[";
+                str += string.Join(
+                    ", ",
+                    TypeParameters.SkipLast(1).Select(type => type.ToPythonString()));
+                str += "], ";
+                str += TypeParameters.Last().ToPythonString();
             }
             else
             {

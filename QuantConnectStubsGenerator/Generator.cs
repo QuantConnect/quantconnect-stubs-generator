@@ -64,6 +64,7 @@ namespace QuantConnectStubsGenerator
                 {"src/libraries/System.Collections/src", "*.cs"},
                 {"src/libraries/System.Collections.Immutable/src", "*.cs"},
                 {"src/libraries/System.Collections.Concurrent/src", "*.cs"},
+                {"src/libraries/System.ObjectModel/src", "*.cs"},
                 {"src/libraries/System.ComponentModel.Annotations/src", "*.cs"},
                 {"src/libraries/System.Net.Primitives/src", "*.cs"},
                 {"src/libraries/System.Linq/src", "*.cs"},
@@ -125,6 +126,7 @@ namespace QuantConnectStubsGenerator
             CreateEmptyNamespaces(context);
 
             // Render .pyi files containing stubs for all parsed namespaces
+            Logger.Info($"Generating .py and .pyi files for {context.GetNamespaces().Count()} namespaces");
             foreach (var ns in context.GetNamespaces())
             {
                 var namespacePath = ns.Name.Replace('.', '/');
@@ -146,10 +148,10 @@ namespace QuantConnectStubsGenerator
             IEnumerable<SyntaxTree> syntaxTrees,
             CSharpCompilation compilation) where T : BaseParser
         {
+            Logger.Info($"Running {typeof(T).Name} on all syntax trees");
+
             foreach (var tree in syntaxTrees)
             {
-                Logger.Debug($"Running {typeof(T).Name} on {tree.FilePath}");
-
                 var model = compilation.GetSemanticModel(tree);
                 var parser = (T) Activator.CreateInstance(typeof(T), context, model);
 
@@ -158,7 +160,14 @@ namespace QuantConnectStubsGenerator
                     throw new SystemException($"Could not create {typeof(T).Name} for {tree.FilePath}");
                 }
 
-                parser.Visit(tree.GetRoot());
+                try
+                {
+                    parser.Visit(tree.GetRoot());
+                }
+                catch (Exception e)
+                {
+                    throw new Exception($"Generator crashed while running {typeof(T).Name} on {tree.FilePath}", e);
+                }
             }
         }
 
@@ -258,8 +267,6 @@ namespace QuantConnectStubsGenerator
                 return;
             }
 
-            Logger.Info($"Generating {outputPath}");
-
             EnsureParentDirectoriesExist(outputPath);
 
             using var writer = new StreamWriter(outputPath);
@@ -269,8 +276,6 @@ namespace QuantConnectStubsGenerator
 
         private void GeneratePyLoader(string ns, string outputPath)
         {
-            Logger.Info($"Generating {outputPath}");
-
             EnsureParentDirectoriesExist(outputPath);
 
             using var writer = new StreamWriter(outputPath);
@@ -280,9 +285,9 @@ namespace QuantConnectStubsGenerator
 
         private void GenerateClrStubs()
         {
-            var outputPath = Path.GetFullPath("clr/__init__.pyi", _outputDirectory);
-            Logger.Info($"Generating {outputPath}");
+            Logger.Info("Generating clr stubs");
 
+            var outputPath = Path.GetFullPath("clr/__init__.pyi", _outputDirectory);
             EnsureParentDirectoriesExist(outputPath);
 
             using var writer = new StreamWriter(outputPath);
@@ -292,9 +297,9 @@ namespace QuantConnectStubsGenerator
 
         private void GenerateSetup()
         {
-            var setupPath = Path.GetFullPath("setup.py", _outputDirectory);
-            Logger.Info($"Generating {setupPath}");
+            Logger.Info("Generating setup.py");
 
+            var setupPath = Path.GetFullPath("setup.py", _outputDirectory);
             EnsureParentDirectoriesExist(setupPath);
 
             using var writer = new StreamWriter(setupPath);

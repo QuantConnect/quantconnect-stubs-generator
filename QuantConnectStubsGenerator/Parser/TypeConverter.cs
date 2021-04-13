@@ -82,7 +82,7 @@ namespace QuantConnectStubsGenerator.Parser
             var type = new PythonType(name, ns);
 
             // Process type parameters
-            if (symbol is ITypeParameterSymbol typeParameterSymbol)
+            if (symbol is ITypeParameterSymbol)
             {
                 type.IsNamedTypeParameter = true;
             }
@@ -90,15 +90,21 @@ namespace QuantConnectStubsGenerator.Parser
             // Process named type parameters
             if (symbol is INamedTypeSymbol namedTypeSymbol)
             {
-                // Delegates are not supported
-                if (namedTypeSymbol.DelegateInvokeMethod != null
-                    && !namedTypeSymbol.DelegateInvokeMethod.ToDisplayString().StartsWith("System.Func")
-                    && !namedTypeSymbol.DelegateInvokeMethod.ToDisplayString().StartsWith("System.Action")
-                    && !namedTypeSymbol.DelegateInvokeMethod.ToDisplayString().StartsWith("System.EventHandler"))
+                // Process delegates
+                if (namedTypeSymbol.DelegateInvokeMethod != null)
                 {
-                    return new PythonType("Any", "typing")
+                    var parameters = new List<PythonType>();
+
+                    foreach (var parameter in namedTypeSymbol.DelegateInvokeMethod.Parameters)
                     {
-                        Alias = type.Namespace.Replace('.', '_') + "_" + type.Name.Replace('.', '_')
+                        parameters.Add(GetType(parameter.Type));
+                    }
+
+                    parameters.Add(GetType(namedTypeSymbol.DelegateInvokeMethod.ReturnType));
+
+                    return new PythonType("Callable", "typing")
+                    {
+                        TypeParameters = parameters
                     };
                 }
 
@@ -181,30 +187,6 @@ namespace QuantConnectStubsGenerator.Parser
                         type.Name = "Optional";
                         type.Namespace = "typing";
                         break;
-                    case "Func":
-                    case "Action":
-                        type.Name = "Callable";
-                        type.Namespace = "typing";
-
-                        if (type.Name == "Action" || type.TypeParameters.Count == 0)
-                        {
-                            type.TypeParameters.Add(new PythonType("None"));
-                        }
-
-                        break;
-                    case "EventHandler":
-                        return new PythonType("Callable", "typing")
-                        {
-                            TypeParameters =
-                            {
-                                new PythonType("Optional", "typing")
-                                {
-                                    TypeParameters = {new PythonType("Any", "typing")}
-                                },
-                                new PythonType("EventArgs", "System"),
-                                new PythonType("None")
-                            }
-                        };
                     case "Type":
                         type.Name = "Type";
                         type.Namespace = "typing";

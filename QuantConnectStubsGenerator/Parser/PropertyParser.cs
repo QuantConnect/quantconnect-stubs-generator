@@ -24,9 +24,12 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitEventDeclaration(EventDeclarationSyntax node)
         {
-            var type = new PythonType("List", "typing")
+            CreateEventContainerIfNecessary();
+
+            var callableType = _typeConverter.GetType(node.Type);
+            var type = new PythonType("_EventContainer")
             {
-                TypeParameters = {_typeConverter.GetType(node.Type)}
+                TypeParameters = {callableType, callableType.TypeParameters.Last()}
             };
 
             VisitProperty(node, type, node.Identifier.Text);
@@ -34,9 +37,12 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitEventFieldDeclaration(EventFieldDeclarationSyntax node)
         {
-            var type = new PythonType("List", "typing")
+            CreateEventContainerIfNecessary();
+
+            var callableType = _typeConverter.GetType(node.Declaration.Type);
+            var type = new PythonType("_EventContainer")
             {
-                TypeParameters = {_typeConverter.GetType(node.Declaration.Type)}
+                TypeParameters = {callableType, callableType.TypeParameters.Last()}
             };
 
             VisitField(node, type);
@@ -113,7 +119,7 @@ namespace QuantConnectStubsGenerator.Parser
             var property = new Property(name)
             {
                 Type = type,
-                ReadOnly = _typeConverter.GetSymbol(node) is IPropertySymbol symbol && symbol.IsReadOnly,
+                ReadOnly = _typeConverter.GetSymbol(node) is IPropertySymbol {IsReadOnly: true},
                 Static = _currentClass.Static || HasModifier(node, "static"),
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
                 DeprecationReason = GetDeprecationReason(node)
@@ -191,6 +197,61 @@ namespace QuantConnectStubsGenerator.Parser
 
                 _currentClass.Properties.Add(property);
             }
+        }
+
+        /// <summary>
+        /// This methods generates the _EventContainer class if it doesn't exist yet.
+        /// This class is used to provide accurate autocomplete on events,
+        /// containing just the methods Python.NET allows to be called on event properties and fields.
+        /// </summary>
+        private void CreateEventContainerIfNecessary()
+        {
+            var classType = new PythonType("_EventContainer", _currentNamespace.Name)
+            {
+                TypeParameters =
+                {
+                    new PythonType("_EventContainer_Callable", _currentNamespace.Name)
+                    {
+                        IsNamedTypeParameter = true,
+                    },
+                    new PythonType("_EventContainer_ReturnType", _currentNamespace.Name)
+                    {
+                        IsNamedTypeParameter = true
+                    }
+                }
+            };
+
+            if (_currentNamespace.HasClass(classType))
+            {
+                return;
+            }
+
+            _currentNamespace.RegisterClass(new Class(classType)
+            {
+                Summary = "This class is used to provide accurate autocomplete on events and cannot be imported.",
+                Methods =
+                {
+                    new Method("__iadd__", new PythonType("None"))
+                    {
+                        Summary = "Registers an event handler.",
+                        Parameters = {new Parameter("item", classType.TypeParameters[0])}
+                    },
+                    new Method("__isub__", new PythonType("None"))
+                    {
+                        Summary = "Unregisters an event handler.",
+                        Parameters = {new Parameter("item", classType.TypeParameters[0])}
+                    },
+                    new Method("__call__", classType.TypeParameters[1])
+                    {
+                        Summary = "Fires the event.",
+                        Parameters =
+                        {
+                            new Parameter("*args", new PythonType("Any", "typing")),
+                            new Parameter("**kwargs", new PythonType("Any", "typing"))
+                        }
+                    }
+                }
+            });
         }
     }
 }

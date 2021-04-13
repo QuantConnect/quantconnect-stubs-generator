@@ -45,7 +45,7 @@ namespace QuantConnectStubsGenerator.Renderer
             }
 
             var systemNamespaces = namespacesToImport.Where(ns => char.IsLower(ns[0]) && ns != "pandas").ToList();
-            var nonSystemNamespaces = namespacesToImport.Where(ns => char.IsUpper(ns[0]) || ns == "pandas").ToList();
+            var nonSystemNamespaces = namespacesToImport.Except(systemNamespaces).ToList();
 
             foreach (var ns in systemNamespaces)
             {

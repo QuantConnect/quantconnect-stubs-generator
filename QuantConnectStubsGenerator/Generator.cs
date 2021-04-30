@@ -66,6 +66,7 @@ namespace QuantConnectStubsGenerator
                 {"src/libraries/System.Collections.Concurrent/src", "*.cs"},
                 {"src/libraries/System.ObjectModel/src", "*.cs"},
                 {"src/libraries/System.ComponentModel.Annotations/src", "*.cs"},
+                {"src/libraries/System.ComponentModel.TypeConverter/src", "*.cs"},
                 {"src/libraries/System.Net.Primitives/src", "*.cs"},
                 {"src/libraries/System.Linq/src", "*.cs"},
                 {"src/libraries/System.Console/src", "*.cs"}

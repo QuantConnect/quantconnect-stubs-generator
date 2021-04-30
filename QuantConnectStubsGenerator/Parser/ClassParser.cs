@@ -103,7 +103,24 @@ namespace QuantConnectStubsGenerator.Parser
                 }
             }
 
-            foreach (var typeSymbol in symbol.Interfaces)
+            var interfaces = symbol.Interfaces.ToList();
+            var interfacesToRemove = new HashSet<INamedTypeSymbol>();
+
+            // "Cannot create consistent method ordering" errors appear when a Python class
+            // extends from classes A and B where B extends from A
+            // In this case we remove the direct inheritance on A
+            foreach (var typeA in interfaces)
+            {
+                foreach (var typeB in interfaces)
+                {
+                    if (typeB.Interfaces.Any(x => x.Name == typeA.Name))
+                    {
+                        interfacesToRemove.Add(typeA);
+                    }
+                }
+            }
+
+            foreach (var typeSymbol in interfaces.Except(interfacesToRemove))
             {
                 var type = _typeConverter.GetType(typeSymbol);
 
@@ -118,48 +135,6 @@ namespace QuantConnectStubsGenerator.Parser
                     }
 
                     continue;
-                }
-
-                // "Cannot create consistent method ordering" errors appear when a Python class
-                // extends from both System.Collections.ISomething and System.Collections.Generic.ISomething[T]
-                // We keep the latter as it contains more type information
-                if (type.Namespace == "System.Collections.Generic"
-                    && type.Name.StartsWith("I")
-                    && type.TypeParameters.Count > 0)
-                {
-                    var existing = types
-                        .FirstOrDefault(t => t.Namespace == "System.Collections" && t.Name == type.Name);
-
-                    if (existing != null)
-                    {
-                        types.Remove(existing);
-                    }
-                }
-
-                // "Cannot create consistent method ordering" errors appear when a Python class
-                // extends from multiple classes in the System.Collections.Generic namespace
-                if (type.Namespace == "System.Collections.Generic" &&
-                    types.Any(t => t.Namespace == "System.Collections.Generic"))
-                {
-                    continue;
-                }
-
-                // "Cannot create consistent method ordering" errors appear when a Python class
-                // extends from both IEnumerable[T] and an interface in the System.Collections namespace
-                if (type.Namespace.StartsWith("System.Collections")
-                    && type.Name.StartsWith("I")
-                    && type.TypeParameters.Count > 0)
-                {
-                    var enumerable = types
-                        .FirstOrDefault(t =>
-                            t.Namespace == "System.Collections.Generic"
-                            && t.Name == "IEnumerable"
-                            && t.TypeParameters.Count == 1);
-
-                    if (enumerable != null)
-                    {
-                        types.Remove(enumerable);
-                    }
                 }
 
                 types.Add(type);

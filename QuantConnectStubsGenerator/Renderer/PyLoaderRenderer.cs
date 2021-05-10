@@ -10,12 +10,15 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public void Render(string ns)
         {
+            var baseNamespace = ns.Split(".")[0];
+            var assembly = ns == "QuantConnect" ? "QuantConnect.Common" : ns;
+
             WriteLine($@"
 import os
 import sys
 
 # If quantconnect-stubs is installed via pip and Lean is ran locally,
-# importing anything from the QuantConnect namespace makes the Python
+# importing anything from the current namespace makes the Python
 # interpreter look in the quantconnect-stubs package for the implementation.
 #
 # The desired behavior is for the interpreter to use the implementation
@@ -27,7 +30,7 @@ import sys
 
 # Find the directory containing quantconnect-stubs (usually site-packages)
 current_path = os.path.dirname(__file__)
-while os.path.basename(current_path) != ""{ns.Split(".")[0]}"":
+while os.path.basename(current_path) != ""{baseNamespace}"":
     current_path = os.path.dirname(current_path)
 current_path = os.path.dirname(current_path)
 
@@ -38,7 +41,7 @@ sys.path.remove(current_path)
 # Import the C# version of the current namespace
 del sys.modules[""{ns}""]
 from clr import AddReference
-AddReference(""{ns}"")
+AddReference(""{assembly}"")
 from {ns} import *
 
 # Restore sys.path

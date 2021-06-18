@@ -49,8 +49,9 @@ def main():
     if find_spec("QuantConnect") is not None:
         fail("Integration tests must run in an environment in which the stubs are not already installed")
     
-    if find_spec("pandas") is None:
-        fail("pandas must be installed when running the integration tests")
+    for package in ["pandas", "matplotlib"]:
+        if find_spec(package) is None:
+            fail(f"{package} must be installed when running the integration tests")
 
     ensure_command_availability("git")
     ensure_command_availability("dotnet")

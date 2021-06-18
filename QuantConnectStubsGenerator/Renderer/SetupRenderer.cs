@@ -25,8 +25,11 @@ namespace QuantConnectStubsGenerator.Renderer
             var packageVersion = GetPackageVersion();
             var namespaces = GetNamespaces();
 
-            var pandasVersion = GetPandasVersion();
+            var pandasVersion = GetPythonPackageVersion("pandas");
             var pandasVersionConstraint = pandasVersion != null ? $">={pandasVersion}" : "";
+
+            var matplotlibVersion = GetPythonPackageVersion("matplotlib");
+            var matplotlibVersionConstraint = matplotlibVersion != null ? $">={matplotlibVersion}" : "";
 
             WriteLine($@"
 from setuptools import setup
@@ -55,7 +58,7 @@ setup(
         ""License :: OSI Approved :: Apache Software License"",
         ""Programming Language :: Python :: 3""
     ],
-    install_requires=[""pandas{pandasVersionConstraint}""],
+    install_requires=[""pandas{pandasVersionConstraint}"", ""matplotlib{matplotlibVersionConstraint}""],
     packages=[
 {string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"\"{ns}\""))}
     ],
@@ -112,13 +115,13 @@ setup(
                 }).Distinct().OrderBy(name => name).ToList();
         }
 
-        private string GetPandasVersion()
+        private string GetPythonPackageVersion(string package)
         {
             var dockerFilePath = Path.GetFullPath("DockerfileLeanFoundation", _leanPath);
             if (File.Exists(dockerFilePath))
             {
                 var dockerFileContents = File.ReadAllText(dockerFilePath);
-                var versionMatch = new Regex(@"pandas=(\d+\.\d+\.\d+)").Match(dockerFileContents);
+                var versionMatch = new Regex($@"{package}==?(\d+\.\d+\.\d+)").Match(dockerFileContents);
 
                 if (versionMatch.Success)
                 {
@@ -126,7 +129,7 @@ setup(
                 }
             }
 
-            Logger.Warn("Provided Lean path does not contain a Dockerfile pinning pandas to a specific version");
+            Logger.Warn($"{dockerFilePath} does not pin {package} to a specific version");
             return null;
         }
     }

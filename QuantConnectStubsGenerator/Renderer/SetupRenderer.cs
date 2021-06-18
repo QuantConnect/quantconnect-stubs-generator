@@ -103,6 +103,7 @@ setup(
         private List<string> GetNamespaces()
         {
             return Directory.GetFiles(_outputDirectory, "__init__.py*", SearchOption.AllDirectories)
+                .Select(file => file.Replace('\\', '/'))
                 .Select(file =>
                 {
                     var ns = file.Replace(_outputDirectory, "").Substring(1);

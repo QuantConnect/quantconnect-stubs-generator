@@ -58,18 +58,18 @@ namespace QuantConnectStubsGenerator
             // Find all relevant C# files in the C# runtime
             foreach (var (relativePath, searchPattern) in new Dictionary<string, string>
             {
-                {"src/libraries/System.Private.CoreLib/src", "*.cs"},
-                {"src/mono/System.Private.CoreLib/src", "*.Mono.cs"},
-                {"src/libraries/System.Drawing.Primitives/src", "*.cs"},
-                {"src/libraries/System.Collections/src", "*.cs"},
-                {"src/libraries/System.Collections.Immutable/src", "*.cs"},
-                {"src/libraries/System.Collections.Concurrent/src", "*.cs"},
-                {"src/libraries/System.ObjectModel/src", "*.cs"},
-                {"src/libraries/System.ComponentModel.Annotations/src", "*.cs"},
-                {"src/libraries/System.ComponentModel.TypeConverter/src", "*.cs"},
-                {"src/libraries/System.Net.Primitives/src", "*.cs"},
-                {"src/libraries/System.Linq/src", "*.cs"},
-                {"src/libraries/System.Console/src", "*.cs"}
+                { "src/libraries/System.Private.CoreLib/src", "*.cs" },
+                { "src/mono/System.Private.CoreLib/src", "*.Mono.cs" },
+                { "src/libraries/System.Drawing.Primitives/src", "*.cs" },
+                { "src/libraries/System.Collections/src", "*.cs" },
+                { "src/libraries/System.Collections.Immutable/src", "*.cs" },
+                { "src/libraries/System.Collections.Concurrent/src", "*.cs" },
+                { "src/libraries/System.ObjectModel/src", "*.cs" },
+                { "src/libraries/System.ComponentModel.Annotations/src", "*.cs" },
+                { "src/libraries/System.ComponentModel.TypeConverter/src", "*.cs" },
+                { "src/libraries/System.Net.Primitives/src", "*.cs" },
+                { "src/libraries/System.Linq/src", "*.cs" },
+                { "src/libraries/System.Console/src", "*.cs" }
             })
             {
                 var absolutePath = Path.GetFullPath(relativePath, _runtimePath);
@@ -139,6 +139,9 @@ namespace QuantConnectStubsGenerator
 
             // Generate stubs for the clr module
             GenerateClrStubs();
+
+            // Generate stubs for https://github.com/QuantConnect/Lean/blob/master/Common/AlgorithmImports.py
+            GenerateAlgorithmImports();
 
             // Create setup.py
             GenerateSetup();
@@ -293,6 +296,18 @@ namespace QuantConnectStubsGenerator
 
             using var writer = new StreamWriter(outputPath);
             var renderer = new ClrStubsRenderer(writer);
+            renderer.Render();
+        }
+
+        private void GenerateAlgorithmImports()
+        {
+            Logger.Info("Generating AlgorithmImports stubs");
+
+            var outputPath = Path.GetFullPath("AlgorithmImports/__init__.pyi", _outputDirectory);
+            EnsureParentDirectoriesExist(outputPath);
+
+            using var writer = new StreamWriter(outputPath);
+            var renderer = new AlgorithmImportsRenderer(writer, _leanPath);
             renderer.Render();
         }
 

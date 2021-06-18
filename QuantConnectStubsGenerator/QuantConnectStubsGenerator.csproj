@@ -4,9 +4,9 @@
         <TargetFramework>net5.0</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="log4net" Version="2.0.12"/>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.9.0"/>
-        <PackageReference Include="QuikGraph" Version="2.3.0"/>
+        <PackageReference Include="log4net" Version="2.0.12" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.9.0" />
+        <PackageReference Include="QuikGraph" Version="2.3.0" />
     </ItemGroup>
     <ItemGroup>
         <None Update="log4net.config">

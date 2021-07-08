@@ -57,9 +57,9 @@ namespace QuantConnectStubsGenerator.Parser
 
             var returnType = _typeConverter.GetType(node.Type);
 
-            // Improve the autocompletion on data[symbol] if data is a Slice and symbol a Symbol
+            // Improve the autocomplete on data[symbol] if data is a Slice and symbol a Symbol
             // In C# this is of type dynamic, which by default gets converted to typing.Any
-            // To improve the autocompletion a bit we convert it to Union[TradeBar, QuoteBar, List[Tick], Any]
+            // To improve the autocomplete a bit we convert it to Union[TradeBar, QuoteBar, List[Tick], Any]
             if (_currentClass?.Type.ToPythonString() == "QuantConnect.Data.Slice")
             {
                 returnType = new PythonType("Union", "typing")

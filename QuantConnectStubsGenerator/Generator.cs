@@ -113,7 +113,7 @@ namespace QuantConnectStubsGenerator
                 foreach (var cls in ns.GetClasses())
                 {
                     // Remove Python implementations for methods where there is both a Python as well as a C# implementation
-                    // The parsed C# implementation is usually more useful for autocompletion
+                    // The parsed C# implementation is usually more useful for autocomplete
                     // To improve it a little bit we move the return type of the Python implementation to the C# implementation
                     PostProcessClass(cls);
 

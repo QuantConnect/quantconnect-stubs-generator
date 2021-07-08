@@ -40,6 +40,13 @@ long_description = """"""
 This package contains type stubs for QuantConnect's [Lean](https://github.com/QuantConnect/Lean) algorithmic trading engine and for parts of the .NET library that are used by Lean.
 
 These stubs can be used by editors to provide type-aware features like autocompletion and auto-imports in QuantConnect strategies written in Python.
+
+After installing the stubs, you can copy the following line to the top of every Python file to have the same imports as the ones that are added by default in the cloud:
+```py
+from AlgorithmImports import *
+```
+
+This line imports [all common QuantConnect members](https://github.com/QuantConnect/Lean/blob/master/Common/AlgorithmImports.py) and provides autocomplete for them.
 """""".strip()
 
 setup(

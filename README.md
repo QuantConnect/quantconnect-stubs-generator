@@ -14,6 +14,13 @@ The stubs are tested to work well with PyCharm and VS Code in combination with t
 
 If type-aware features like autocompletion are not working after installing the package, make sure your editor supports indexing Python type stubs and is set up to index packages in the environment you installed the package into. Sometimes it may also help to restart your editor to make sure newly installed/updated packages are correctly indexed.
 
+After installing the stubs, you can copy the following line to the top of every Python file to have the same imports as the ones that are added by default in the cloud:
+```py
+from AlgorithmImports import *
+```
+
+This line imports [all common QuantConnect members](https://github.com/QuantConnect/Lean/blob/master/Common/AlgorithmImports.py) and provides autocomplete for them.
+
 ## Development
 
 To run the generator locally, clone the repository, `cd` into the QuantConnectStubsGenerator project and run `dotnet run <Lean directory> <runtime directory> <output directory>`. Make sure `<Lean directory>` points to a directory containing the [QuantConnect/Lean](https://github.com/QuantConnect/Lean) repository and `<runtime directory>` points to a directory containing the [dotnet/runtime](https://github.com/dotnet/runtime) repository.

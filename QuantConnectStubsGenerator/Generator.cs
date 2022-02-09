@@ -79,7 +79,8 @@ namespace QuantConnectStubsGenerator
                 { "src/libraries/System.ComponentModel.TypeConverter/src", "*.cs" },
                 { "src/libraries/System.Net.Primitives/src", "*.cs" },
                 { "src/libraries/System.Linq/src", "*.cs" },
-                { "src/libraries/System.Console/src", "*.cs" }
+                { "src/libraries/System.Console/src", "*.cs" },
+                { "src/libraries/System.Text.RegularExpressions/src", "*.cs" }
             })
             {
                 var absolutePath = Path.GetFullPath(relativePath, _runtimePath);

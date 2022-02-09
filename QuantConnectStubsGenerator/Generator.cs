@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.IO;
 using System.Linq;
 using log4net;
@@ -43,6 +44,15 @@ namespace QuantConnectStubsGenerator
                 "ToolBox"
             };
 
+            // Create our blacklisted regex list, we will skip these files in stubs generation
+            // 1. DataSource repos unnecessary projects (Under ADDITIONAL_STUBS dir, see ci_build_stubs.sh)
+            // 2. Any bin CS files
+            List<Regex> blacklistedRegex = new()
+            {
+                new (".*Lean\\/ADDITIONAL_STUBS\\/.*(?:DataProcessing|tests|DataQueueHandlers)",  RegexOptions.Compiled), 
+                new(".*\\/bin\\/", RegexOptions.Compiled),
+            };   
+
             // Path prefixes for all blacklisted projects
             var blacklistedPrefixes = blacklistedProjects
                 .Select(project => $"{_leanPath}/{project}")
@@ -51,7 +61,7 @@ namespace QuantConnectStubsGenerator
             // Find all C# files in non-blacklisted projects in Lean
             var sourceFiles = Directory
                 .EnumerateFiles(_leanPath, "*.cs", SearchOption.AllDirectories)
-                .Where(file => !file.Contains("/bin/"))
+                .Where(file => !blacklistedRegex.Any(regex => regex.IsMatch(file)))
                 .Where(file => !blacklistedPrefixes.Any(file.StartsWith))
                 .ToList();
 

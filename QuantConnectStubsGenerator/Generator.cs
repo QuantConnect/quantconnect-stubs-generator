@@ -121,6 +121,18 @@ namespace QuantConnectStubsGenerator
             // Perform post-processing on all parsed classes
             foreach (var ns in context.GetNamespaces())
             {
+
+                // Remove problematic method "GetMethodInfo" from System.Reflection.RuntimeReflectionExtensions
+                // KW arg is `del` which python is not a fan of. TODO: Make this post filtering more generic?
+                if (ns.Name == "System.Reflection"){
+                    var reflectionClass = ns.GetClasses()
+                        .FirstOrDefault(x => x.Type.Name == "RuntimeReflectionExtensions");
+                    var badMethod = reflectionClass.Methods.FirstOrDefault(x => x.Name == "GetMethodInfo");
+                    
+                    reflectionClass.Methods.Remove(badMethod);
+                }
+  
+
                 foreach (var cls in ns.GetClasses())
                 {
                     // Remove Python implementations for methods where there is both a Python as well as a C# implementation

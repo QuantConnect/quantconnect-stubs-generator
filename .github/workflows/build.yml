@@ -38,4 +38,3 @@ jobs:
 
       - name: Run integration tests
         run: python integration/integration_tests.py
-        continue-on-error: true

@@ -13,8 +13,7 @@ RUN apt-get update; \
 
 # pip
 RUN wget -q https://bootstrap.pypa.io/pip/3.6/get-pip.py \
-	&& python3 get-pip.py \
-	&& pip install --no-cache-dir quantconnect-stubs
+	&& python3 get-pip.py
 
 # pyright
 RUN npm i -g pyright

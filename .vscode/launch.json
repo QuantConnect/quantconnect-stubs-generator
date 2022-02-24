@@ -9,9 +9,9 @@
             "program": "${workspaceFolder}/QuantConnectStubsGenerator/bin/Debug/net5.0/QuantConnectStubsGenerator.dll",
             "args": [
                 // Requires Lean and Runtime repos under workspace dir ./generated
-                "/workspaces/quantconnect-stubs-generator/generated/Lean",
-                "/workspaces/quantconnect-stubs-generator/generated/runtime",
-                "/workspaces/quantconnect-stubs-generator/generated/stubs"
+                "${workspaceFolder}/generated/Lean",
+                "${workspaceFolder}/generated/runtime",
+                "${workspaceFolder}/generated/stubs"
             ],
             "cwd": "${workspaceFolder}/QuantConnectStubsGenerator",
             "console": "internalConsole",
@@ -21,7 +21,7 @@
             "name": "Python Integration Tests",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/integration/integration_tests.py",
             "console": "integratedTerminal"
         },
         {

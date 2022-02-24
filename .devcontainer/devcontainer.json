@@ -3,7 +3,7 @@
 
 	// Use devcontainer Dockerfile that is based on Lean foundation image
 	"build": {
-		"dockerfile": "Dockerfile"
+		"dockerfile": "dockerfile"
 	},
 
 	// Add the IDs of extensions you want installed when the container is created.

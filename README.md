@@ -26,3 +26,13 @@ This line imports [all common QuantConnect members](https://github.com/QuantConn
 To run the generator locally, clone the repository, `cd` into the QuantConnectStubsGenerator project and run `dotnet run <Lean directory> <runtime directory> <output directory>`. Make sure `<Lean directory>` points to a directory containing the [QuantConnect/Lean](https://github.com/QuantConnect/Lean) repository and `<runtime directory>` points to a directory containing the [dotnet/runtime](https://github.com/dotnet/runtime) repository.
 
 To run the unit tests, run `dotnet test` in the root of the project. To run the integration tests read the [`integration/README.md`](./integration/README.md) file.
+
+
+### Using Dev Container
+
+- Open VSCode, click "Reopen in Container Prompt"; Or use command pallete "Reopen in Container"
+- After build and initial creation script completes, run VSCode launch option "Run Stubs Generator"
+
+There is also a launch option for integration tests which works right out of the box in this dev container. Try option "Python Integration Tests"
+
+

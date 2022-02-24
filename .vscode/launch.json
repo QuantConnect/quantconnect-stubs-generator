@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": ".NET Core Launch (console)",
+            "name": "Launch Stubs Generator",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
@@ -16,6 +16,13 @@
             "cwd": "${workspaceFolder}/QuantConnectStubsGenerator",
             "console": "internalConsole",
             "stopAtEntry": false
+        },
+        {
+            "name": "Python Integration Tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
         },
         {
             "name": "Python: Current File",

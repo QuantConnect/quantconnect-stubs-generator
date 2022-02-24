@@ -23,7 +23,7 @@
 	// "forwardPorts": [],
 
 	// Post create commands; only runs on initial creation of container
-	"postCreateCommand": "",
+	"postCreateCommand": "cd integration && python3 ./pull_repos.py",
 
 	// Post start commands; runs each time the container is started
 	"postStartCommand": "",

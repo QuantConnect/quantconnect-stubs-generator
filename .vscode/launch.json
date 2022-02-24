@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET Core Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/QuantConnectStubsGenerator/bin/Debug/net5.0/QuantConnectStubsGenerator.dll",
+            "args": [
+                // Requires Lean and Runtime repos under workspace dir ./generated
+                "/workspaces/quantconnect-stubs-generator/generated/Lean",
+                "/workspaces/quantconnect-stubs-generator/generated/runtime",
+                "/workspaces/quantconnect-stubs-generator/generated/stubs"
+            ],
+            "cwd": "${workspaceFolder}/QuantConnectStubsGenerator",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        }
+    ]
+}

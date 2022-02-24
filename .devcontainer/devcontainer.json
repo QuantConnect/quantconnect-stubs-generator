@@ -1,0 +1,30 @@
+{
+	"name": "StubsGenerator",
+
+	// Use devcontainer Dockerfile that is based on Lean foundation image
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		"ms-dotnettools.csharp",
+		"formulahendry.dotnet-test-explorer",
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"eamodio.gitlens",
+		"yzhang.markdown-all-in-one",
+		"ms-azuretools.vscode-docker",
+		"mads-hartmann.bash-ide-vscode",
+		"rogalmic.bash-debug"
+	],
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Post create commands; only runs on initial creation of container
+	"postCreateCommand": "",
+
+	// Post start commands; runs each time the container is started
+	"postStartCommand": "",
+}

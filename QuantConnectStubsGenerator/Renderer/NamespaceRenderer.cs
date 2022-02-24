@@ -15,6 +15,9 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public override void Render(Namespace ns)
         {
+            // Fix for Jedi; Include import of typing instead of using typing.overload
+            WriteLine("from typing import overload");
+
             var usedTypes = ns
                 .GetParentClasses()
                 .SelectMany(cls => cls.GetUsedTypes())

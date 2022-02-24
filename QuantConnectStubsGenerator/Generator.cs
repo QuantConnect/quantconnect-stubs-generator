@@ -45,11 +45,11 @@ namespace QuantConnectStubsGenerator
             };
 
             // Create our blacklisted regex list, we will skip these files in stubs generation
-            // 1. DataSource repos unnecessary projects (Under ADDITIONAL_STUBS dir, see ci_build_stubs.sh)
+            // 1. DataSource repos unnecessary projects, algorithms, etc (Under ADDITIONAL_STUBS dir, see ci_build_stubs.sh)
             // 2. Any bin CS files
             List<Regex> blacklistedRegex = new()
             {
-                new (".*Lean\\/ADDITIONAL_STUBS\\/.*(?:DataProcessing|tests|DataQueueHandlers)",  RegexOptions.Compiled), 
+                new (".*Lean\\/ADDITIONAL_STUBS\\/.*(?:DataProcessing|tests|DataQueueHandlers|Demonstration|Demostration|Algorithm)",  RegexOptions.Compiled), 
                 new(".*\\/bin\\/", RegexOptions.Compiled),
             };   
 

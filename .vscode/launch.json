@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Stubs Generator",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/QuantConnectStubsGenerator/bin/Debug/net5.0/QuantConnectStubsGenerator.dll",
+            "args": [
+                // Requires Lean and Runtime repos under workspace dir ./generated
+                "${workspaceFolder}/generated/Lean",
+                "${workspaceFolder}/generated/runtime",
+                "${workspaceFolder}/generated/stubs"
+            ],
+            "cwd": "${workspaceFolder}/QuantConnectStubsGenerator",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Python Integration Tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/integration/integration_tests.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        }
+    ]
+}

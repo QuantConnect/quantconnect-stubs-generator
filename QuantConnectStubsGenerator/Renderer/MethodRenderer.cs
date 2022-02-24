@@ -21,7 +21,7 @@ namespace QuantConnectStubsGenerator.Renderer
 
             if (method.Overload)
             {
-                WriteLine("@typing.overload");
+                WriteLine("@overload");
             }
 
             // In C# abstract methods and method overloads can be mixed freely

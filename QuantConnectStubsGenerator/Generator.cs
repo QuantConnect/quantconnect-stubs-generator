@@ -326,12 +326,19 @@ namespace QuantConnectStubsGenerator
         {
             Logger.Info("Generating AlgorithmImports stubs");
 
-            var outputPath = Path.GetFullPath("AlgorithmImports/__init__.pyi", _outputDirectory);
-            EnsureParentDirectoriesExist(outputPath);
-
-            using var writer = new StreamWriter(outputPath);
-            var renderer = new AlgorithmImportsRenderer(writer, _leanPath);
+            // stubs file
+            var stubsOutputPath = Path.GetFullPath("AlgorithmImports/__init__.pyi", _outputDirectory);
+            EnsureParentDirectoriesExist(stubsOutputPath);
+            using var stubsWriter = new StreamWriter(stubsOutputPath);
+            var renderer = new AlgorithmImportsRenderer(stubsWriter, _leanPath);
             renderer.Render();
+
+            // actual file used when executing python.
+            // If this is picked up we throw an exception, it means python is trying to use algorithm imports without having access to the real one and all required context like lean dlls
+            // this can happen for example when trying to run an algorithm main.py directly with python
+            var outputPath = Path.GetFullPath("AlgorithmImports/__init__.py", _outputDirectory);
+            using var writer = new StreamWriter(outputPath);
+            writer.WriteLine("raise Exception(\"Invalid QuantConnect algorithm execution method detected, for more information please visit https://www.quantconnect.com/docs/v2/.\")");
         }
 
         private void GenerateSetup()

@@ -41,7 +41,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitClassDeclaration(ClassDeclarationSyntax node)
         {
-            if (HasModifier(node, "private") || HasModifier(node, "internal"))
+            if (ShouldSkip(node))
             {
                 return;
             }
@@ -53,7 +53,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitStructDeclaration(StructDeclarationSyntax node)
         {
-            if (HasModifier(node, "private") || HasModifier(node, "internal"))
+            if (ShouldSkip(node))
             {
                 return;
             }
@@ -65,7 +65,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitEnumDeclaration(EnumDeclarationSyntax node)
         {
-            if (HasModifier(node, "private") || HasModifier(node, "internal"))
+            if (ShouldSkip(node))
             {
                 return;
             }
@@ -77,7 +77,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitInterfaceDeclaration(InterfaceDeclarationSyntax node)
         {
-            if (HasModifier(node, "private") || HasModifier(node, "internal"))
+            if (ShouldSkip(node))
             {
                 return;
             }
@@ -108,6 +108,16 @@ namespace QuantConnectStubsGenerator.Parser
         protected bool HasModifier(MemberDeclarationSyntax node, string modifier)
         {
             return node.Modifiers.Any(m => m.Text == modifier);
+        }
+
+        /// <summary>
+        /// We skip internal or private nodes
+        /// </summary>
+        protected bool ShouldSkip(MemberDeclarationSyntax node)
+        {
+            return HasModifier(node, "private") || HasModifier(node, "internal")
+                // some classes don't any access modifier set, which means private
+                || !HasModifier(node, "public") && !HasModifier(node, "protected");
         }
 
         /// <summary>

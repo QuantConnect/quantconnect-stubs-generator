@@ -76,7 +76,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         private void VisitProperty(BasePropertyDeclarationSyntax node, PythonType type, string name)
         {
-            if (HasModifier(node, "private"))
+            if (ShouldSkip(node))
             {
                 return;
             }
@@ -119,7 +119,6 @@ namespace QuantConnectStubsGenerator.Parser
             var property = new Property(name)
             {
                 Type = type,
-                ReadOnly = _typeConverter.GetSymbol(node) is IPropertySymbol {IsReadOnly: true},
                 Static = _currentClass.Static || HasModifier(node, "static"),
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
                 DeprecationReason = GetDeprecationReason(node)
@@ -153,7 +152,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         private void VisitField(BaseFieldDeclarationSyntax node, PythonType type)
         {
-            if (HasModifier(node, "private"))
+            if (ShouldSkip(node))
             {
                 return;
             }
@@ -168,7 +167,6 @@ namespace QuantConnectStubsGenerator.Parser
                 var property = new Property(variable.Identifier.Text)
                 {
                     Type = type,
-                    ReadOnly = HasModifier(node, "readonly") || HasModifier(node, "const"),
                     Static = _currentClass.Static || HasModifier(node, "static") || HasModifier(node, "const"),
                     Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
                     DeprecationReason = GetDeprecationReason(node)

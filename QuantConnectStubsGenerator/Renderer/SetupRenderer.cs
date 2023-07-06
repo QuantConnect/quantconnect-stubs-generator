@@ -70,7 +70,7 @@ setup(
 {string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"\"{ns}\""))}
     ],
     package_data={{
-{string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"\"{ns}\": [\"*.py\", \"*.pyi\"]"))}
+{string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"\"{ns}\": [\"*.py\", \"*.pyi\", \"py.typed\"]"))}
     }}
 )
             ".Trim());

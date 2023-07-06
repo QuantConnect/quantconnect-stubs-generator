@@ -62,7 +62,7 @@ namespace QuantConnectStubsGenerator
             var sourceFiles = Directory
                 .EnumerateFiles(_leanPath, "*.cs", SearchOption.AllDirectories)
                 .Where(file => !blacklistedRegex.Any(regex => regex.IsMatch(file)))
-                .Where(file => !blacklistedPrefixes.Any(file.StartsWith))
+                .Where(file => !blacklistedPrefixes.Any(file.Replace("\\", "/").StartsWith))
                 .ToList();
 
             // Find all relevant C# files in the C# runtime
@@ -158,6 +158,7 @@ namespace QuantConnectStubsGenerator
 
                 RenderNamespace(ns, basePath + ".pyi");
                 GeneratePyLoader(ns.Name, basePath + ".py");
+                CreateTypedFileForNamespace(ns.Name);
             }
 
             // Generate stubs for the clr module
@@ -168,6 +169,26 @@ namespace QuantConnectStubsGenerator
 
             // Create setup.py
             GenerateSetup();
+        }
+
+        /// <summary>
+        /// We create an empty 'py.typed' file at the root of our package folders PEP 561
+        /// See https://peps.python.org/pep-0561/
+        /// </summary>
+        private void CreateTypedFileForNamespace(string name)
+        {
+            var root = name;
+            var rootIndex = name.IndexOf('.');
+            if (rootIndex != -1)
+            {
+                root = name.Substring(0, rootIndex);
+            }
+
+            var rootPath = Path.GetFullPath($"{root.Replace('.', '/')}/py.typed", _outputDirectory);
+            if (!File.Exists(rootPath))
+            {
+                File.WriteAllText(rootPath, "");
+            }
         }
 
         private void ParseSyntaxTrees<T>(
@@ -320,6 +341,8 @@ namespace QuantConnectStubsGenerator
             using var writer = new StreamWriter(outputPath);
             var renderer = new ClrStubsRenderer(writer);
             renderer.Render();
+
+            CreateTypedFileForNamespace("clr");
         }
 
         private void GenerateAlgorithmImports()
@@ -332,6 +355,8 @@ namespace QuantConnectStubsGenerator
             using var writer = new StreamWriter(outputPath);
             var renderer = new AlgorithmImportsRenderer(writer, _leanPath);
             renderer.Render();
+
+            CreateTypedFileForNamespace("AlgorithmImports");
         }
 
         private void GenerateSetup()

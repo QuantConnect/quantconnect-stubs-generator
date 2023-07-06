@@ -81,6 +81,7 @@ namespace QuantConnectStubsGenerator.Renderer
             // We therefore need to render deprecated methods after non-deprecated ones
             // This way PyCharm doesn't complain if you override the non-deprecated method
             var orderedMethods = cls.Methods
+                .Where(m => !string.IsNullOrEmpty(m.Name))
                 .OrderBy(m => m.Name)
                 .ThenBy(m => m.DeprecationReason == null ? 0 : 1);
 

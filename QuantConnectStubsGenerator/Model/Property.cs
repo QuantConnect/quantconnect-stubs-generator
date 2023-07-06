@@ -5,7 +5,6 @@ namespace QuantConnectStubsGenerator.Model
         public string Name { get; }
         public PythonType Type { get; set; }
 
-        public bool ReadOnly { get; set; }
         public bool Static { get; set; }
         public bool Abstract { get; set; }
 

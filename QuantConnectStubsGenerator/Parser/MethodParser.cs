@@ -50,7 +50,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
         {
-            if (HasModifier(node, "private") || HasModifier(node, "internal"))
+            if (ShouldSkip(node))
             {
                 return;
             }
@@ -100,12 +100,7 @@ namespace QuantConnectStubsGenerator.Parser
             SeparatedSyntaxList<ParameterSyntax> parameterList,
             PythonType returnType)
         {
-            if (HasModifier(node, "private") || HasModifier(node, "internal"))
-            {
-                return;
-            }
-
-            if (_currentClass == null)
+            if (_currentClass == null || ShouldSkip(node))
             {
                 return;
             }

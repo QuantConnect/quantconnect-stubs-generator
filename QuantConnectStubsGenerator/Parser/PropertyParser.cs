@@ -76,7 +76,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         private void VisitProperty(BasePropertyDeclarationSyntax node, PythonType type, string name)
         {
-            if (HasModifier(node, "private"))
+            if (ShouldSkip(node))
             {
                 return;
             }
@@ -152,7 +152,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         private void VisitField(BaseFieldDeclarationSyntax node, PythonType type)
         {
-            if (HasModifier(node, "private"))
+            if (ShouldSkip(node))
             {
                 return;
             }

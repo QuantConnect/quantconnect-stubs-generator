@@ -79,33 +79,6 @@ namespace QuantConnectStubsGenerator.Renderer
             }
 
             WriteLine();
-
-            if (property.ReadOnly)
-            {
-                return;
-            }
-
-            WriteLine($"@{property.Name}.setter");
-
-            if (property.Abstract)
-            {
-                WriteLine("@abc.abstractmethod");
-            }
-
-            // Add the setter
-            WriteLine($"def {property.Name}(self, value: {property.Type.ToPythonString()}):");
-            WriteSummary(property.Summary, true);
-
-            if (property.DeprecationReason != null)
-            {
-                WriteLine($"warnings.warn(\"{property.DeprecationReason}\", DeprecationWarning)".Indent());
-            }
-            else
-            {
-                WriteLine("...".Indent());
-            }
-
-            WriteLine();
         }
     }
 }

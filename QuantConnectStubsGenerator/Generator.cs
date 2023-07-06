@@ -62,7 +62,7 @@ namespace QuantConnectStubsGenerator
             var sourceFiles = Directory
                 .EnumerateFiles(_leanPath, "*.cs", SearchOption.AllDirectories)
                 .Where(file => !blacklistedRegex.Any(regex => regex.IsMatch(file)))
-                .Where(file => !blacklistedPrefixes.Any(file.StartsWith))
+                .Where(file => !blacklistedPrefixes.Any(file.Replace("\\", "/").StartsWith))
                 .ToList();
 
             // Find all relevant C# files in the C# runtime

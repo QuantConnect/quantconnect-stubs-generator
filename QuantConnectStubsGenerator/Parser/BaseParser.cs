@@ -26,16 +26,23 @@ namespace QuantConnectStubsGenerator.Parser
             _typeConverter = new TypeConverter(model);
         }
 
+        /// <summary>
+        /// Handles 'namespace QuantConnect.Indicators;' sintax
+        /// </summary>
+        public override void VisitFileScopedNamespaceDeclaration(FileScopedNamespaceDeclarationSyntax node)
+        {
+            var name = node.Name.ToString();
+            SetCurrentNamespace(name);
+            base.VisitFileScopedNamespaceDeclaration(node);
+        }
+
+        /// <summary>
+        /// Handles 'namespace QuantConnect.Indicators { }' sintax
+        /// </summary>
         public override void VisitNamespaceDeclaration(NamespaceDeclarationSyntax node)
         {
             var name = node.Name.ToString();
-
-            if (!_context.HasNamespace(name))
-            {
-                _context.RegisterNamespace(new Namespace(name));
-            }
-
-            _currentNamespace = _context.GetNamespaceByName(name);
+            SetCurrentNamespace(name);
             base.VisitNamespaceDeclaration(node);
         }
 
@@ -279,6 +286,16 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             return "...";
+        }
+
+        private void SetCurrentNamespace(string name)
+        {
+            if (!_context.HasNamespace(name))
+            {
+                _context.RegisterNamespace(new Namespace(name));
+            }
+
+            _currentNamespace = _context.GetNamespaceByName(name);
         }
     }
 }

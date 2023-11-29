@@ -101,7 +101,15 @@ namespace QuantConnectStubsGenerator.Parser
         /// </summary>
         protected virtual void EnterClass(BaseTypeDeclarationSyntax node)
         {
-            _currentClass = _currentNamespace.GetClassByType(_typeConverter.GetType(node, true));
+            var pythonType = _typeConverter.GetType(node, true);
+            var ns = _currentNamespace;
+            // Enums are modeled as namespaces
+            if (pythonType.IsEnum)
+            {
+                var className = pythonType.Name.Split('.').Last();
+                ns = _context.GetNamespaceByName($"{_currentNamespace.Name}.{className}");
+            }
+            _currentClass = ns.GetClassByType(pythonType);
         }
 
         private void ExitClass()

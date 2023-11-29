@@ -13,10 +13,26 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public override void Render(Class cls)
         {
+            // Enums are no longer modeled as classes but as constants in their own module for better auto completion
+            if (cls.IsEnum())
+            {
+                RenderEnum(cls);
+                return;
+            }
+
             RenderClassHeader(cls);
+            RenderEnumsImports(cls);
             RenderInnerClasses(cls);
             RenderProperties(cls);
             RenderMethods(cls);
+        }
+
+        private void RenderEnum(Class cls)
+        {
+            WriteSummary(cls.Summary ?? "This enum has no documentation.", false);
+            WriteLine();
+
+            RenderProperties(cls);
         }
 
         private void RenderClassHeader(Class cls)
@@ -52,11 +68,27 @@ namespace QuantConnectStubsGenerator.Renderer
             WriteLine();
         }
 
+        private void RenderEnumsImports(Class cls)
+        {
+            var enumRenderer = CreateRenderer<EnumImportRenderer>();
+            var enumsRendered = false;
+            foreach (var enumClass in cls.InnerClasses.Where(x => x.IsEnum()))
+            {
+                enumRenderer.Render(enumClass);
+                enumsRendered = true;
+            }
+
+            if (enumsRendered)
+            {
+                WriteLine();
+            }
+        }
+
         private void RenderInnerClasses(Class cls)
         {
             var classRenderer = CreateRenderer<ClassRenderer>();
 
-            foreach (var innerClass in cls.InnerClasses)
+            foreach (var innerClass in cls.InnerClasses.Where(x => !x.IsEnum()))
             {
                 classRenderer.Render(innerClass);
             }
@@ -64,7 +96,7 @@ namespace QuantConnectStubsGenerator.Renderer
 
         private void RenderProperties(Class cls)
         {
-            var propertyRenderer = CreateRenderer<PropertyRenderer>();
+            var propertyRenderer = CreateRenderer<PropertyRenderer>(!cls.IsEnum());
 
             foreach (var property in cls.Properties)
             {

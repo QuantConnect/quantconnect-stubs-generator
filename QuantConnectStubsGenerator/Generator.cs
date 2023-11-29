@@ -49,9 +49,9 @@ namespace QuantConnectStubsGenerator
             // 2. Any bin CS files
             List<Regex> blacklistedRegex = new()
             {
-                new (".*Lean\\/ADDITIONAL_STUBS\\/.*(?:DataProcessing|tests|DataQueueHandlers|Demonstration|Demostration|Algorithm)",  RegexOptions.Compiled), 
+                new (".*Lean\\/ADDITIONAL_STUBS\\/.*(?:DataProcessing|tests|DataQueueHandlers|Demonstration|Demostration|Algorithm)",  RegexOptions.Compiled),
                 new(".*\\/bin\\/", RegexOptions.Compiled),
-            };   
+            };
 
             // Path prefixes for all blacklisted projects
             var blacklistedPrefixes = blacklistedProjects
@@ -124,14 +124,15 @@ namespace QuantConnectStubsGenerator
 
                 // Remove problematic method "GetMethodInfo" from System.Reflection.RuntimeReflectionExtensions
                 // KW arg is `del` which python is not a fan of. TODO: Make this post filtering more generic?
-                if (ns.Name == "System.Reflection"){
+                if (ns.Name == "System.Reflection")
+                {
                     var reflectionClass = ns.GetClasses()
                         .FirstOrDefault(x => x.Type.Name == "RuntimeReflectionExtensions");
                     var badMethod = reflectionClass.Methods.FirstOrDefault(x => x.Name == "GetMethodInfo");
-                    
+
                     reflectionClass.Methods.Remove(badMethod);
                 }
-  
+
 
                 foreach (var cls in ns.GetClasses())
                 {
@@ -157,7 +158,10 @@ namespace QuantConnectStubsGenerator
                 var basePath = Path.GetFullPath($"{namespacePath}/__init__", _outputDirectory);
 
                 RenderNamespace(ns, basePath + ".pyi");
-                GeneratePyLoader(ns.Name, basePath + ".py");
+                if (!ns.IsEnum)
+                {
+                    GeneratePyLoader(ns.Name, basePath + ".py");
+                }
                 CreateTypedFileForNamespace(ns.Name);
             }
 
@@ -201,7 +205,7 @@ namespace QuantConnectStubsGenerator
             foreach (var tree in syntaxTrees)
             {
                 var model = compilation.GetSemanticModel(tree);
-                var parser = (T) Activator.CreateInstance(typeof(T), context, model);
+                var parser = (T)Activator.CreateInstance(typeof(T), context, model);
 
                 if (parser == null)
                 {
@@ -310,7 +314,7 @@ namespace QuantConnectStubsGenerator
         private void RenderNamespace(Namespace ns, string outputPath)
         {
             // Don't generate empty .pyi files
-            if (!ns.GetParentClasses().Any())
+            if (!ns.IsEnum && !ns.GetParentClasses().Any())
             {
                 return;
             }

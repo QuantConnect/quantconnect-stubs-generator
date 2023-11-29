@@ -108,6 +108,11 @@ namespace QuantConnectStubsGenerator.Parser
                     };
                 }
 
+                if (namedTypeSymbol.TypeKind == TypeKind.Enum)
+                {
+                    type.IsEnum = true;
+                }
+
                 foreach (var typeParameter in namedTypeSymbol.TypeArguments)
                 {
                     var paramType = GetType(typeParameter);

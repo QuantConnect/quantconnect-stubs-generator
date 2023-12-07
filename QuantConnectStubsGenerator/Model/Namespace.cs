@@ -7,12 +7,16 @@ namespace QuantConnectStubsGenerator.Model
     public class Namespace
     {
         public string Name { get; }
+        public bool IsEnum { get; }
 
         private readonly IDictionary<string, Class> _classes = new Dictionary<string, Class>();
 
-        public Namespace(string name)
+        private readonly IDictionary<string, Class> _enums = new Dictionary<string, Class>();
+
+        public Namespace(string name, bool isEnum = false)
         {
             Name = name;
+            IsEnum = isEnum;
         }
 
         public IEnumerable<Class> GetClasses()
@@ -22,7 +26,7 @@ namespace QuantConnectStubsGenerator.Model
 
         public IEnumerable<Class> GetParentClasses()
         {
-            return _classes.Values.Where(cls => cls.ParentClass == null);
+            return _classes.Values.Where(cls => cls.ParentClass == null || cls.IsEnum());
         }
 
         public Class GetClassByType(PythonType type)
@@ -45,6 +49,16 @@ namespace QuantConnectStubsGenerator.Model
         public void RegisterClass(Class cls)
         {
             _classes[GetClassKey(cls)] = cls;
+        }
+
+        public IEnumerable<Class> GetEnums()
+        {
+            return _enums.Values;
+        }
+
+        public void RegisterEnum(Class cls)
+        {
+            _enums[GetClassKey(cls)] = cls;
         }
 
         private string GetClassKey(PythonType type)

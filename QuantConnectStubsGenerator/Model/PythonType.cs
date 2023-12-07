@@ -11,6 +11,7 @@ namespace QuantConnectStubsGenerator.Model
 
         public string Alias { get; set; }
         public bool IsNamedTypeParameter { get; set; }
+        public bool IsEnum { get; set; }
 
         public IList<PythonType> TypeParameters { get; set; } = new List<PythonType>();
 

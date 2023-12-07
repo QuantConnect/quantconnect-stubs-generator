@@ -15,6 +15,13 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public override void Render(Namespace ns)
         {
+            // This is not an actual namespace, but an enum which is modeled as a namespace for better auto completion
+            if (ns.IsEnum)
+            {
+                RenderClasses(ns);
+                return;
+            }
+
             // Fix for Jedi; Include import of typing instead of using typing.overload
             WriteLine("from typing import overload");
 
@@ -23,7 +30,7 @@ namespace QuantConnectStubsGenerator.Renderer
                 .SelectMany(cls => cls.GetUsedTypes())
                 .ToList();
 
-            RenderImports(usedTypes);
+            RenderImports(usedTypes, ns.GetEnums());
             RenderTypeAliases(usedTypes);
             RenderTypeVars(usedTypes);
 
@@ -32,7 +39,7 @@ namespace QuantConnectStubsGenerator.Renderer
             RenderClasses(ns);
         }
 
-        private void RenderImports(IEnumerable<PythonType> usedTypes)
+        private void RenderImports(IEnumerable<PythonType> usedTypes, IEnumerable<Class> enums)
         {
             // Retrieve all used namespaces
             var namespacesToImport = usedTypes
@@ -42,11 +49,8 @@ namespace QuantConnectStubsGenerator.Renderer
                 .OrderBy(namespaceToImport => namespaceToImport, StringComparer.Ordinal)
                 .ToList();
 
-            if (namespacesToImport.Count == 0)
+            if (namespacesToImport.Count > 0)
             {
-                return;
-            }
-
             var systemNamespaces = namespacesToImport.Where(ns => char.IsLower(ns[0]) && ns != "pandas").ToList();
             var nonSystemNamespaces = namespacesToImport.Except(systemNamespaces).ToList();
 
@@ -63,6 +67,14 @@ namespace QuantConnectStubsGenerator.Renderer
             foreach (var ns in nonSystemNamespaces)
             {
                 WriteLine($"import {ns}");
+            }
+
+            WriteLine();
+        }
+
+            foreach (var enumClass in enums.Where(x => x.ParentClass == null))
+            {
+                WriteLine($"from . import {enumClass.Type.Name}");
             }
 
             WriteLine();

@@ -117,8 +117,12 @@ namespace QuantConnectStubsGenerator.Parser
 
             if (returnType.Namespace != null)
             {
-                var ns = _context.HasNamespace(returnType.Namespace)
-                    ? _context.GetNamespaceByName(returnType.Namespace)
+                var namespaceName = returnType.IsEnum
+                    // Enums might be nested inside classes, so we take the enum name only
+                    ? $"{returnType.Namespace}.{returnType.Name.Split('.').Last()}"
+                    : returnType.Namespace;
+                var ns = _context.HasNamespace(namespaceName)
+                    ? _context.GetNamespaceByName(namespaceName)
                     : null;
 
                 var cls = ns?.HasClass(returnType) == true ? ns.GetClassByType(returnType) : null;

@@ -17,10 +17,21 @@ namespace QuantConnectStubsGenerator.Parser
         protected override void EnterClass(BaseTypeDeclarationSyntax node)
         {
             var cls = ParseClass(node);
+            var ns = _currentNamespace;
 
-            if (_currentNamespace.HasClass(cls.Type))
+            // We need the enum name as a namespace which will contain constants with the enum values
+            if (cls.IsEnum())
             {
-                var existingClass = _currentNamespace.GetClassByType(cls.Type);
+                // Enums might be nested inside classes, so we take the enum name only
+                var className = cls.Type.Name.Split(".").Last();
+                ns = new Namespace($"{_currentNamespace.Name}.{className}", true);
+                _context.RegisterNamespace(ns);
+                _currentNamespace.RegisterEnum(cls);
+            }
+
+            if (ns.HasClass(cls.Type))
+            {
+                var existingClass = ns.GetClassByType(cls.Type);
 
                 // Some classes in C# exist multiple times with varying amounts of generics
                 // We keep the one with the most generics
@@ -40,7 +51,7 @@ namespace QuantConnectStubsGenerator.Parser
                 _currentClass.InnerClasses.Add(cls);
             }
 
-            _currentNamespace.RegisterClass(cls);
+            ns.RegisterClass(cls);
             _currentClass = cls;
         }
 

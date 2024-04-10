@@ -170,7 +170,7 @@ namespace QuantConnectStubsGenerator.Parser
                     Type = type,
                     Static = _currentClass.Static || HasModifier(node, "static") || HasModifier(node, "const"),
                     Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
-                    Constant = HasModifier(node, "const") || HasModifier(node, "readonly"),
+                    Constant = HasModifier(node, "const"),
                     DeprecationReason = GetDeprecationReason(node)
                 };
 

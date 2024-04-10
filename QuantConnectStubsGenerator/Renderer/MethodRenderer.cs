@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Python.Runtime;
 using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Utility;
 
@@ -14,6 +15,13 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public override void Render(Method method)
         {
+            var snakeCasedMethod = GetSnakeCasedMethod(method);
+            if (snakeCasedMethod.Name != method.Name)
+            {
+                Render(snakeCasedMethod);
+                return;
+            }
+
             if (method.Static)
             {
                 WriteLine("@staticmethod");
@@ -81,6 +89,29 @@ namespace QuantConnectStubsGenerator.Renderer
             }
 
             return str;
+        }
+
+        private static Method GetSnakeCasedMethod(Method method)
+        {
+            var snakeCasedMethod = new Method(method.Name.ToSnakeCase(), method.ReturnType)
+            {
+                Static = method.Static,
+                Overload = method.Overload,
+                Summary = method.Summary,
+                File = method.File,
+                DeprecationReason = method.DeprecationReason
+            };
+
+            foreach (var parameter in method.Parameters)
+            {
+                snakeCasedMethod.Parameters.Add(new Parameter(parameter.Name.ToSnakeCase(), parameter.Type)
+                {
+                    VarArgs = parameter.VarArgs,
+                    Value = parameter.Value
+                });
+            }
+
+            return snakeCasedMethod;
         }
     }
 }

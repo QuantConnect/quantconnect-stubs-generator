@@ -14,6 +14,12 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public override void Render(Method method)
         {
+            method = GetSnakeCasedMethod(method);
+            if (method == null)
+            {
+                return;
+            }
+
             if (method.Static)
             {
                 WriteLine("@staticmethod");
@@ -81,6 +87,41 @@ namespace QuantConnectStubsGenerator.Renderer
             }
 
             return str;
+        }
+
+        private static Method GetSnakeCasedMethod(Method method)
+        {
+            var snakeCasedMethodName = method.Name.ToSnakeCase();
+            if (snakeCasedMethodName.IsPythonReservedWord())
+            {
+                return null;
+            }
+
+            var snakeCasedMethod = new Method(snakeCasedMethodName, method.ReturnType)
+            {
+                Static = method.Static,
+                Overload = method.Overload,
+                Summary = method.Summary,
+                File = method.File,
+                DeprecationReason = method.DeprecationReason
+            };
+
+            foreach (var parameter in method.Parameters)
+            {
+                var snakeCasedParameterName = parameter.Name.ToSnakeCase();
+                if (snakeCasedParameterName.IsPythonReservedWord())
+                {
+                    return null;
+                }
+
+                snakeCasedMethod.Parameters.Add(new Parameter(snakeCasedParameterName, parameter.Type)
+                {
+                    VarArgs = parameter.VarArgs,
+                    Value = parameter.Value
+                });
+            }
+
+            return snakeCasedMethod;
         }
     }
 }

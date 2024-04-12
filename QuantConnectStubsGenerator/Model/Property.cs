@@ -3,10 +3,14 @@ namespace QuantConnectStubsGenerator.Model
     public class Property
     {
         public string Name { get; }
+
         public PythonType Type { get; set; }
 
         public bool Static { get; set; }
+
         public bool Abstract { get; set; }
+
+        public bool Constant { get; set; }
 
         public string Value { get; set; }
 

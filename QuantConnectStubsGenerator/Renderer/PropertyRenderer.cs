@@ -1,5 +1,4 @@
 using System.IO;
-using Python.Runtime;
 using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Utility;
 
@@ -13,10 +12,9 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public override void Render(Property property)
         {
-            var snakeCasedProperty = GetSnakeCasedProperty(property);
-            if (snakeCasedProperty.Name != property.Name)
+            property = GetSnakeCasedProperty(property);
+            if (property == null)
             {
-                Render(snakeCasedProperty);
                 return;
             }
 
@@ -32,10 +30,10 @@ namespace QuantConnectStubsGenerator.Renderer
 
         private static Property GetSnakeCasedProperty(Property property)
         {
-            var name = property.Name.ToSnakeCase();
-            if (property.Constant)
+            var name = property.Name.ToSnakeCase(property.Constant);
+            if (name.IsPythonReservedWord())
             {
-                name = name.ToUpper();
+                return null;
             }
 
             return new Property(name)

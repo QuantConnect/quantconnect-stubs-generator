@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Python.Runtime;
 using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Utility;
 
@@ -15,10 +14,9 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public override void Render(Method method)
         {
-            var snakeCasedMethod = GetSnakeCasedMethod(method);
-            if (snakeCasedMethod.Name != method.Name)
+            method = GetSnakeCasedMethod(method);
+            if (method == null)
             {
-                Render(snakeCasedMethod);
                 return;
             }
 
@@ -93,7 +91,13 @@ namespace QuantConnectStubsGenerator.Renderer
 
         private static Method GetSnakeCasedMethod(Method method)
         {
-            var snakeCasedMethod = new Method(method.Name.ToSnakeCase(), method.ReturnType)
+            var snakeCasedMethodName = method.Name.ToSnakeCase();
+            if (snakeCasedMethodName.IsPythonReservedWord())
+            {
+                return null;
+            }
+
+            var snakeCasedMethod = new Method(snakeCasedMethodName, method.ReturnType)
             {
                 Static = method.Static,
                 Overload = method.Overload,
@@ -104,7 +108,13 @@ namespace QuantConnectStubsGenerator.Renderer
 
             foreach (var parameter in method.Parameters)
             {
-                snakeCasedMethod.Parameters.Add(new Parameter(parameter.Name.ToSnakeCase(), parameter.Type)
+                var snakeCasedParameterName = parameter.Name.ToSnakeCase();
+                if (snakeCasedParameterName.IsPythonReservedWord())
+                {
+                    return null;
+                }
+
+                snakeCasedMethod.Parameters.Add(new Parameter(snakeCasedParameterName, parameter.Type)
                 {
                     VarArgs = parameter.VarArgs,
                     Value = parameter.Value

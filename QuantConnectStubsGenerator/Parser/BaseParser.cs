@@ -206,7 +206,7 @@ namespace QuantConnectStubsGenerator.Parser
                     return line;
                 });
 
-            var xml = string.Join("\n", xmlLines).Replace("&", "&amp;");
+            var xml = string.Join("\n", xmlLines).Replace("&", "&amp;").Trim();
 
             if (!xml.StartsWith("<"))
             {

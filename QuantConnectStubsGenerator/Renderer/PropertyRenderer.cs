@@ -12,10 +12,10 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public override void Render(Property property)
         {
-            property = GetSnakeCasedProperty(property);
-            if (property == null)
+            var snakeCasedProperty = GetSnakeCasedProperty(property);
+            if (snakeCasedProperty != null)
             {
-                return;
+                property = snakeCasedProperty;
             }
 
             if (property.Static)

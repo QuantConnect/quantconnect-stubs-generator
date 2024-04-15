@@ -14,10 +14,10 @@ namespace QuantConnectStubsGenerator.Renderer
 
         public override void Render(Method method)
         {
-            method = GetSnakeCasedMethod(method);
-            if (method == null)
+            var snakeCasedMethod = GetSnakeCasedMethod(method);
+            if (snakeCasedMethod != null)
             {
-                return;
+                method = snakeCasedMethod;
             }
 
             if (method.Static)
@@ -97,14 +97,20 @@ namespace QuantConnectStubsGenerator.Renderer
                 return null;
             }
 
+            if (snakeCasedMethodName == method.Name)
+            {
+                return method;
+            }
+
             var snakeCasedMethod = new Method(snakeCasedMethodName, method.ReturnType)
             {
                 Static = method.Static,
                 Overload = method.Overload,
-                Summary = method.Summary,
                 File = method.File,
                 DeprecationReason = method.DeprecationReason
             };
+
+            var summary = method.Summary;
 
             foreach (var parameter in method.Parameters)
             {
@@ -119,7 +125,11 @@ namespace QuantConnectStubsGenerator.Renderer
                     VarArgs = parameter.VarArgs,
                     Value = parameter.Value
                 });
+
+                summary = summary?.Replace(parameter.Name, snakeCasedParameterName);
             }
+
+            snakeCasedMethod.Summary = summary;
 
             return snakeCasedMethod;
         }

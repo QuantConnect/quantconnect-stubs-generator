@@ -29,6 +29,90 @@ namespace QuantConnectStubsGenerator
 
         public void Run()
         {
+            // Create an empty ParseContext which will be filled with all relevant information during parsing
+            var context = new ParseContext();
+
+            GenerateModels(context);
+
+            // Render .pyi files containing stubs for all parsed namespaces
+            Logger.Info($"Generating .py and .pyi files for {context.GetNamespaces().Count()} namespaces");
+            foreach (var ns in context.GetNamespaces())
+            {
+                var namespacePath = ns.Name.Replace('.', '/');
+                var basePath = Path.GetFullPath($"{namespacePath}/__init__", _outputDirectory);
+
+                RenderNamespace(ns, basePath + ".pyi");
+                GeneratePyLoader(ns.Name, basePath + ".py");
+                CreateTypedFileForNamespace(ns.Name);
+            }
+
+            // Generate stubs for the clr module
+            GenerateClrStubs();
+
+            // Generate stubs for https://github.com/QuantConnect/Lean/blob/master/Common/AlgorithmImports.py
+            GenerateAlgorithmImports();
+
+            // Create setup.py
+            GenerateSetup();
+        }
+
+        protected virtual void GenerateModels(ParseContext context)
+        {
+            // Create syntax trees for all C# files
+            var syntaxTrees = GetSyntaxTrees().ToList();
+
+            // Create a compilation containing all syntax trees to retrieve semantic models from
+            var compilation = CSharpCompilation.Create("").AddSyntaxTrees(syntaxTrees);
+
+            // Add all assemblies in current project to compilation to improve semantic models
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (!assembly.IsDynamic && assembly.Location != "")
+                {
+                    compilation = compilation.AddReferences(MetadataReference.CreateFromFile(assembly.Location));
+                }
+            }
+
+            // Parse all syntax trees using all parsers
+            ParseSyntaxTrees<ClassParser>(context, syntaxTrees, compilation);
+            ParseSyntaxTrees<PropertyParser>(context, syntaxTrees, compilation);
+            ParseSyntaxTrees<MethodParser>(context, syntaxTrees, compilation);
+
+            // Perform post-processing on all parsed classes
+            foreach (var ns in context.GetNamespaces())
+            {
+
+                // Remove problematic method "GetMethodInfo" from System.Reflection.RuntimeReflectionExtensions
+                // KW arg is `del` which python is not a fan of. TODO: Make this post filtering more generic?
+                if (ns.Name == "System.Reflection")
+                {
+                    var reflectionClass = ns.GetClasses()
+                        .FirstOrDefault(x => x.Type.Name == "RuntimeReflectionExtensions");
+                    var badMethod = reflectionClass.Methods.FirstOrDefault(x => x.Name == "GetMethodInfo");
+
+                    reflectionClass.Methods.Remove(badMethod);
+                }
+
+
+                foreach (var cls in ns.GetClasses())
+                {
+                    // Remove Python implementations for methods where there is both a Python as well as a C# implementation
+                    // The parsed C# implementation is usually more useful for autocomplete
+                    // To improve it a little bit we move the return type of the Python implementation to the C# implementation
+                    PostProcessClass(cls);
+
+                    // Mark methods which appear multiple times as overloaded
+                    MarkOverloads(cls);
+                }
+            }
+
+            // Create empty namespaces to fill gaps in between namespaces like "A.B" and "A.B.C.D"
+            // This is needed to make import resolution work correctly
+            CreateEmptyNamespaces(context);
+        }
+
+        protected virtual IEnumerable<SyntaxTree> GetSyntaxTrees()
+        {
             // Lean projects not to generate stubs for
             var blacklistedProjects = new[]
             {
@@ -49,9 +133,9 @@ namespace QuantConnectStubsGenerator
             // 2. Any bin CS files
             List<Regex> blacklistedRegex = new()
             {
-                new (".*Lean\\/ADDITIONAL_STUBS\\/.*(?:DataProcessing|tests|DataQueueHandlers|Demonstration|Demostration|Algorithm)",  RegexOptions.Compiled), 
+                new (".*Lean\\/ADDITIONAL_STUBS\\/.*(?:DataProcessing|tests|DataQueueHandlers|Demonstration|Demostration|Algorithm)",  RegexOptions.Compiled),
                 new(".*\\/bin\\/", RegexOptions.Compiled),
-            };   
+            };
 
             // Path prefixes for all blacklisted projects
             var blacklistedPrefixes = blacklistedProjects
@@ -93,82 +177,10 @@ namespace QuantConnectStubsGenerator
 
             Logger.Info($"Parsing {sourceFiles.Count} C# files");
 
-            // Create syntax trees for all C# files
-            var syntaxTrees = sourceFiles
-                .Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file))
-                .ToList();
-
-            // Create a compilation containing all syntax trees to retrieve semantic models from
-            var compilation = CSharpCompilation.Create("").AddSyntaxTrees(syntaxTrees);
-
-            // Add all assemblies in current project to compilation to improve semantic models
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            foreach (var file in sourceFiles)
             {
-                if (!assembly.IsDynamic && assembly.Location != "")
-                {
-                    compilation = compilation.AddReferences(MetadataReference.CreateFromFile(assembly.Location));
-                }
+                yield return CSharpSyntaxTree.ParseText(File.ReadAllText(file), path: file);
             }
-
-            // Create an empty ParseContext which will be filled with all relevant information during parsing
-            var context = new ParseContext();
-
-            // Parse all syntax trees using all parsers
-            ParseSyntaxTrees<ClassParser>(context, syntaxTrees, compilation);
-            ParseSyntaxTrees<PropertyParser>(context, syntaxTrees, compilation);
-            ParseSyntaxTrees<MethodParser>(context, syntaxTrees, compilation);
-
-            // Perform post-processing on all parsed classes
-            foreach (var ns in context.GetNamespaces())
-            {
-
-                // Remove problematic method "GetMethodInfo" from System.Reflection.RuntimeReflectionExtensions
-                // KW arg is `del` which python is not a fan of. TODO: Make this post filtering more generic?
-                if (ns.Name == "System.Reflection"){
-                    var reflectionClass = ns.GetClasses()
-                        .FirstOrDefault(x => x.Type.Name == "RuntimeReflectionExtensions");
-                    var badMethod = reflectionClass.Methods.FirstOrDefault(x => x.Name == "GetMethodInfo");
-                    
-                    reflectionClass.Methods.Remove(badMethod);
-                }
-  
-
-                foreach (var cls in ns.GetClasses())
-                {
-                    // Remove Python implementations for methods where there is both a Python as well as a C# implementation
-                    // The parsed C# implementation is usually more useful for autocomplete
-                    // To improve it a little bit we move the return type of the Python implementation to the C# implementation
-                    PostProcessClass(cls);
-
-                    // Mark methods which appear multiple times as overloaded
-                    MarkOverloads(cls);
-                }
-            }
-
-            // Create empty namespaces to fill gaps in between namespaces like "A.B" and "A.B.C.D"
-            // This is needed to make import resolution work correctly
-            CreateEmptyNamespaces(context);
-
-            // Render .pyi files containing stubs for all parsed namespaces
-            Logger.Info($"Generating .py and .pyi files for {context.GetNamespaces().Count()} namespaces");
-            foreach (var ns in context.GetNamespaces())
-            {
-                var namespacePath = ns.Name.Replace('.', '/');
-                var basePath = Path.GetFullPath($"{namespacePath}/__init__", _outputDirectory);
-
-                RenderNamespace(ns, basePath + ".pyi");
-                GeneratePyLoader(ns.Name, basePath + ".py");
-                CreateTypedFileForNamespace(ns.Name);
-            }
-
-            // Generate stubs for the clr module
-            GenerateClrStubs();
-
-            // Generate stubs for https://github.com/QuantConnect/Lean/blob/master/Common/AlgorithmImports.py
-            GenerateAlgorithmImports();
-
-            // Create setup.py
-            GenerateSetup();
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Utility;
@@ -122,6 +123,7 @@ namespace QuantConnectStubsGenerator.Parser
                 Type = type,
                 Static = _currentClass.Static || HasModifier(node, "static"),
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
+                Constant = IsStaticReadonly(node),
                 DeprecationReason = GetDeprecationReason(node)
             };
 
@@ -252,6 +254,23 @@ namespace QuantConnectStubsGenerator.Parser
                     }
                 }
             });
+        }
+
+        private bool IsStaticReadonly(BasePropertyDeclarationSyntax node)
+        {
+            if (!(node is PropertyDeclarationSyntax propertyNode) ||
+                !HasModifier(propertyNode, "static"))
+            {
+                return false;
+            }
+
+            if (propertyNode.ExpressionBody != null)
+            {
+                return true;
+            }
+
+            var accessors = propertyNode.AccessorList?.Accessors;
+            return accessors.HasValue && !accessors.Value.Any(x => x.Kind() == SyntaxKind.SetAccessorDeclaration);
         }
     }
 }

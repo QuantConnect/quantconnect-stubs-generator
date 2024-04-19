@@ -114,7 +114,15 @@ namespace QuantConnectStubsGenerator.Parser
         /// </summary>
         protected bool HasModifier(MemberDeclarationSyntax node, string modifier)
         {
-            return node.Modifiers.Any(m => m.Text == modifier);
+            return HasModifier(node.Modifiers, modifier);
+        }
+
+        /// <summary>
+        /// Check if a node has a modifier like private or static.
+        /// </summary>
+        protected bool HasModifier(SyntaxTokenList modifiers, string modifier)
+        {
+            return modifiers.Any(m => m.Text == modifier);
         }
 
         /// <summary>
@@ -122,9 +130,23 @@ namespace QuantConnectStubsGenerator.Parser
         /// </summary>
         protected bool ShouldSkip(MemberDeclarationSyntax node)
         {
-            return HasModifier(node, "private") || HasModifier(node, "internal")
-                // some classes don't any access modifier set, which means private
-                || !HasModifier(node, "public") && !HasModifier(node, "protected");
+            if (HasModifier(node, "private") || HasModifier(node, "internal"))
+            {
+                return true;
+            }
+
+            if (node.Modifiers.Count() == 0 && node.Parent != null && node.Parent.IsKind(SyntaxKind.InterfaceDeclaration))
+            {
+                // interfaces properties/methods are public by default, so they depend on the parent really
+                if (node.Parent is InterfaceDeclarationSyntax interfaceDeclarationSyntax)
+                {
+                    var modifiers = interfaceDeclarationSyntax.Modifiers;
+                    return !HasModifier(modifiers, "public") && !HasModifier(modifiers, "protected");
+                }
+                return true;
+            }
+            // some classes don't any access modifier set, which means private
+            return !HasModifier(node, "public") && !HasModifier(node, "protected");
         }
 
         /// <summary>

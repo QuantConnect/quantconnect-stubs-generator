@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -43,6 +44,14 @@ namespace QuantConnectStubsGenerator.Renderer
 
             if (inherited.Count > 0)
             {
+                for (var i = 0; i < inherited.Count; i++)
+                {
+                    if (inherited[i].Equals("System.Enum", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        // 'Enum' is a python base type which is handled better by mypy if we used 'System' it assumes the enum value and causes a warning/missmatch
+                        inherited[i] = "Enum";
+                    }
+                }
                 Write($"({string.Join(", ", inherited)})");
             }
 

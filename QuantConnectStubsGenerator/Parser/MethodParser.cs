@@ -113,23 +113,6 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             var originalReturnType = returnType;
-            var returnTypeIsEnum = false;
-
-            if (returnType.Namespace != null)
-            {
-                var ns = _context.HasNamespace(returnType.Namespace)
-                    ? _context.GetNamespaceByName(returnType.Namespace)
-                    : null;
-
-                var cls = ns?.HasClass(returnType) == true ? ns.GetClassByType(returnType) : null;
-
-                // Python.NET converts an enum return type to an int
-                if (cls?.IsEnum() == true)
-                {
-                    returnType = new PythonType("int");
-                    returnTypeIsEnum = true;
-                }
-            }
 
             var method = new Method(name, returnType)
             {
@@ -225,12 +208,6 @@ namespace QuantConnectStubsGenerator.Parser
                 {
                     returnsParts.Add(text);
                 }
-            }
-
-            if (returnTypeIsEnum)
-            {
-                returnsParts.Add(
-                    $"This method returns the int value of a member of the {originalReturnType.ToPythonString()} enum.");
             }
 
             if (returnsParts.Count > 0)

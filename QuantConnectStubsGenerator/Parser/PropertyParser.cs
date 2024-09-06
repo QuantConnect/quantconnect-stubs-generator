@@ -94,23 +94,6 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             var originalType = type;
-            var typeIsEnum = false;
-
-            if (type.Namespace != null)
-            {
-                var ns = _context.HasNamespace(type.Namespace)
-                    ? _context.GetNamespaceByName(type.Namespace)
-                    : null;
-
-                var cls = ns?.HasClass(type) == true ? ns.GetClassByType(type) : null;
-
-                // Python.NET converts an enum return type to an int
-                if (cls?.IsEnum() == true)
-                {
-                    type = new PythonType("int");
-                    typeIsEnum = true;
-                }
-            }
 
             // Security.Data is of type dynamic but can be used like it is of type DynamicSecurityData
             if (_currentClass.Type.ToPythonString() == "QuantConnect.Securities.Security" && name == "Data")
@@ -124,20 +107,17 @@ namespace QuantConnectStubsGenerator.Parser
                 Static = _currentClass.Static || HasModifier(node, "static"),
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
                 Constant = IsStaticReadonly(node),
-                DeprecationReason = GetDeprecationReason(node)
+                DeprecationReason = GetDeprecationReason(node),
+                HasSetter = node.AccessorList?.Accessors.Any(x => x.Keyword.Text == "set"
+                    && !HasModifier(x.Modifiers, "private")
+                    && !HasModifier(x.Modifiers, "internal")
+                    && !HasModifier(x.Modifiers, "protected")) ?? false
             };
 
             var doc = ParseDocumentation(node);
             if (doc["summary"] != null)
             {
                 property.Summary = doc["summary"].GetText();
-            }
-
-            if (typeIsEnum)
-            {
-                property.Summary = AppendSummary(
-                    property.Summary,
-                    $"This property contains the int value of a member of the {originalType.ToPythonString()} enum.");
             }
 
             if (HasModifier(node, "protected"))

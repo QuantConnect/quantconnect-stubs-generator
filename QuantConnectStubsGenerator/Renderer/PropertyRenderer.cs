@@ -44,7 +44,8 @@ namespace QuantConnectStubsGenerator.Renderer
                 Constant = property.Constant,
                 Value = property.Value,
                 Summary = property.Summary,
-                DeprecationReason = property.DeprecationReason
+                DeprecationReason = property.DeprecationReason,
+                HasSetter = property.HasSetter
             };
         }
 
@@ -105,6 +106,25 @@ namespace QuantConnectStubsGenerator.Renderer
             }
 
             WriteLine();
+
+            // render setter for mypy to be happy
+            if (property.HasSetter)
+            {
+                WriteLine("@property.setter");
+
+                // Add the getter
+                WriteLine($"def {property.Name}(self, value: {property.Type.ToPythonString()}) -> None:");
+                if (property.DeprecationReason != null)
+                {
+                    WriteLine($"warnings.warn(\"{property.DeprecationReason}\", DeprecationWarning)".Indent());
+                }
+                else
+                {
+                    WriteLine("...".Indent());
+                }
+
+                WriteLine();
+            }
         }
     }
 }

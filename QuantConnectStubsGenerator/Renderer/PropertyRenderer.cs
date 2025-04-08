@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Utility;
 
@@ -6,7 +9,8 @@ namespace QuantConnectStubsGenerator.Renderer
 {
     public class PropertyRenderer : ObjectRenderer<Property>
     {
-        public PropertyRenderer(StreamWriter writer, int indentationLevel) : base(writer, indentationLevel)
+        public PropertyRenderer(StreamWriter writer, int indentationLevel, ParseContext context)
+            : base(writer, indentationLevel, context)
         {
         }
 
@@ -16,6 +20,11 @@ namespace QuantConnectStubsGenerator.Renderer
             if (snakeCasedProperty != null)
             {
                 property = snakeCasedProperty;
+            }
+
+            if (ShouldSkip(property))
+            {
+                return;
             }
 
             if (property.Static)
@@ -28,6 +37,69 @@ namespace QuantConnectStubsGenerator.Renderer
             }
         }
 
+        private bool TryGetClass(PythonType classType, string namespaceName, out Class @class)
+        {
+            @class = null;
+            if (namespaceName == null || classType == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                var @namespace = Context.GetNamespaceByName(namespaceName);
+                @class = @namespace.GetClassByType(classType);
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                // Class not found:
+                //   - The type was converted to a Python type (e.g. DateTime -> datetime),
+                //     so the class will not be found in any namespace, no need to check. Or,
+                //   - The class is private or internal, it won't be found in the namespaces.
+                return false;
+            }
+        }
+
+        private bool ShouldSkip(Property property)
+        {
+            // Python.Net will favor snake-cased methods over properties,
+            // so we skip properties what match an existing method's name
+
+            var checkedClasses = new HashSet<PythonType>();
+            var classes = new Queue<Class>();
+            classes.Enqueue(property.Class);
+            while (classes.TryDequeue(out var @class))
+            {
+                if (@class.Methods.Any(method => method.Name == property.Name))
+                {
+                    return true;
+                }
+
+                checkedClasses.Add(@class.Type);
+
+                // Now we need to do the same check of the inherited classes
+                foreach (var inheritedClassType in @class.InheritsFrom)
+                {
+                    if (checkedClasses.Contains(inheritedClassType))
+                    {
+                        continue;
+                    }
+
+                    if (TryGetClass(inheritedClassType, inheritedClassType.Namespace, out var inheritedClass))
+                    {
+                        classes.Enqueue(inheritedClass);
+                    }
+                    else
+                    {
+                        checkedClasses.Add(inheritedClassType);
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private static Property GetSnakeCasedProperty(Property property)
         {
             var name = property.Name.ToSnakeCase(property.Constant);
@@ -36,17 +108,7 @@ namespace QuantConnectStubsGenerator.Renderer
                 return null;
             }
 
-            return new Property(name)
-            {
-                Type = property.Type,
-                Static = property.Static,
-                Abstract = property.Abstract,
-                Constant = property.Constant,
-                Value = property.Value,
-                Summary = property.Summary,
-                DeprecationReason = property.DeprecationReason,
-                HasSetter = property.HasSetter
-            };
+            return new Property(property, name);
         }
 
         private void RenderAttribute(Property property)

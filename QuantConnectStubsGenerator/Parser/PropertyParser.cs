@@ -59,7 +59,8 @@ namespace QuantConnectStubsGenerator.Parser
                 Static = true,
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
                 Constant = true,
-                DeprecationReason = GetDeprecationReason(node)
+                DeprecationReason = GetDeprecationReason(node),
+                Class = _currentClass
             };
 
             var doc = ParseDocumentation(node);
@@ -111,7 +112,8 @@ namespace QuantConnectStubsGenerator.Parser
                 HasSetter = node.AccessorList?.Accessors.Any(x => x.Keyword.Text == "set"
                     && !HasModifier(x.Modifiers, "private")
                     && !HasModifier(x.Modifiers, "internal")
-                    && !HasModifier(x.Modifiers, "protected")) ?? false
+                    && !HasModifier(x.Modifiers, "protected")) ?? false,
+                Class = _currentClass
             };
 
             var doc = ParseDocumentation(node);
@@ -153,7 +155,8 @@ namespace QuantConnectStubsGenerator.Parser
                     Static = _currentClass.Static || HasModifier(node, "static") || HasModifier(node, "const"),
                     Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
                     Constant = HasModifier(node, "const") || (HasModifier(node, "static") && HasModifier(node, "readonly")),
-                    DeprecationReason = GetDeprecationReason(node)
+                    DeprecationReason = GetDeprecationReason(node),
+                    Class = _currentClass
                 };
 
                 if (variable.Initializer != null)

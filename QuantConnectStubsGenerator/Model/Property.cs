@@ -20,9 +20,25 @@ namespace QuantConnectStubsGenerator.Model
 
         public bool HasSetter { get; set; }
 
+        public Class Class { get; set; }
+
         public Property(string name)
         {
             Name = name;
+        }
+
+        public Property(Property template, string name)
+        {
+            Name = name;
+            Type = template.Type;
+            Static = template.Static;
+            Abstract = template.Abstract;
+            Constant = template.Constant;
+            Value = template.Value;
+            Summary = template.Summary;
+            DeprecationReason = template.DeprecationReason;
+            HasSetter = template.HasSetter;
+            Class = template.Class;
         }
     }
 }

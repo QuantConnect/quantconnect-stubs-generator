@@ -41,7 +41,7 @@ namespace QuantConnectStubsGenerator
                 var namespacePath = ns.Name.Replace('.', '/');
                 var basePath = Path.GetFullPath($"{namespacePath}/__init__", _outputDirectory);
 
-                RenderNamespace(ns, basePath + ".pyi");
+                RenderNamespace(ns, basePath + ".pyi", context);
                 GeneratePyLoader(ns.Name, basePath + ".py");
                 CreateTypedFileForNamespace(ns.Name);
             }
@@ -319,7 +319,7 @@ namespace QuantConnectStubsGenerator
             }
         }
 
-        private void RenderNamespace(Namespace ns, string outputPath)
+        private void RenderNamespace(Namespace ns, string outputPath, ParseContext context)
         {
             // Don't generate empty .pyi files
             if (!ns.GetParentClasses().Any())
@@ -330,7 +330,7 @@ namespace QuantConnectStubsGenerator
             EnsureParentDirectoriesExist(outputPath);
 
             using var writer = new StreamWriter(outputPath);
-            var renderer = new NamespaceRenderer(writer, 0);
+            var renderer = new NamespaceRenderer(writer, 0, context);
             renderer.Render(ns);
         }
 

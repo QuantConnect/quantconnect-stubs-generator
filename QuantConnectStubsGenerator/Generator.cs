@@ -213,7 +213,7 @@ namespace QuantConnectStubsGenerator
             foreach (var tree in syntaxTrees)
             {
                 var model = compilation.GetSemanticModel(tree);
-                var parser = (T) Activator.CreateInstance(typeof(T), context, model);
+                var parser = (T)Activator.CreateInstance(typeof(T), context, model);
 
                 if (parser == null)
                 {
@@ -319,7 +319,7 @@ namespace QuantConnectStubsGenerator
             }
         }
 
-        private void RenderNamespace(Namespace ns, string outputPath, ParseContext context)
+        protected void RenderNamespace(Namespace ns, string outputPath, ParseContext context)
         {
             // Don't generate empty .pyi files
             if (!ns.GetParentClasses().Any())
@@ -327,18 +327,14 @@ namespace QuantConnectStubsGenerator
                 return;
             }
 
-            EnsureParentDirectoriesExist(outputPath);
-
-            using var writer = new StreamWriter(outputPath);
+            using var writer = CreateWriter(outputPath);
             var renderer = new NamespaceRenderer(writer, 0, context);
             renderer.Render(ns);
         }
 
         private void GeneratePyLoader(string ns, string outputPath)
         {
-            EnsureParentDirectoriesExist(outputPath);
-
-            using var writer = new StreamWriter(outputPath);
+            using var writer = CreateWriter(outputPath);
             var renderer = new PyLoaderRenderer(writer);
             renderer.Render(ns);
         }
@@ -348,9 +344,8 @@ namespace QuantConnectStubsGenerator
             Logger.Info("Generating clr stubs");
 
             var outputPath = Path.GetFullPath("clr/__init__.pyi", _outputDirectory);
-            EnsureParentDirectoriesExist(outputPath);
 
-            using var writer = new StreamWriter(outputPath);
+            using var writer = CreateWriter(outputPath);
             var renderer = new ClrStubsRenderer(writer);
             renderer.Render();
 
@@ -362,9 +357,7 @@ namespace QuantConnectStubsGenerator
             Logger.Info("Generating AlgorithmImports stubs");
 
             var outputPath = Path.GetFullPath("AlgorithmImports/__init__.pyi", _outputDirectory);
-            EnsureParentDirectoriesExist(outputPath);
-
-            using var writer = new StreamWriter(outputPath);
+            using var writer = CreateWriter(outputPath);
             var renderer = new AlgorithmImportsRenderer(writer, _leanPath);
             renderer.Render();
 
@@ -376,16 +369,10 @@ namespace QuantConnectStubsGenerator
             Logger.Info("Generating setup.py");
 
             var setupPath = Path.GetFullPath("setup.py", _outputDirectory);
-            EnsureParentDirectoriesExist(setupPath);
 
-            using var writer = new StreamWriter(setupPath);
+            using var writer = CreateWriter(setupPath);
             var renderer = new SetupRenderer(writer, _leanPath, _outputDirectory);
             renderer.Render();
-        }
-
-        private void EnsureParentDirectoriesExist(string path)
-        {
-            new FileInfo(path).Directory?.Create();
         }
 
         private string FormatPath(string path)
@@ -398,6 +385,13 @@ namespace QuantConnectStubsGenerator
             return normalizedPath.EndsWith("/")
                 ? normalizedPath.Substring(0, path.Length - 1)
                 : normalizedPath;
+        }
+
+        protected virtual TextWriter CreateWriter(string path)
+        {
+            // Ensure parent directories exist
+            new FileInfo(path).Directory?.Create();
+            return new StreamWriter(path);
         }
     }
 }

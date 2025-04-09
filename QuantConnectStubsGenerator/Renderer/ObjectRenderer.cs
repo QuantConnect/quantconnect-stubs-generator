@@ -15,7 +15,7 @@ namespace QuantConnectStubsGenerator.Renderer
 
         protected ParseContext Context { get; }
 
-        protected ObjectRenderer(StreamWriter writer, int indentationLevel, ParseContext context) : base(writer)
+        protected ObjectRenderer(TextWriter writer, int indentationLevel, ParseContext context) : base(writer)
         {
             _indentationLevel = indentationLevel;
 

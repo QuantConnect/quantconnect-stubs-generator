@@ -9,7 +9,7 @@ namespace QuantConnectStubsGenerator.Renderer
 {
     public class PropertyRenderer : ObjectRenderer<Property>
     {
-        public PropertyRenderer(StreamWriter writer, int indentationLevel, ParseContext context)
+        public PropertyRenderer(TextWriter writer, int indentationLevel, ParseContext context)
             : base(writer, indentationLevel, context)
         {
         }

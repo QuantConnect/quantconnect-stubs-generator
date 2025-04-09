@@ -4,9 +4,9 @@ namespace QuantConnectStubsGenerator.Renderer
 {
     public abstract class BaseRenderer
     {
-        protected readonly StreamWriter Writer;
+        protected readonly TextWriter Writer;
 
-        protected BaseRenderer(StreamWriter writer)
+        protected BaseRenderer(TextWriter writer)
         {
             Writer = writer;
         }

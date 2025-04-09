@@ -8,7 +8,7 @@ namespace QuantConnectStubsGenerator.Renderer
 {
     public class ClassRenderer : ObjectRenderer<Class>
     {
-        public ClassRenderer(StreamWriter writer, int indentationLevel, ParseContext context)
+        public ClassRenderer(TextWriter writer, int indentationLevel, ParseContext context)
             : base(writer, indentationLevel, context)
         {
         }

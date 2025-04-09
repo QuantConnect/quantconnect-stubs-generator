@@ -4,7 +4,7 @@ namespace QuantConnectStubsGenerator.Renderer
 {
     public class PyLoaderRenderer : BaseRenderer
     {
-        public PyLoaderRenderer(StreamWriter writer) : base(writer)
+        public PyLoaderRenderer(TextWriter writer) : base(writer)
         {
         }
 

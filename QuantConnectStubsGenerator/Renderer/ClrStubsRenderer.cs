@@ -4,7 +4,7 @@ namespace QuantConnectStubsGenerator.Renderer
 {
     public class ClrStubsRenderer : BaseRenderer
     {
-        public ClrStubsRenderer(StreamWriter writer) : base(writer)
+        public ClrStubsRenderer(TextWriter writer) : base(writer)
         {
         }
 

@@ -143,6 +143,70 @@ namespace QuantConnect.Properties
             Assert.AreEqual(shouldBeConstant, property.Constant);
         }
 
+        [Test]
+        public void OutParameters()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+namespace QuantConnect.OutParametersTest
+{
+    public class TestClass
+    {
+        public int TestMethod(int parameter, out string outParameter)
+        {
+            outParameter = parameter.ToString();
+            return parameter;
+        }
+    }
+}" }
+            }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var namespaces = result.GetNamespaces().ToList();
+            Assert.AreEqual(2, namespaces.Count);
+
+            var baseNameSpace = namespaces.Single(x => x.Name == "QuantConnect");
+            var testNameSpace = namespaces.Single(x => x.Name == "QuantConnect.OutParametersTest");
+
+            var testClass = testNameSpace.GetClasses().Single();
+            Assert.AreEqual("TestClass", testClass.Type.Name);
+
+            var testMethod = testClass.Methods.Single();
+            Assert.AreEqual("TestMethod", testMethod.Name);
+            Assert.AreEqual(2, testMethod.Parameters.Count);
+
+            // First parameter
+            var parameter1 = testMethod.Parameters[0];
+            Assert.AreEqual("parameter", parameter1.Name);
+            Assert.AreEqual("int", parameter1.Type.Name);
+            Assert.IsNull(parameter1.Type.Namespace);
+            Assert.AreEqual(0, parameter1.Type.TypeParameters.Count);
+
+            // Second parameter (out param)
+            var outParameter = testMethod.Parameters[1];
+            Assert.AreEqual("outParameter", outParameter.Name);
+            Assert.AreEqual("Optional", outParameter.Type.Name);
+            Assert.AreEqual("typing", outParameter.Type.Namespace);
+            Assert.AreEqual(1, outParameter.Type.TypeParameters.Count);
+            Assert.AreEqual("str", outParameter.Type.TypeParameters[0].Name);
+            Assert.IsNull(outParameter.Type.TypeParameters[0].Namespace);
+
+            // Return type
+            var returnType = testMethod.ReturnType;
+            Assert.AreEqual("Tuple", returnType.Name);
+            Assert.AreEqual("typing", returnType.Namespace);
+            Assert.AreEqual(2, returnType.TypeParameters.Count);
+            Assert.AreEqual("int", returnType.TypeParameters[0].Name);
+            Assert.IsNull(returnType.TypeParameters[0].Namespace);
+            Assert.AreEqual("str", returnType.TypeParameters[1].Name);
+            Assert.IsNull(returnType.TypeParameters[1].Namespace);
+        }
+
         private class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

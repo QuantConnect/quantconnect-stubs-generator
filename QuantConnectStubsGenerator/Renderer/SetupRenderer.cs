@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using log4net;
 
 namespace QuantConnectStubsGenerator.Renderer
@@ -14,7 +13,7 @@ namespace QuantConnectStubsGenerator.Renderer
         private readonly string _leanPath;
         private readonly string _outputDirectory;
 
-        public SetupRenderer(StreamWriter writer, string leanPath, string outputDirectory) : base(writer)
+        public SetupRenderer(TextWriter writer, string leanPath, string outputDirectory) : base(writer)
         {
             _leanPath = leanPath;
             _outputDirectory = outputDirectory;

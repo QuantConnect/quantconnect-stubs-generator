@@ -6,7 +6,7 @@ namespace QuantConnectStubsGenerator.Renderer
     {
         private readonly string _leanPath;
 
-        public AlgorithmImportsRenderer(StreamWriter writer, string leanPath) : base(writer)
+        public AlgorithmImportsRenderer(TextWriter writer, string leanPath) : base(writer)
         {
             _leanPath = leanPath;
         }

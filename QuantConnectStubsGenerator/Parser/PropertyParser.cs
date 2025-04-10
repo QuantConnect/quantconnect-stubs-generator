@@ -126,8 +126,7 @@ namespace QuantConnectStubsGenerator.Parser
                 DeprecationReason = GetDeprecationReason(node),
                 HasSetter = node.AccessorList?.Accessors.Any(x => x.Keyword.Text == "set"
                     && !HasModifier(x.Modifiers, "private")
-                    && !HasModifier(x.Modifiers, "internal")
-                    && !HasModifier(x.Modifiers, "protected")) ?? false,
+                    && !HasModifier(x.Modifiers, "internal")) ?? false,
                 Class = _currentClass
             };
 

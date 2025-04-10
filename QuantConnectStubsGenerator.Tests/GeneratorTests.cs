@@ -207,6 +207,43 @@ namespace QuantConnect.OutParametersTest
             Assert.IsNull(returnType.TypeParameters[1].Namespace);
         }
 
+        [Test]
+        public void PropertiesWithProtectedSetter()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "Test.cs",
+                        @"
+namespace QuantConnect.Test
+{
+    public class TestClass
+    {
+        public int TestProperty { get; protected set; }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var namespaces = result.GetNamespaces().ToList();
+            Assert.AreEqual(2, namespaces.Count);
+
+            var baseNameSpace = namespaces.Single(x => x.Name == "QuantConnect");
+            var testNameSpace = namespaces.Single(x => x.Name == "QuantConnect.Test");
+
+            var testClass = testNameSpace.GetClasses().Single();
+            Assert.AreEqual("TestClass", testClass.Type.Name);
+
+            var testProperty = testClass.Properties.Single();
+            Assert.AreEqual("TestProperty", testProperty.Name);
+            Assert.IsTrue(testProperty.HasSetter);
+        }
+
         private class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

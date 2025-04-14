@@ -303,6 +303,83 @@ namespace QuantConnect.Test
             Assert.AreEqual(new PythonType("int"), itemType);
         }
 
+        [Test]
+        public void IterableOverloadsForEnumerableParameters()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "Test.cs",
+                        @"
+using System;
+using System.Collections.Generic;
+
+namespace QuantConnect.Test
+{
+    public class TestClass
+    {
+        public TestClass(List<int> enumerable)
+        {
+        }
+
+        public TestClass(int someParam, IEnumerable<int> enumerable)
+        {
+        }
+
+        public void Method1(IList<string> enumerable)
+        {
+        }
+
+        public void Method2(IList<List<string>> enumerable)
+        {
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaces().Single(x => x.Name == "QuantConnect.Test");
+            var classes = ns.GetClasses().ToList();
+
+            var testClass = classes.Single(x => x.Type.Name == "TestClass");
+
+            var constructor1Overloads = testClass.Methods.Where(x => x.Name == "__init__" && x.Parameters.Count == 1).ToList();
+            Assert.AreEqual(2, constructor1Overloads.Count);
+            Assert.AreEqual(1, constructor1Overloads[0].Parameters.Count);
+            Assert.AreEqual(1, constructor1Overloads[1].Parameters.Count);
+            Assert.AreEqual("System.Collections.Generic.List[int]", constructor1Overloads[0].Parameters[0].Type.ToPythonString());
+            Assert.AreEqual("typing.Iterable[int]", constructor1Overloads[1].Parameters[0].Type.ToPythonString());
+
+            var constructor2Overloads = testClass.Methods.Where(x => x.Name == "__init__" && x.Parameters.Count == 2).ToList();
+            Assert.AreEqual(2, constructor2Overloads.Count);
+            Assert.AreEqual(2, constructor2Overloads[0].Parameters.Count);
+            Assert.AreEqual(2, constructor2Overloads[1].Parameters.Count);
+            Assert.AreEqual("int", constructor2Overloads[0].Parameters[0].Type.ToPythonString());
+            Assert.AreEqual("System.Collections.Generic.IEnumerable[int]", constructor2Overloads[0].Parameters[1].Type.ToPythonString());
+            Assert.AreEqual("int", constructor2Overloads[1].Parameters[0].Type.ToPythonString());
+            Assert.AreEqual("typing.Iterable[int]", constructor2Overloads[1].Parameters[1].Type.ToPythonString());
+
+            var method1Overloads = testClass.Methods.Where(x => x.Name == "Method1").ToList();
+            Assert.AreEqual(2, method1Overloads.Count);
+            Assert.AreEqual(1, method1Overloads[0].Parameters.Count);
+            Assert.AreEqual(1, method1Overloads[1].Parameters.Count);
+            Assert.AreEqual("System.Collections.Generic.IList[str]", method1Overloads[0].Parameters[0].Type.ToPythonString());
+            Assert.AreEqual("typing.Iterable[str]", method1Overloads[1].Parameters[0].Type.ToPythonString());
+
+            var method2Overloads = testClass.Methods.Where(x => x.Name == "Method2").ToList();
+            Assert.AreEqual(2, method2Overloads.Count);
+            Assert.AreEqual(1, method2Overloads[0].Parameters.Count);
+            Assert.AreEqual(1, method2Overloads[1].Parameters.Count);
+            Assert.AreEqual("System.Collections.Generic.IList[System.Collections.Generic.List[str]]", method2Overloads[0].Parameters[0].Type.ToPythonString());
+            Assert.AreEqual("typing.Iterable[typing.Iterable[str]]", method2Overloads[1].Parameters[0].Type.ToPythonString());
+
+        }
+
         private class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

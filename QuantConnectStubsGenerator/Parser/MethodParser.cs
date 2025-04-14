@@ -31,14 +31,15 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
+            var returnType = _typeConverter.GetType(node.ReturnType);
             VisitMethod(
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
-                _typeConverter.GetType(node.ReturnType));
+                returnType);
 
             // Make the current class extend from typing.Iterable if this is an applicable GetEnumerator() method
-            ExtendIterableIfNecessary(node);
+            ExtendIterableIfNecessary(node, returnType);
 
             // Add __contains__ and __len__ methods to containers in System.Collections.Generic
             AddContainerMethodsIfNecessary(node);
@@ -382,7 +383,7 @@ namespace QuantConnectStubsGenerator.Parser
             };
         }
 
-        private void ExtendIterableIfNecessary(MethodDeclarationSyntax node)
+        private void ExtendIterableIfNecessary(MethodDeclarationSyntax node, PythonType returnType)
         {
             if (node.Identifier.Text != "GetEnumerator")
             {
@@ -394,19 +395,30 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            var parsedReturnType = _typeConverter.GetType(node.ReturnType);
-
             // Some GetEnumerator() methods return an IEnumerator, some return an IEnumerator<T>
             // typing.Iterable requires a type parameter, so we don't extend it if an IEnumerator is returned
-            if (parsedReturnType.TypeParameters.Count == 0)
+            var typeParameters = returnType.TypeParameters;
+            if (typeParameters.Count == 0)
             {
                 return;
             }
 
-            _currentClass.InheritsFrom.Add(new PythonType("Iterable", "typing")
+            var iterableType = new PythonType("Iterable", "typing")
             {
-                TypeParameters = parsedReturnType.TypeParameters
-            });
+                TypeParameters = typeParameters
+            };
+            _currentClass.InheritsFrom.Add(iterableType);
+
+            if (_currentClass.Methods.All(m => m.Name != "__iter__"))
+            {
+                var iteratorType = new PythonType("Iterator", "typing")
+            {
+                    TypeParameters = typeParameters
+                };
+                _currentClass.Methods.Add(new Method("__iter__", iteratorType));
+            }
+
+            _currentClass.Type.IsIterable = true;
         }
 
         private void AddContainerMethodsIfNecessary(MethodDeclarationSyntax node)

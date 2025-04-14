@@ -107,6 +107,11 @@ namespace QuantConnectStubsGenerator.Model
             return types;
         }
 
+        public override string ToString()
+        {
+            return Type.ToString();
+        }
+
         /// <summary>
         /// Returns the used types which need to be recursively iterated over in GetUsedTypes().
         /// </summary>

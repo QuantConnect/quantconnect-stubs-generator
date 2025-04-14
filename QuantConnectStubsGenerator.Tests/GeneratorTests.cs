@@ -259,6 +259,50 @@ namespace QuantConnect.Test
             Assert.IsTrue(testProperty.HasSetter);
         }
 
+        [Test]
+        public void CSharpEnumeratorsArePythonIterables()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "Test.cs",
+                        @"
+using System;
+using System.Collections.Generic;
+
+namespace QuantConnect.Test
+{
+    public class TestEnumerable : IEnumerable<int>
+    {
+        public IEnumerator<int> GetEnumerator()
+        {
+            yield return 1;
+        }
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaces().Single(x => x.Name == "QuantConnect.Test");
+            var classes = ns.GetClasses().ToList();
+
+            var testEnumerable = classes.Single(x => x.Type.Name == "TestEnumerable");
+            var iterableBaseClassType = testEnumerable.InheritsFrom.SingleOrDefault(x => x.Name == "Iterable" && x.Namespace == "typing");
+            Assert.IsNotNull(iterableBaseClassType);
+            Assert.AreEqual(1, iterableBaseClassType.TypeParameters.Count);
+            var itemType = iterableBaseClassType.TypeParameters[0];
+            Assert.AreEqual(new PythonType("int"), itemType);
+        }
+
         private class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

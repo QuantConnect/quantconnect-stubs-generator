@@ -28,6 +28,14 @@ namespace QuantConnectStubsGenerator.Model
             Name = name;
             Type = type;
         }
+
+        public Parameter(Parameter other)
+        {
+            Name = other.Name;
+            Type = other.Type;
+            VarArgs = other.VarArgs;
+            Value = other.Value;
+        }
     }
 }
 

@@ -14,6 +14,7 @@
 */
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace QuantConnectStubsGenerator.Model
 {
@@ -31,12 +32,36 @@ namespace QuantConnectStubsGenerator.Model
 
         public string DeprecationReason { get; set; }
 
-        public IList<Parameter> Parameters { get; } = new List<Parameter>();
+        public IList<Parameter> Parameters { get; }
 
         public Method(string name, PythonType returnType)
         {
             Name = name;
             ReturnType = returnType;
+            Parameters = new List<Parameter>();
+        }
+
+        public Method(Method other, IEnumerable<Parameter> parameters = null)
+        {
+            Name = other.Name;
+            ReturnType = other.ReturnType;
+            Static = other.Static;
+            Overload = other.Overload;
+            Summary = other.Summary;
+            File = other.File;
+            DeprecationReason = other.DeprecationReason;
+
+            if (parameters != null)
+            {
+                Parameters = parameters.ToList();
+            }
+            else
+            {
+                foreach (var parameter in other.Parameters)
+                {
+                    Parameters.Add(new Parameter(parameter));
+                }
+            }
         }
     }
 }

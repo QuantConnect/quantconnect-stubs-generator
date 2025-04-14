@@ -154,6 +154,7 @@ namespace QuantConnectStubsGenerator.Parser
 
             var docStrings = new List<string>();
             var outTypes = new List<PythonType>();
+            var hasListParameter = false;
 
             foreach (var parameter in parameterList)
             {
@@ -196,11 +197,13 @@ namespace QuantConnectStubsGenerator.Parser
                     // Python.NET allows passing None to out parameters
                     parsedParameter.Type = new PythonType("Optional", "typing")
                     {
-                        TypeParameters = {actualType}
+                        TypeParameters = { actualType }
                     };
 
                     outTypes.Add(actualType);
                 }
+
+                hasListParameter |= IsListParameterType(parsedParameter.Type);
             }
 
             // Python.NET returns a tuple if a method has out parameters
@@ -251,6 +254,52 @@ namespace QuantConnectStubsGenerator.Parser
             _currentClass.Methods.Add(method);
 
             ImprovePythonAccessorIfNecessary(method);
+
+            if (hasListParameter)
+            {
+                method.Overload = true;
+
+                // Generate overload methods
+                var overload = new Method(method,
+                    method.Parameters.Select(p => ConvertListParameter(p)).ToList())
+                {
+                    Overload = true
+                };
+                _currentClass.Methods.Add(overload);
+            }
+        }
+
+        private static Parameter ConvertListParameter(Parameter parameter)
+        {
+            if (!IsListParameterType(parameter.Type))
+            {
+                return parameter;
+            }
+
+            return new Parameter(parameter)
+            {
+                Type = ConvertListParameterType(parameter.Type)
+            };
+        }
+
+        private static PythonType ConvertListParameterType(PythonType type)
+        {
+            if (!IsListParameterType(type))
+            {
+                return type;
+            }
+
+            return new PythonType("Iterable", "typing")
+            {
+                TypeParameters = { ConvertListParameterType(type.TypeParameters[0]) }
+            };
+        }
+
+        private static bool IsListParameterType(PythonType type)
+        {
+            return type.Namespace == "System.Collections.Generic" &&
+                type.TypeParameters.Count == 1 &&
+                (type.Name == "IReadOnlyCollection" || type.Name == "IEnumerable" || type.Name == "IList" || type.Name == "List");
         }
 
         private Parameter ParseParameter(ParameterSyntax syntax)

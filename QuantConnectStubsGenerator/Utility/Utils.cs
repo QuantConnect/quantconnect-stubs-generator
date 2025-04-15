@@ -21,31 +21,31 @@ namespace QuantConnectStubsGenerator.Utility
     {
         public static Parameter NormalizeParameter(Parameter parameter)
         {
-            if (!IsListParameterType(parameter.Type))
+            if (!IsListType(parameter.Type))
             {
                 return parameter;
             }
 
             return new Parameter(parameter)
             {
-                Type = NormalizeParameterType(parameter.Type)
+                Type = NormalizeType(parameter.Type)
             };
         }
 
-        public static PythonType NormalizeParameterType(PythonType type)
+        public static PythonType NormalizeType(PythonType type)
         {
-            if (!IsListParameterType(type))
+            if (!IsListType(type))
             {
                 return type;
             }
 
             return new PythonType("Iterable", "typing")
             {
-                TypeParameters = { NormalizeParameterType(type.TypeParameters[0]) }
+                TypeParameters = { NormalizeType(type.TypeParameters[0]) }
             };
         }
 
-        public static bool IsListParameterType(PythonType type)
+        public static bool IsListType(PythonType type)
         {
             return type.Namespace == "System.Collections.Generic" &&
                 type.TypeParameters.Count == 1 &&

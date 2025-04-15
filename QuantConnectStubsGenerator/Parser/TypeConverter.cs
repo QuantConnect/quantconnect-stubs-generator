@@ -16,6 +16,7 @@
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using QuantConnectStubsGenerator.Model;
+using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Parser
 {
@@ -218,7 +219,7 @@ namespace QuantConnectStubsGenerator.Parser
                 };
             }
 
-            return type;
+            return Utils.NormalizeType(type);
         }
     }
 }

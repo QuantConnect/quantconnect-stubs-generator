@@ -188,7 +188,7 @@ namespace QuantConnectStubsGenerator.Parser
                     break;
                 }
 
-                method.Parameters.Add(Utils.NormalizeParameter(parsedParameter));
+                method.Parameters.Add(parsedParameter);
 
                 if (parameter.Modifiers.Any(m => m.Text == "out"))
                 {

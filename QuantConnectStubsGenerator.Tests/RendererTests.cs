@@ -165,10 +165,6 @@ namespace QuantConnect.Test
     {
     }
 
-    /// <summary>
-    /// This will not inherit typing.Iterable directly, but IEnumerable[string] will.
-    /// __iter__ will be generated for IEnumerable[string], not for this class.
-    /// </summary>
     public class TestEnumerable2 : List<string>
     {
     }
@@ -205,11 +201,8 @@ class TestDerivedEnumerable1(TestEnumerable):
     """"""This class has no documentation.""""""
 
 
-class TestEnumerable2(System.Collections.Generic.List[str]):
-    """"""
-    This will not inherit typing.Iterable directly, but IEnumerable[string] will.
-    __iter__ will be generated for IEnumerable[string], not for this class.
-    """"""
+class TestEnumerable2(typing.Iterable[str]):
+    """"""This class has no documentation.""""""
 "
             };
 

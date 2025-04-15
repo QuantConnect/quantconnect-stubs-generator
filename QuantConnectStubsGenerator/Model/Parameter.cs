@@ -13,9 +13,11 @@
  * limitations under the License.
 */
 
+using System;
+
 namespace QuantConnectStubsGenerator.Model
 {
-    public class Parameter
+    public class Parameter : IEquatable<Parameter>
     {
         public string Name { get; }
         public PythonType Type { get; set; }
@@ -30,11 +32,32 @@ namespace QuantConnectStubsGenerator.Model
         }
 
         public Parameter(Parameter other)
+            : this(other.Name, other.Type)
         {
-            Name = other.Name;
-            Type = other.Type;
             VarArgs = other.VarArgs;
             Value = other.Value;
+        }
+
+        public bool Equals(Parameter other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Name == other.Name
+                && Type.Equals(other.Type)
+                && VarArgs == other.VarArgs
+                && Value == other.Value;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((Parameter)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Name, Type, VarArgs, Value);
         }
     }
 }

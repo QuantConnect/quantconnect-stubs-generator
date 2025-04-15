@@ -13,12 +13,13 @@
  * limitations under the License.
 */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace QuantConnectStubsGenerator.Model
 {
-    public class Method
+    public class Method : IEquatable<Method>
     {
         public string Name { get; }
         public PythonType ReturnType { get; set; }
@@ -41,27 +42,28 @@ namespace QuantConnectStubsGenerator.Model
             Parameters = new List<Parameter>();
         }
 
-        public Method(Method other, IEnumerable<Parameter> parameters = null)
+        public bool Equals(Method other)
         {
-            Name = other.Name;
-            ReturnType = other.ReturnType;
-            Static = other.Static;
-            Overload = other.Overload;
-            Summary = other.Summary;
-            File = other.File;
-            DeprecationReason = other.DeprecationReason;
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Name == other.Name
+                && Static == other.Static
+                && Overload == other.Overload
+                && File == other.File
+                && DeprecationReason == other.DeprecationReason
+                && Parameters.SequenceEqual(other.Parameters);
+        }
 
-            if (parameters != null)
-            {
-                Parameters = parameters.ToList();
-            }
-            else
-            {
-                foreach (var parameter in other.Parameters)
-                {
-                    Parameters.Add(new Parameter(parameter));
-                }
-            }
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((Method)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Name, Static, Overload, File, DeprecationReason, Parameters);
         }
     }
 }

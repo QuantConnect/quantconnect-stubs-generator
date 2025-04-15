@@ -155,7 +155,6 @@ namespace QuantConnectStubsGenerator.Parser
 
             var docStrings = new List<string>();
             var outTypes = new List<PythonType>();
-            var hasListParameter = false;
 
             foreach (var parameter in parameterList)
             {
@@ -189,7 +188,7 @@ namespace QuantConnectStubsGenerator.Parser
                     break;
                 }
 
-                method.Parameters.Add(parsedParameter);
+                method.Parameters.Add(Utils.NormalizeParameter(parsedParameter));
 
                 if (parameter.Modifiers.Any(m => m.Text == "out"))
                 {
@@ -203,8 +202,6 @@ namespace QuantConnectStubsGenerator.Parser
 
                     outTypes.Add(actualType);
                 }
-
-                hasListParameter |= Utils.IsListParameterType(parsedParameter.Type);
             }
 
             // Python.NET returns a tuple if a method has out parameters
@@ -255,18 +252,6 @@ namespace QuantConnectStubsGenerator.Parser
             _currentClass.Methods.Add(method);
 
             ImprovePythonAccessorIfNecessary(method);
-
-            if (hasListParameter)
-            {
-                method.Overload = true;
-
-                // Generate overload methods
-                var overload = new Method(method, method.Parameters.Select(Utils.ConvertListParameter).ToList())
-                {
-                    Overload = true
-                };
-                _currentClass.Methods.Add(overload);
-            }
         }
 
         private Parameter ParseParameter(ParameterSyntax syntax)

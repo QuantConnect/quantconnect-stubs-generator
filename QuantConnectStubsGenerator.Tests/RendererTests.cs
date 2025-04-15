@@ -266,41 +266,22 @@ import typing
 
 import QuantConnect.Test
 import System
-import System.Collections.Generic
 
 
 class TestClass(System.Object):
     """"""This class has no documentation.""""""
 
     @overload
-    def __init__(self, someParam: int, enumerable: System.Collections.Generic.IEnumerable[int]) -> None:
-        ...
-
-    @overload
     def __init__(self, someParam: int, enumerable: typing.Iterable[int]) -> None:
-        ...
-
-    @overload
-    def __init__(self, enumerable: System.Collections.Generic.List[int]) -> None:
         ...
 
     @overload
     def __init__(self, enumerable: typing.Iterable[int]) -> None:
         ...
 
-    @overload
-    def method_1(self, enumerable: System.Collections.Generic.IList[str]) -> None:
-        ...
-
-    @overload
     def method_1(self, enumerable: typing.Iterable[str]) -> None:
         ...
 
-    @overload
-    def method_2(self, some_param: typing.Union[datetime.datetime, datetime.date], enumerable: System.Collections.Generic.IList[System.Collections.Generic.List[str]]) -> None:
-        ...
-
-    @overload
     def method_2(self, some_param: typing.Union[datetime.datetime, datetime.date], enumerable: typing.Iterable[typing.Iterable[str]]) -> None:
         ...
 "

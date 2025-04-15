@@ -19,7 +19,7 @@ namespace QuantConnectStubsGenerator.Utility
 {
     public static class Utils
     {
-        public static Parameter ConvertListParameter(Parameter parameter)
+        public static Parameter NormalizeParameter(Parameter parameter)
         {
             if (!IsListParameterType(parameter.Type))
             {
@@ -28,11 +28,11 @@ namespace QuantConnectStubsGenerator.Utility
 
             return new Parameter(parameter)
             {
-                Type = ConvertListParameterType(parameter.Type)
+                Type = NormalizeParameterType(parameter.Type)
             };
         }
 
-        public static PythonType ConvertListParameterType(PythonType type)
+        public static PythonType NormalizeParameterType(PythonType type)
         {
             if (!IsListParameterType(type))
             {
@@ -41,7 +41,7 @@ namespace QuantConnectStubsGenerator.Utility
 
             return new PythonType("Iterable", "typing")
             {
-                TypeParameters = { ConvertListParameterType(type.TypeParameters[0]) }
+                TypeParameters = { NormalizeParameterType(type.TypeParameters[0]) }
             };
         }
 

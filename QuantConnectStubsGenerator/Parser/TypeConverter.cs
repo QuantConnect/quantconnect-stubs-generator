@@ -219,7 +219,7 @@ namespace QuantConnectStubsGenerator.Parser
                 };
             }
 
-            return Utils.NormalizeType(type);
+            return type;
         }
     }
 }

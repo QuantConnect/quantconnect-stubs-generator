@@ -31,7 +31,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
-            var returnType = _typeConverter.GetType(node.ReturnType);
+            var returnType = Utils.NormalizeType(_typeConverter.GetType(node.ReturnType));
             VisitMethod(
                 node,
                 node.Identifier.Text,
@@ -61,7 +61,7 @@ namespace QuantConnectStubsGenerator.Parser
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
-                _typeConverter.GetType(node.ReturnType));
+                Utils.NormalizeType(_typeConverter.GetType(node.ReturnType)));
         }
 
         public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
@@ -71,7 +71,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            var returnType = _typeConverter.GetType(node.Type);
+            var returnType = Utils.NormalizeType(_typeConverter.GetType(node.Type));
 
             // Improve the autocomplete on data[symbol] if data is a Slice and symbol a Symbol
             // In C# this is of type dynamic, which by default gets converted to typing.Any
@@ -257,7 +257,7 @@ namespace QuantConnectStubsGenerator.Parser
         private Parameter ParseParameter(ParameterSyntax syntax)
         {
             var originalName = syntax.Identifier.Text;
-            var parameter = new Parameter(FormatParameterName(originalName), _typeConverter.GetType(syntax.Type));
+            var parameter = new Parameter(FormatParameterName(originalName), Utils.NormalizeType(_typeConverter.GetType(syntax.Type)));
 
             if (syntax.Modifiers.Any(modifier => modifier.Text == "params"))
             {
@@ -382,7 +382,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            VisitMethod(node, "__contains__", node.ParameterList.Parameters, _typeConverter.GetType(node.ReturnType));
+            VisitMethod(node, "__contains__", node.ParameterList.Parameters, Utils.NormalizeType(_typeConverter.GetType(node.ReturnType)));
 
             if (_currentClass.Methods.All(m => m.Name != "__len__"))
             {

@@ -259,6 +259,108 @@ namespace QuantConnect.Test
             Assert.IsTrue(testProperty.HasSetter);
         }
 
+        [Test]
+        public void CSharpEnumeratorsArePythonIterables()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "Test.cs",
+                        @"
+using System;
+using System.Collections.Generic;
+
+namespace QuantConnect.Test
+{
+    public class TestEnumerable : IEnumerable<int>
+    {
+        public IEnumerator<int> GetEnumerator()
+        {
+            yield return 1;
+        }
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaces().Single(x => x.Name == "QuantConnect.Test");
+            var classes = ns.GetClasses().ToList();
+
+            var testEnumerable = classes.Single(x => x.Type.Name == "TestEnumerable");
+            var iterableBaseClassType = testEnumerable.InheritsFrom.SingleOrDefault(x => x.Name == "Iterable" && x.Namespace == "typing");
+            Assert.IsNotNull(iterableBaseClassType);
+            Assert.AreEqual(1, iterableBaseClassType.TypeParameters.Count);
+            var itemType = iterableBaseClassType.TypeParameters[0];
+            Assert.AreEqual(new PythonType("int"), itemType);
+        }
+
+        [Test]
+        public void IterableOverloadsForEnumerableParameters()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "Test.cs",
+                        @"
+using System;
+using System.Collections.Generic;
+
+namespace QuantConnect.Test
+{
+    public class TestClass
+    {
+        public TestClass(List<int> enumerable)
+        {
+        }
+
+        public TestClass(int someParam, IEnumerable<int> enumerable)
+        {
+        }
+
+        public void Method1(IList<string> enumerable)
+        {
+        }
+
+        public void Method2(IList<List<string>> enumerable)
+        {
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaces().Single(x => x.Name == "QuantConnect.Test");
+            var classes = ns.GetClasses().ToList();
+
+            var testClass = classes.Single(x => x.Type.Name == "TestClass");
+
+            var constructor1 = testClass.Methods.Where(x => x.Name == "__init__" && x.Parameters.Count == 1).Single();
+            Assert.AreEqual("typing.Iterable[int]", constructor1.Parameters[0].Type.ToPythonString());
+
+            var constructor2 = testClass.Methods.Where(x => x.Name == "__init__" && x.Parameters.Count == 2).Single();
+            Assert.AreEqual("typing.Iterable[int]", constructor2.Parameters[1].Type.ToPythonString());
+
+            var method1 = testClass.Methods.Single(x => x.Name == "Method1");
+            Assert.AreEqual("typing.Iterable[str]", method1.Parameters[0].Type.ToPythonString());
+
+            var method2 = testClass.Methods.Single(x => x.Name == "Method2");
+            Assert.AreEqual("typing.Iterable[typing.Iterable[str]]", method2.Parameters[0].Type.ToPythonString());
+        }
+
         private class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

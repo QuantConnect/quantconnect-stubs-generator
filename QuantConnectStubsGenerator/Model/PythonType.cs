@@ -88,6 +88,11 @@ namespace QuantConnectStubsGenerator.Model
             return str;
         }
 
+        public override string ToString()
+        {
+            return ToPythonString();
+        }
+
         public bool Equals(PythonType other)
         {
             if (ReferenceEquals(null, other)) return false;

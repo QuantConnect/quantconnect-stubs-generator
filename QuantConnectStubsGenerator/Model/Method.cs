@@ -13,11 +13,13 @@
  * limitations under the License.
 */
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace QuantConnectStubsGenerator.Model
 {
-    public class Method
+    public class Method : IEquatable<Method>
     {
         public string Name { get; }
         public PythonType ReturnType { get; set; }
@@ -31,12 +33,37 @@ namespace QuantConnectStubsGenerator.Model
 
         public string DeprecationReason { get; set; }
 
-        public IList<Parameter> Parameters { get; } = new List<Parameter>();
+        public IList<Parameter> Parameters { get; }
 
         public Method(string name, PythonType returnType)
         {
             Name = name;
             ReturnType = returnType;
+            Parameters = new List<Parameter>();
+        }
+
+        public bool Equals(Method other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Name == other.Name
+                && Static == other.Static
+                && Overload == other.Overload
+                && File == other.File
+                && DeprecationReason == other.DeprecationReason
+                && Parameters.SequenceEqual(other.Parameters);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((Method)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Name, Static, Overload, File, DeprecationReason, Parameters);
         }
     }
 }

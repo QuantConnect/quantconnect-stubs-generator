@@ -130,6 +130,170 @@ class TestClass(QuantConnect.Namespace1.BaseClass, QuantConnect.Namespace2.IInte
             Assert.AreEqual(3, parsedNamespaces.Count);
             // QuantConnect namespace is empty
             Assert.AreEqual(parsedNamespaces.Count - 1, renderedNamespaces.Count);
+
+            CompareResultFiles(expectedGeneratedFiles, renderedNamespaces);
+        }
+
+        [Test]
+        public void CSharpEnumeratorsArePythonIterables()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "Test.cs",
+                        @"
+using System;
+using System.Collections.Generic;
+
+namespace QuantConnect.Test
+{
+    public class TestEnumerable1 : IEnumerable<int>
+    {
+        public IEnumerator<int> GetEnumerator()
+        {
+            yield return 1;
+        }
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+    }
+
+    public class TestDerivedEnumerable1 : TestEnumerable
+    {
+    }
+
+    /// <summary>
+    /// This will not inherit typing.Iterable directly, but IEnumerable[string] will.
+    /// __iter__ will be generated for IEnumerable[string], not for this class.
+    /// </summary>
+    public class TestEnumerable2 : List<string>
+    {
+    }
+}"
+                    }
+                }
+            };
+
+            var expectedGeneratedFiles = new[]
+            {
+                @"
+from typing import overload
+from enum import Enum
+import typing
+
+import QuantConnect.Test
+import System
+import System.Collections.Generic
+
+TestEnumerable = typing.Any
+
+
+class TestEnumerable1(System.Object, typing.Iterable[int]):
+    """"""This class has no documentation.""""""
+
+    def __iter__(self) -> typing.Iterator[int]:
+        ...
+
+    def get_enumerator(self) -> System.Collections.Generic.IEnumerator[int]:
+        ...
+
+
+class TestDerivedEnumerable1(TestEnumerable):
+    """"""This class has no documentation.""""""
+
+
+class TestEnumerable2(System.Collections.Generic.List[str]):
+    """"""
+    This will not inherit typing.Iterable directly, but IEnumerable[string] will.
+    __iter__ will be generated for IEnumerable[string], not for this class.
+    """"""
+"
+            };
+
+            testGenerator.GenerateModelsAndRender(out var context, out var renderedNamespaces);
+
+            CompareResultFiles(expectedGeneratedFiles, renderedNamespaces);
+        }
+
+        [Test]
+        public void GeneratesIterableOverloadsForEnumerableParameters()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "Test.cs",
+                        @"
+using System;
+using System.Collections.Generic;
+
+namespace QuantConnect.Test
+{
+    public class TestClass
+    {
+        public TestClass(int someParam, IEnumerable<int> enumerable)
+        {
+        }
+
+        public TestClass(List<int> enumerable)
+        {
+        }
+
+        public void Method1(IList<string> enumerable)
+        {
+        }
+
+        public void Method2(DateTime someParam, IList<List<string>> enumerable)
+        {
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            var expectedGeneratedFiles = new[]
+            {
+                @"
+from typing import overload
+from enum import Enum
+import datetime
+import typing
+
+import QuantConnect.Test
+import System
+
+
+class TestClass(System.Object):
+    """"""This class has no documentation.""""""
+
+    @overload
+    def __init__(self, someParam: int, enumerable: typing.Iterable[int]) -> None:
+        ...
+
+    @overload
+    def __init__(self, enumerable: typing.Iterable[int]) -> None:
+        ...
+
+    def method_1(self, enumerable: typing.Iterable[str]) -> None:
+        ...
+
+    def method_2(self, some_param: typing.Union[datetime.datetime, datetime.date], enumerable: typing.Iterable[typing.Iterable[str]]) -> None:
+        ...
+"
+            };
+
+            testGenerator.GenerateModelsAndRender(out var context, out var renderedNamespaces);
+
+            CompareResultFiles(expectedGeneratedFiles, renderedNamespaces);
+        }
+
+        private static void CompareResultFiles(string[] expectedGeneratedFiles, List<string> renderedNamespaces)
+        {
             Assert.AreEqual(expectedGeneratedFiles.Length, renderedNamespaces.Count);
 
             for (var i = 0; i < expectedGeneratedFiles.Length; i++)

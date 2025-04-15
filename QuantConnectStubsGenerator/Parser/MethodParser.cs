@@ -31,14 +31,15 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
+            var returnType = Utils.NormalizeType(_typeConverter.GetType(node.ReturnType));
             VisitMethod(
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
-                _typeConverter.GetType(node.ReturnType));
+                returnType);
 
             // Make the current class extend from typing.Iterable if this is an applicable GetEnumerator() method
-            ExtendIterableIfNecessary(node);
+            ExtendIterableIfNecessary(node, returnType);
 
             // Add __contains__ and __len__ methods to containers in System.Collections.Generic
             AddContainerMethodsIfNecessary(node);
@@ -60,7 +61,7 @@ namespace QuantConnectStubsGenerator.Parser
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
-                _typeConverter.GetType(node.ReturnType));
+                Utils.NormalizeType(_typeConverter.GetType(node.ReturnType)));
         }
 
         public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
@@ -70,7 +71,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            var returnType = _typeConverter.GetType(node.Type);
+            var returnType = Utils.NormalizeType(_typeConverter.GetType(node.Type));
 
             // Improve the autocomplete on data[symbol] if data is a Slice and symbol a Symbol
             // In C# this is of type dynamic, which by default gets converted to typing.Any
@@ -196,7 +197,7 @@ namespace QuantConnectStubsGenerator.Parser
                     // Python.NET allows passing None to out parameters
                     parsedParameter.Type = new PythonType("Optional", "typing")
                     {
-                        TypeParameters = {actualType}
+                        TypeParameters = { actualType }
                     };
 
                     outTypes.Add(actualType);
@@ -256,7 +257,7 @@ namespace QuantConnectStubsGenerator.Parser
         private Parameter ParseParameter(ParameterSyntax syntax)
         {
             var originalName = syntax.Identifier.Text;
-            var parameter = new Parameter(FormatParameterName(originalName), _typeConverter.GetType(syntax.Type));
+            var parameter = new Parameter(FormatParameterName(originalName), Utils.NormalizeType(_typeConverter.GetType(syntax.Type)));
 
             if (syntax.Modifiers.Any(modifier => modifier.Text == "params"))
             {
@@ -333,7 +334,7 @@ namespace QuantConnectStubsGenerator.Parser
             };
         }
 
-        private void ExtendIterableIfNecessary(MethodDeclarationSyntax node)
+        private void ExtendIterableIfNecessary(MethodDeclarationSyntax node, PythonType returnType)
         {
             if (node.Identifier.Text != "GetEnumerator")
             {
@@ -345,19 +346,28 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            var parsedReturnType = _typeConverter.GetType(node.ReturnType);
-
             // Some GetEnumerator() methods return an IEnumerator, some return an IEnumerator<T>
             // typing.Iterable requires a type parameter, so we don't extend it if an IEnumerator is returned
-            if (parsedReturnType.TypeParameters.Count == 0)
+            var typeParameters = returnType.TypeParameters;
+            if (typeParameters.Count == 0)
             {
                 return;
             }
 
-            _currentClass.InheritsFrom.Add(new PythonType("Iterable", "typing")
+            var iterableType = new PythonType("Iterable", "typing")
             {
-                TypeParameters = parsedReturnType.TypeParameters
-            });
+                TypeParameters = typeParameters
+            };
+            _currentClass.InheritsFrom.Add(iterableType);
+
+            if (_currentClass.Methods.All(m => m.Name != "__iter__"))
+            {
+                var iteratorType = new PythonType("Iterator", "typing")
+            {
+                    TypeParameters = typeParameters
+                };
+                _currentClass.Methods.Add(new Method("__iter__", iteratorType));
+            }
         }
 
         private void AddContainerMethodsIfNecessary(MethodDeclarationSyntax node)
@@ -372,7 +382,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            VisitMethod(node, "__contains__", node.ParameterList.Parameters, _typeConverter.GetType(node.ReturnType));
+            VisitMethod(node, "__contains__", node.ParameterList.Parameters, Utils.NormalizeType(_typeConverter.GetType(node.ReturnType)));
 
             if (_currentClass.Methods.All(m => m.Name != "__len__"))
             {

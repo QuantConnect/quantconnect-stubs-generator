@@ -191,7 +191,7 @@ import System.Collections.Generic
 TestEnumerable = typing.Any
 
 
-class TestEnumerable1(System.Object, typing.Iterable[int]):
+class TestEnumerable1(System.Object, System.Collections.Generic.IEnumerable[int], typing.Iterable[int]):
     """"""This class has no documentation.""""""
 
     def __iter__(self) -> typing.Iterator[int]:

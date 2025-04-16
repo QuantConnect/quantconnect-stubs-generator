@@ -16,7 +16,7 @@ from utils import *
 def main():
     if find_spec("QuantConnect") is not None:
         fail("Integration tests must run in an environment in which the stubs are not already installed")
-    
+
     for package in ["pandas", "matplotlib"]:
         if find_spec(package) is None:
             fail(f"{package} must be installed when running the integration tests")
@@ -24,6 +24,7 @@ def main():
     ensure_command_availability("git")
     ensure_command_availability("dotnet")
     ensure_command_availability("pyright")
+    ensure_command_availability("mypy")
 
     project_root = Path(__file__).absolute().parent.parent
     generated_dir = project_root / "generated"
@@ -54,9 +55,10 @@ def main():
 }}
         """.strip())
 
-    if not run_command(["pyright"], cwd=stubs_dir, append_empty_line=False):
+    if not run_command(["pyright"], cwd=stubs_dir):
         fail("Pyright found errors in the generated stubs")
 
+    run_command(["python", "run_syntax_check.py"], cwd=lean_dir, env={'MYPYPATH': str(stubs_dir)}, append_empty_line=False)
 
 if __name__ == "__main__":
     main()

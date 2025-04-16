@@ -33,7 +33,7 @@ jobs:
 
       - name: Install integration test dependencies
         run: |
-          pip install pandas matplotlib pyright==1.1.338
+          pip install pandas matplotlib pyright==1.1.338 mypy==1.15.0
 
       - name: Run integration tests
         run: python integration/integration_tests.py

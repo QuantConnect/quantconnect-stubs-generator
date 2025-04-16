@@ -26,7 +26,6 @@ def main():
     ensure_command_availability("dotnet")
     ensure_command_availability("pyright")
     ensure_command_availability("mypy")
-    ensure_command_availability("wheel")
 
     project_root = Path(__file__).absolute().parent.parent
     generated_dir = project_root / "generated"

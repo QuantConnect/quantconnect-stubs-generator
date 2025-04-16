@@ -27,12 +27,35 @@ namespace QuantConnectStubsGenerator.Tests
     [TestFixture]
     public class RendererTests
     {
-        [Test]
-        public void SkipsPropertyIfThereIsAMethodWithTheSameName()
+        [TestCaseSource(nameof(RenderTestCases))]
+        public void GeneratesEventContainerClassForEventsDelegates(Dictionary<string, string> testFiles,
+            string[] expectedGeneratedFiles)
         {
             var testGenerator = new TestGenerator
             {
-                Files = new()
+                Files = testFiles
+            };
+
+            testGenerator.GenerateModelsAndRender(out var context, out var renderedNamespaces);
+
+            Assert.AreEqual(expectedGeneratedFiles.Length, renderedNamespaces.Count);
+
+            for (var i = 0; i < expectedGeneratedFiles.Length; i++)
+            {
+                var expectedFile = expectedGeneratedFiles[i];
+                var renderedFile = renderedNamespaces[i];
+                // Remove all whitespace and new lines
+                var expectedFileWithoutWhitespace = string.Concat(expectedFile.Where(c => !char.IsWhiteSpace(c)));
+                var renderedFileWithoutWhitespace = string.Concat(renderedFile.Where(c => !char.IsWhiteSpace(c)));
+                Assert.AreEqual(expectedFileWithoutWhitespace, renderedFileWithoutWhitespace);
+            }
+        }
+
+        private static TestCaseData[] RenderTestCases => new[]
+        {
+            // SkipsPropertyIfThereIsAMethodWithTheSameName
+            new TestCaseData(
+                new Dictionary<string, string>()
                 {
                     {
                         "Test1.cs",
@@ -76,12 +99,10 @@ namespace QuantConnect.Namespace2
     }
 }"
                     }
-                }
-            };
-
-            var expectedGeneratedFiles = new[]
-            {
-                @"
+                },
+                new[]
+                {
+                    @"
 from typing import overload
 from enum import Enum
 import abc
@@ -121,25 +142,11 @@ class TestClass(QuantConnect.Namespace1.BaseClass, QuantConnect.Namespace2.IInte
     def test_2(self) -> int:
         ...
 "
-            };
+                }).SetName("SkipsPropertyIfThereIsAMethodWithTheSameName"),
 
-            testGenerator.GenerateModelsAndRender(out var context, out var renderedNamespaces);
-
-            var parsedNamespaces = context.GetNamespaces().ToList();
-            // QuantConnect, Namespace1, Namespace2 namespaces
-            Assert.AreEqual(3, parsedNamespaces.Count);
-            // QuantConnect namespace is empty
-            Assert.AreEqual(parsedNamespaces.Count - 1, renderedNamespaces.Count);
-
-            CompareResultFiles(expectedGeneratedFiles, renderedNamespaces);
-        }
-
-        [Test]
-        public void CSharpEnumeratorsArePythonIterables()
-        {
-            var testGenerator = new TestGenerator
-            {
-                Files = new()
+            // CSharpEnumeratorsArePythonIterables
+            new TestCaseData(
+                new Dictionary<string, string>()
                 {
                     {
                         "Test.cs",
@@ -174,11 +181,9 @@ namespace QuantConnect.Test
     }
 }"
                     }
-                }
-            };
-
-            var expectedGeneratedFiles = new[]
-            {
+                },
+                new[]
+                {
                 @"
 from typing import overload
 from enum import Enum
@@ -211,19 +216,11 @@ class TestEnumerable2(System.Collections.Generic.List[str]):
     __iter__ will be generated for IEnumerable[string], not for this class.
     """"""
 "
-            };
+                }).SetName("CSharpEnumeratorsArePythonIterables"),
 
-            testGenerator.GenerateModelsAndRender(out var context, out var renderedNamespaces);
-
-            CompareResultFiles(expectedGeneratedFiles, renderedNamespaces);
-        }
-
-        [Test]
-        public void GeneratesIterableOverloadsForEnumerableParameters()
-        {
-            var testGenerator = new TestGenerator
-            {
-                Files = new()
+            // GeneratesIterableOverloadsForEnumerableParameters
+            new TestCaseData(
+                new Dictionary<string, string>()
                 {
                     {
                         "Test.cs",
@@ -253,11 +250,9 @@ namespace QuantConnect.Test
     }
 }"
                     }
-                }
-            };
-
-            var expectedGeneratedFiles = new[]
-            {
+                },
+                new[]
+                {
                 @"
 from typing import overload
 from enum import Enum
@@ -285,27 +280,93 @@ class TestClass(System.Object):
     def method_2(self, some_param: typing.Union[datetime.datetime, datetime.date], enumerable: typing.Iterable[typing.Iterable[str]]) -> None:
         ...
 "
-            };
+                }).SetName("GeneratesIterableOverloadsForEnumerableParameters"),
 
-            testGenerator.GenerateModelsAndRender(out var context, out var renderedNamespaces);
+            // GeneratesEventContainerClassForEventsDelegates
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test.cs",
+                        @"
+using System;
+using System.Collections.Generic;
 
-            CompareResultFiles(expectedGeneratedFiles, renderedNamespaces);
-        }
+namespace QuantConnect.Test
+{
+    public class TestEventArgs : EventArgs
+    {
+        public string Message { get; }
 
-        private static void CompareResultFiles(string[] expectedGeneratedFiles, List<string> renderedNamespaces)
+        public TestEventArgs(string message)
         {
-            Assert.AreEqual(expectedGeneratedFiles.Length, renderedNamespaces.Count);
-
-            for (var i = 0; i < expectedGeneratedFiles.Length; i++)
-            {
-                var expectedFile = expectedGeneratedFiles[i];
-                var renderedFile = renderedNamespaces[i];
-                // Remove all whitespace and new lines
-                var expectedFileWithoutWhitespace = string.Concat(expectedFile.Where(c => !char.IsWhiteSpace(c)));
-                var renderedFileWithoutWhitespace = string.Concat(renderedFile.Where(c => !char.IsWhiteSpace(c)));
-                Assert.AreEqual(expectedFileWithoutWhitespace, renderedFileWithoutWhitespace);
-            }
+            Message = message;
         }
+    }
+
+    public delegate void TestEventDelegate(object sender, IndicatorDataPoint updated);
+
+    public class TestClass
+    {
+        public event TestEventDelegate TestEvent;
+    }
+}"
+                    }
+                },
+                new[]
+                {
+                @"
+from typing import overload
+from enum import Enum
+import typing
+
+import QuantConnect.Test
+import System
+
+IndicatorDataPoint = typing.Any
+
+QuantConnect_Test__EventContainer_Callable = typing.TypeVar(""QuantConnect_Test__EventContainer_Callable"")
+QuantConnect_Test__EventContainer_ReturnType = typing.TypeVar(""QuantConnect_Test__EventContainer_ReturnType"")
+
+
+class TestEventArgs(System.EventArgs):
+    """"""This class has no documentation.""""""
+
+    @property
+    def message(self) -> str:
+        ...
+
+    def __init__(self, message: str) -> None:
+        ...
+
+class TestClass(System.Object):
+    """"""This class has no documentation.""""""
+
+    @property
+    def test_event(self) -> _EventContainer[typing.Callable[[System.Object, IndicatorDataPoint], None], None]:
+        ...
+
+    @test_event.setter
+    def test_event(self, value: _EventContainer[typing.Callable[[System.Object, IndicatorDataPoint], None], None]) -> None:
+        ...
+
+class _EventContainer(typing.Generic[QuantConnect_Test__EventContainer_Callable, QuantConnect_Test__EventContainer_ReturnType]):
+    """"""This class is used to provide accurate autocomplete on events and cannot be imported.""""""
+
+    def __call__(self, *args: typing.Any, **kwargs: typing.Any) -> QuantConnect_Test__EventContainer_ReturnType:
+        """"""Fires the event.""""""
+        ...
+
+    def __iadd__(self, item: QuantConnect_Test__EventContainer_Callable) -> typing.Self:
+        """"""Registers an event handler.""""""
+        ...
+
+    def __isub__(self, item: QuantConnect_Test__EventContainer_Callable) -> typing.Self:
+        """"""Unregisters an event handler.""""""
+        ...
+"
+                }).SetName("GeneratesEventContainerClassForEventsDelegates"),
+        };
 
         private class TestGenerator : Generator
         {

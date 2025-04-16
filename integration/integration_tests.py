@@ -11,12 +11,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 from utils import *
 
 def main():
     if find_spec("QuantConnect") is not None:
         fail("Integration tests must run in an environment in which the stubs are not already installed")
-    
+
     for package in ["pandas", "matplotlib"]:
         if find_spec(package) is None:
             fail(f"{package} must be installed when running the integration tests")
@@ -24,6 +25,7 @@ def main():
     ensure_command_availability("git")
     ensure_command_availability("dotnet")
     ensure_command_availability("pyright")
+    ensure_command_availability("mypy")
 
     project_root = Path(__file__).absolute().parent.parent
     generated_dir = project_root / "generated"
@@ -40,7 +42,10 @@ def main():
     if stubs_dir.exists():
         shutil.rmtree(stubs_dir)
 
-    if not run_command(["dotnet", "run", lean_dir, runtime_dir, stubs_dir], cwd=generator_dir):
+    stubs_version = "1.0.0"
+    env = os.environ.copy()
+    env["STUBS_VERSION"] = stubs_version
+    if not run_command(["dotnet", "run", lean_dir, runtime_dir, stubs_dir], cwd=generator_dir, env=env):
         fail("Could not run QuantConnectStubsGenerator")
 
     with open(stubs_dir / "pyrightconfig.json", "w") as file:
@@ -54,9 +59,14 @@ def main():
 }}
         """.strip())
 
-    if not run_command(["pyright"], cwd=stubs_dir, append_empty_line=False):
+    if not run_command(["pyright"], cwd=stubs_dir):
         fail("Pyright found errors in the generated stubs")
 
+    if (not run_command([sys.executable, "setup.py", "--quiet", "sdist", "bdist_wheel"], cwd=stubs_dir) or
+        not run_command([sys.executable, "-m", "pip", "install", "--force-reinstall", f"dist/quantconnect_stubs-{stubs_version}-py3-none-any.whl"], cwd=stubs_dir)):
+        fail("Could not build and install the stubs")
+
+    run_command([sys.executable, "run_syntax_check.py"], cwd=lean_dir, append_empty_line=False)
 
 if __name__ == "__main__":
     main()

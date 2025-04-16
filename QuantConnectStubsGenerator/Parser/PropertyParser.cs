@@ -235,12 +235,12 @@ namespace QuantConnectStubsGenerator.Parser
                 Summary = "This class is used to provide accurate autocomplete on events and cannot be imported.",
                 Methods =
                 {
-                    new Method("__iadd__", new PythonType("None"))
+                    new Method("__iadd__", new PythonType("Self", "typing"))
                     {
                         Summary = "Registers an event handler.",
                         Parameters = {new Parameter("item", classType.TypeParameters[0])}
                     },
-                    new Method("__isub__", new PythonType("None"))
+                    new Method("__isub__", new PythonType("Self", "typing"))
                     {
                         Summary = "Unregisters an event handler.",
                         Parameters = {new Parameter("item", classType.TypeParameters[0])}

@@ -187,7 +187,7 @@ namespace QuantConnectStubsGenerator.Renderer
             // render setter for mypy to be happy
             if (property.HasSetter)
             {
-                WriteLine("@property.setter");
+                WriteLine($"@{property.Name}.setter");
 
                 // Add the getter
                 WriteLine($"def {property.Name}(self, value: {property.Type.ToPythonString()}) -> None:");

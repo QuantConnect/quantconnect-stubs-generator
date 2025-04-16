@@ -361,6 +361,92 @@ namespace QuantConnect.Test
             Assert.AreEqual("typing.Iterable[typing.Iterable[str]]", method2.Parameters[0].Type.ToPythonString());
         }
 
+        [Test]
+        public void GeneratesSetterForEvents()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "Test.cs",
+                        @"
+using System;
+
+namespace QuantConnect.Test
+{
+    public class TestClass
+    {
+        private event EventHandler _event;
+
+        public event EventHandler PublicPropertyEvent
+        {
+            add { _event += value; }
+            remove { _event -= value; }
+        }
+
+        public event EventHandler PublicFieldEvent;
+
+        protected event EventHandler ProtectedPropertyEvent
+        {
+            add { _event += value; }
+            remove { _event -= value; }
+        }
+
+        protected event EventHandler ProtectedFieldEvent;
+
+        private event EventHandler PrivatePropertyEvent
+        {
+            add { _event += value; }
+            remove { _event -= value; }
+        }
+
+        private event EventHandler PrivateFieldEvent;
+
+        internal event EventHandler InternalPropertyEvent
+        {
+            add { _event += value; }
+            remove { _event -= value; }
+        }
+
+        internal event EventHandler InternalFieldEvent;
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaces().Single(x => x.Name == "QuantConnect.Test");
+            var classes = ns.GetClasses().ToList();
+            var testClass = classes.Single(x => x.Type.Name == "TestClass");
+
+            var publicPropertyEvent = testClass.Properties.Single(x => x.Name == "PublicPropertyEvent");
+            Assert.IsTrue(publicPropertyEvent.HasSetter);
+
+            var publicFieldEvent = testClass.Properties.Single(x => x.Name == "PublicFieldEvent");
+            Assert.IsTrue(publicFieldEvent.HasSetter);
+
+            var protectedPropertyEvent = testClass.Properties.Single(x => x.Name == "ProtectedPropertyEvent");
+            Assert.IsTrue(protectedPropertyEvent.HasSetter);
+
+            var protectedFieldEvent = testClass.Properties.Single(x => x.Name == "ProtectedFieldEvent");
+            Assert.IsTrue(protectedFieldEvent.HasSetter);
+
+            var privatePropertyEvent = testClass.Properties.SingleOrDefault(x => x.Name == "PrivatePropertyEvent");
+            Assert.IsNull(privatePropertyEvent);
+
+            var privateFieldEvent = testClass.Properties.SingleOrDefault(x => x.Name == "PrivateFieldEvent");
+            Assert.IsNull(privateFieldEvent);
+
+            var internalPropertyEvent = testClass.Properties.SingleOrDefault(x => x.Name == "InternalPropertyEvent");
+            Assert.IsNull(internalPropertyEvent);
+
+            var internalFieldEvent = testClass.Properties.SingleOrDefault(x => x.Name == "InternalFieldEvent");
+            Assert.IsNull(internalFieldEvent);
+        }
+
         private class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

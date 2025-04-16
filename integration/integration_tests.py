@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 from utils import *
 
 def main():
@@ -58,9 +59,7 @@ def main():
     if not run_command(["pyright"], cwd=stubs_dir):
         fail("Pyright found errors in the generated stubs")
 
-
-    run_command(["chmod", "u+x", "run_syntax_check.py"], cwd=lean_dir)
-    run_command(["python", "run_syntax_check.py"], cwd=lean_dir, env={'MYPYPATH': str(stubs_dir)}, append_empty_line=False)
+    run_command([sys.executable, "run_syntax_check.py"], cwd=lean_dir, env={'MYPYPATH': str(stubs_dir)}, append_empty_line=False)
 
 if __name__ == "__main__":
     main()

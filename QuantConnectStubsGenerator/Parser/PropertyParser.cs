@@ -124,9 +124,8 @@ namespace QuantConnectStubsGenerator.Parser
                 Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
                 Constant = IsStaticReadonly(node),
                 DeprecationReason = GetDeprecationReason(node),
-                HasSetter = node.AccessorList?.Accessors.Any(x => x.Keyword.Text == "set"
-                    && !HasModifier(x.Modifiers, "private")
-                    && !HasModifier(x.Modifiers, "internal")) ?? false,
+                HasSetter = (node.AccessorList != null && node.AccessorList.Accessors.Any(x => x.Keyword.Text == "set" && IsPublic(x.Modifiers)))
+                    || (node is EventDeclarationSyntax eventNode && IsPublic(eventNode.Modifiers)),
                 Class = _currentClass
             };
 
@@ -147,6 +146,11 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             _currentClass.Properties.Add(property);
+        }
+
+        private bool IsPublic(SyntaxTokenList modifiers)
+        {
+            return !HasModifier(modifiers, "private") && !HasModifier(modifiers, "internal");
         }
 
         private void VisitField(BaseFieldDeclarationSyntax node, PythonType type)
@@ -170,7 +174,8 @@ namespace QuantConnectStubsGenerator.Parser
                     Abstract = _currentClass.Interface || HasModifier(node, "abstract"),
                     Constant = HasModifier(node, "const") || (HasModifier(node, "static") && HasModifier(node, "readonly")),
                     DeprecationReason = GetDeprecationReason(node),
-                    Class = _currentClass
+                    Class = _currentClass,
+                    HasSetter = IsPublic(node.Modifiers)
                 };
 
                 if (variable.Initializer != null)

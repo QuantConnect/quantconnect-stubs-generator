@@ -60,7 +60,7 @@ def main():
         fail("Pyright found errors in the generated stubs")
 
     run_command([sys.executable, "setup.py", "--quiet", "sdist", "bdist_wheel"], cwd=stubs_dir)
-    run_command([sys.executable, "-m", "pip", "install", "--force-reinstall", "dist/lean-dev-py3-none-any.whl"], cwd=stubs_dir)
+    run_command([sys.executable, "-m", "pip", "install", "--force-reinstall", "dist/quantconnect_stubs-16929-py3-none-any.whl"], cwd=stubs_dir)
     run_command([sys.executable, "run_syntax_check.py"], cwd=lean_dir, append_empty_line=False)
 
 if __name__ == "__main__":

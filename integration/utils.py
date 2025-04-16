@@ -23,10 +23,10 @@ def fail(msg):
     sys.exit(1)
 
 
-def run_command(args, cwd=os.getcwd(), env=None, append_empty_line=True):
+def run_command(args, cwd=os.getcwd(), append_empty_line=True):
     try:
         print(f"Running {[str(arg) for arg in args] if len(args) <= 10 else args[0]} in {cwd}", flush=True)
-        proc = subprocess.run(args, cwd=cwd, env=env)
+        proc = subprocess.run(args, cwd=cwd)
 
         if append_empty_line:
             print(flush=True)

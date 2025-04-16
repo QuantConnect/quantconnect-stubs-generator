@@ -64,6 +64,10 @@ def main():
         print(f"FILE: {filename}")
 
     run_command([sys.executable, "setup.py", "--quiet", "sdist", "bdist_wheel"], cwd=stubs_dir)
+
+    for filename in os.listdir(stubs_dir / "dist"):
+        print(f"FILE: {filename}")
+
     run_command([sys.executable, "-m", "pip", "install", "--force-reinstall", "dist/quantconnect_stubs-16929-py3-none-any.whl"], cwd=stubs_dir)
     run_command([sys.executable, "run_syntax_check.py"], cwd=lean_dir, append_empty_line=False)
 

@@ -43,7 +43,9 @@ def main():
         shutil.rmtree(stubs_dir)
 
     stubs_version = "1.0.0"
-    if not run_command(["dotnet", "run", lean_dir, runtime_dir, stubs_dir], cwd=generator_dir, env={"STUBS_VERSION": stubs_version}):
+    env = os.environ.copy()
+    env["STUBS_VERSION"] = stubs_version
+    if not run_command(["dotnet", "run", lean_dir, runtime_dir, stubs_dir], cwd=generator_dir, env=env):
         fail("Could not run QuantConnectStubsGenerator")
 
     with open(stubs_dir / "pyrightconfig.json", "w") as file:

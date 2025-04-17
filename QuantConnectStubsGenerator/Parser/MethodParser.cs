@@ -13,13 +13,14 @@
  * limitations under the License.
 */
 
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using System.Xml;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
 using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Utility;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace QuantConnectStubsGenerator.Parser
 {
@@ -31,12 +32,25 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
+            PythonType genericType = null;
+            if (node.TypeParameterList != null)
+            {
+                if (node.TypeParameterList.Parameters.Count > 1
+                    || !node.Identifier.Text.Equals("history", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    // skip, multiple generics or any different to history, we don't expect users to use those
+                    return;
+                }
+                var parameterType = node.TypeParameterList.Parameters.First();
+                genericType = _typeConverter.GetType(parameterType);
+            }
             var returnType = Utils.NormalizeType(_typeConverter.GetType(node.ReturnType));
             VisitMethod(
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
-                returnType);
+                returnType,
+                genericType);
 
             // Make the current class extend from typing.Iterable if this is an applicable GetEnumerator() method
             ExtendIterableIfNecessary(node, returnType);
@@ -52,7 +66,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            VisitMethod(node, "__init__", node.ParameterList.Parameters, new PythonType("None"));
+            VisitMethod(node, "__init__", node.ParameterList.Parameters, new PythonType("None"), null);
         }
 
         public override void VisitDelegateDeclaration(DelegateDeclarationSyntax node)
@@ -61,7 +75,7 @@ namespace QuantConnectStubsGenerator.Parser
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
-                Utils.NormalizeType(_typeConverter.GetType(node.ReturnType)));
+                Utils.NormalizeType(_typeConverter.GetType(node.ReturnType)), null);
         }
 
         public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
@@ -98,12 +112,12 @@ namespace QuantConnectStubsGenerator.Parser
                 returnType = new PythonType("Any", "typing");
             }
 
-            VisitMethod(node, "__getitem__", node.ParameterList.Parameters, returnType);
+            VisitMethod(node, "__getitem__", node.ParameterList.Parameters, returnType, null);
 
             var symbol = _typeConverter.GetSymbol(node);
             if (symbol is IPropertySymbol propertySymbol && !propertySymbol.IsReadOnly)
             {
-                VisitMethod(node, "__setitem__", node.ParameterList.Parameters, new PythonType("None"));
+                VisitMethod(node, "__setitem__", node.ParameterList.Parameters, new PythonType("None"), null);
 
                 var valueParameter = new Parameter("value", returnType);
                 _currentClass.Methods.Last().Parameters.Add(valueParameter);
@@ -114,7 +128,8 @@ namespace QuantConnectStubsGenerator.Parser
             MemberDeclarationSyntax node,
             string name,
             SeparatedSyntaxList<ParameterSyntax> parameterList,
-            PythonType returnType)
+            PythonType returnType,
+            PythonType genericType)
         {
             if (_currentClass == null || ShouldSkip(node))
             {
@@ -248,7 +263,7 @@ namespace QuantConnectStubsGenerator.Parser
                     ? method.Summary + "\n\n" + paramText
                     : paramText;
             }
-
+            method.GenericType = genericType;
             _currentClass.Methods.Add(method);
 
             ImprovePythonAccessorIfNecessary(method);
@@ -382,7 +397,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            VisitMethod(node, "__contains__", node.ParameterList.Parameters, Utils.NormalizeType(_typeConverter.GetType(node.ReturnType)));
+            VisitMethod(node, "__contains__", node.ParameterList.Parameters, Utils.NormalizeType(_typeConverter.GetType(node.ReturnType)), null);
 
             if (_currentClass.Methods.All(m => m.Name != "__len__"))
             {

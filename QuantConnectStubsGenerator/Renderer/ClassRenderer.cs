@@ -14,9 +14,9 @@
 */
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using QuantConnectStubsGenerator.Model;
 
 namespace QuantConnectStubsGenerator.Renderer
@@ -108,7 +108,9 @@ namespace QuantConnectStubsGenerator.Renderer
             var orderedMethods = cls.Methods
                 .Where(m => !string.IsNullOrEmpty(m.Name))
                 .OrderBy(m => m.Name)
-                .ThenBy(m => m.DeprecationReason == null ? 0 : 1);
+                .ThenBy(m => m.DeprecationReason == null ? 0 : 1)
+                // pyobjects are converted into typing.any, we want those at the top so they resolve first which is what actually happens
+                .ThenBy(m => m.Parameters.Any(x => x.Type.Name.Equals("Any")) ? 0 : 1);
 
             foreach (var method in orderedMethods)
             {

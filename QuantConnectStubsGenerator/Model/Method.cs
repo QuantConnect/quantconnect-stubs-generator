@@ -31,6 +31,10 @@ namespace QuantConnectStubsGenerator.Model
 
         public string File { get; set; }
 
+        public bool IsGeneric => GenericType != null;
+
+        public PythonType GenericType { get; set; }
+
         public string DeprecationReason { get; set; }
 
         public IList<Parameter> Parameters { get; }
@@ -40,6 +44,17 @@ namespace QuantConnectStubsGenerator.Model
             Name = name;
             ReturnType = returnType;
             Parameters = new List<Parameter>();
+        }
+        public Method(string name, Method other) : this(name, other.ReturnType)
+        {
+            File = other.File;
+            Static = other.Static;
+            Summary = other.Summary;
+            Overload = other.Overload;
+            ReturnType = other.ReturnType;
+            Parameters = other.Parameters;
+            GenericType = other.GenericType;
+            DeprecationReason = other.DeprecationReason;
         }
 
         public bool Equals(Method other)

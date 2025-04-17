@@ -256,8 +256,6 @@ namespace QuantConnectStubsGenerator
                 "QCAlgorithm.Quit"
             };
 
-            HandleGenericMethods(cls);
-
             var pythonMethodsToRemove = cls.Methods
                 .Where(m => m.File != null && m.File.EndsWith(".Python.cs"))
                 // Python implementations of logging methods accept any parameter type
@@ -279,13 +277,15 @@ namespace QuantConnectStubsGenerator
 
             foreach (var pythonMethod in pythonMethodsToRemove)
             {
-                foreach (var otherMethod in cls.Methods.Where(m => m.Name == pythonMethod.Name))
+                foreach (var otherMethod in cls.Methods.Where(m => m.Name == pythonMethod.Name && !m.IsGeneric))
                 {
                     otherMethod.ReturnType = pythonMethod.ReturnType;
                 }
 
                 cls.Methods.Remove(pythonMethod);
             }
+
+            HandleGenericMethods(cls);
         }
 
         private void MarkOverloads(Class cls)

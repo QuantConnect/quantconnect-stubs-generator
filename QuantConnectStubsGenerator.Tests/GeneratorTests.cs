@@ -159,6 +159,61 @@ namespace QuantConnect.Properties
         }
 
         [Test]
+        public void GenericMethods()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+namespace QuantConnect.GenericMethodsTest
+{
+    public class TestClass
+    {
+        public int History(string parameter)
+        {
+            return 1;
+        }
+        public T History<T>(T parameter)
+        {
+            return parameter;
+        }
+        public PyObject History<T>(int parameter)
+        {
+            return null;
+        }
+    }
+}" }
+            }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var namespaces = result.GetNamespaces().ToList();
+            Assert.AreEqual(2, namespaces.Count);
+
+            var baseNameSpace = namespaces.Single(x => x.Name == "QuantConnect");
+            var testNameSpace = namespaces.Single(x => x.Name == "QuantConnect.GenericMethodsTest");
+
+            var testClass = testNameSpace.GetClasses().Single();
+            Assert.AreEqual("TestClass", testClass.Type.Name);
+
+            var testMethodCount = testClass.Methods.Count;
+            Assert.AreEqual(0, testMethodCount);
+
+            var innerClass = testClass.InnerClasses.Single();
+
+            Assert.AreEqual(0, innerClass.Type.TypeParameters?.Count ?? 0);
+            Assert.IsNotNull(innerClass.Methods.SingleOrDefault(x => x.Name == "__getitem__"));
+            Assert.IsNotNull(innerClass.Methods.SingleOrDefault(x => x.Name == "__call__"));
+
+            var innerInnerClass = innerClass.InnerClasses.Single();
+
+            Assert.AreNotEqual(0, innerInnerClass.Type.TypeParameters?.Count ?? 0);
+            Assert.AreEqual(2, innerInnerClass.Methods.Count(x => x.Name == "__call__"));
+        }
+
+        [Test]
         public void OutParameters()
         {
             var testGenerator = new TestGenerator

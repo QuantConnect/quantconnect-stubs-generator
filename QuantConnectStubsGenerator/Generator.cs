@@ -256,6 +256,8 @@ namespace QuantConnectStubsGenerator
                 "QCAlgorithm.Quit"
             };
 
+            HandleGenericMethods(cls);
+
             var pythonMethodsToRemove = cls.Methods
                 .Where(m => m.File != null && m.File.EndsWith(".Python.cs"))
                 // Python implementations of logging methods accept any parameter type
@@ -277,7 +279,7 @@ namespace QuantConnectStubsGenerator
 
             foreach (var pythonMethod in pythonMethodsToRemove)
             {
-                foreach (var otherMethod in cls.Methods.Where(m => m.Name == pythonMethod.Name))
+                foreach (var otherMethod in cls.Methods.Where(m => m.Name == pythonMethod.Name && !m.IsGeneric))
                 {
                     otherMethod.ReturnType = pythonMethod.ReturnType;
                 }
@@ -400,6 +402,53 @@ namespace QuantConnectStubsGenerator
             return normalizedPath.EndsWith("/")
                 ? normalizedPath.Substring(0, path.Length - 1)
                 : normalizedPath;
+        }
+
+        /// <summary>
+        /// Helper method to support 'self.history(...)' and 'self.history[XYZ](...)' use cases at the same time. Solution is of the format:
+        ///
+        /// class MyClass :
+        ///     class History :
+        ///         class History(typing.Generic[T]):
+        ///              def __call__(self, ticker: str) -> list[QuantConnect.Data.Market.DataDictionary[T]]: ...
+        ///         def __call__(self, ticker: str) -> pandas.DataFrame: ...
+        ///         def __getitem__(self, type: typing.Type[T]) -> History[T]: ...
+        ///     @property
+        ///     def history(self) -> History: ...
+        /// </summary>
+        private void HandleGenericMethods(Class cls)
+        {
+            // For all generic methods we need to perform a workaround see https://github.com/QuantConnect/quantconnect-stubs-generator/issues/38
+            var genericMethodNames = cls.Methods.Where(x => x.IsGeneric).Select(x => x.Name).ToHashSet();
+            foreach (var genericMethodName in genericMethodNames)
+            {
+                var genericType = cls.Methods.Where(x => x.IsGeneric && x.Name == genericMethodName).First().GenericType;
+                var genericClassType = new PythonType(genericMethodName) { TypeParameters = [genericType] };
+                var newGenericClass = new Class(genericClassType) { Summary = string.Empty };
+                var newIndexableClass = new Class(new PythonType(genericMethodName)) { Summary = string.Empty };
+                var indexer = new Method("__getitem__", newGenericClass.Type);
+                indexer.Parameters.Add(new Parameter("type", new PythonType("Type", "typing") { TypeParameters = [genericType] }));
+                newIndexableClass.Methods.Add(indexer);
+                foreach (var methods in cls.Methods.Where(x => x.Name == genericMethodName))
+                {
+                    var targetClass = newIndexableClass;
+                    if (methods.IsGeneric)
+                    {
+                        targetClass = newGenericClass;
+                    }
+                    targetClass.Methods.Add(new Method("__call__", methods) { Overload = true });
+                }
+                var property = new Property(genericMethodName)
+                {
+                    Type = newIndexableClass.Type,
+                    Class = cls,
+                };
+                cls.Properties.Add(property);
+                cls.InnerClasses.Add(newIndexableClass);
+                newIndexableClass.InnerClasses.Add(newGenericClass);
+                // remove those we've moved around
+                cls.Methods.RemoveWhere(x => x.Name.Equals(genericMethodName, StringComparison.InvariantCultureIgnoreCase));
+            }
         }
 
         protected virtual TextWriter CreateWriter(string path)

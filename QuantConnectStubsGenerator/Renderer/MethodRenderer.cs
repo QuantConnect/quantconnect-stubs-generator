@@ -113,11 +113,6 @@ namespace QuantConnectStubsGenerator.Renderer
                 return null;
             }
 
-            if (snakeCasedMethodName == method.Name)
-            {
-                return method;
-            }
-
             var snakeCasedMethod = new Method(snakeCasedMethodName, method.ReturnType)
             {
                 Static = method.Static,
@@ -130,6 +125,10 @@ namespace QuantConnectStubsGenerator.Renderer
 
             foreach (var parameter in method.Parameters)
             {
+                if (parameter.Name.StartsWith("*"))
+                {
+                    return method;
+                }
                 var snakeCasedParameterName = parameter.Name.ToSnakeCase();
                 if (snakeCasedParameterName.IsPythonReservedWord())
                 {

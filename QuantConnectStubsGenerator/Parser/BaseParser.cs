@@ -116,7 +116,7 @@ namespace QuantConnectStubsGenerator.Parser
         /// </summary>
         protected virtual void EnterClass(BaseTypeDeclarationSyntax node)
         {
-            _currentClass = _currentNamespace.GetClassByType(_typeConverter.GetType(node, true));
+            _currentClass = _currentNamespace.GetClassByType(_typeConverter.GetType(node, true, true));
         }
 
         private void ExitClass()

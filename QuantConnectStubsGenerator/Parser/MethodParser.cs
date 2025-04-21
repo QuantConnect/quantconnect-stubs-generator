@@ -26,6 +26,8 @@ namespace QuantConnectStubsGenerator.Parser
 {
     public class MethodParser : BaseParser
     {
+        private bool SkipTypeNormalization => !_currentClass?.Type.Namespace.StartsWith("QuantConnect") ?? true;
+
         public MethodParser(ParseContext context, SemanticModel model) : base(context, model)
         {
         }
@@ -42,9 +44,9 @@ namespace QuantConnectStubsGenerator.Parser
                     return;
                 }
                 var parameterType = node.TypeParameterList.Parameters.First();
-                genericType = _typeConverter.GetType(parameterType);
+                genericType = _typeConverter.GetType(parameterType, skipTypeNormalization: SkipTypeNormalization);
             }
-            var returnType = Utils.NormalizeType(_typeConverter.GetType(node.ReturnType));
+            var returnType = _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization);
             VisitMethod(
                 node,
                 node.Identifier.Text,
@@ -75,7 +77,7 @@ namespace QuantConnectStubsGenerator.Parser
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
-                Utils.NormalizeType(_typeConverter.GetType(node.ReturnType)), null);
+                _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null);
         }
 
         public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
@@ -85,7 +87,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            var returnType = Utils.NormalizeType(_typeConverter.GetType(node.Type));
+            var returnType = _typeConverter.GetType(node.Type, skipTypeNormalization: SkipTypeNormalization);
 
             // Improve the autocomplete on data[symbol] if data is a Slice and symbol a Symbol
             // In C# this is of type dynamic, which by default gets converted to typing.Any
@@ -273,7 +275,7 @@ namespace QuantConnectStubsGenerator.Parser
         private Parameter ParseParameter(ParameterSyntax syntax)
         {
             var originalName = syntax.Identifier.Text;
-            var parameter = new Parameter(FormatParameterName(originalName), Utils.NormalizeType(_typeConverter.GetType(syntax.Type)));
+            var parameter = new Parameter(FormatParameterName(originalName), _typeConverter.GetType(syntax.Type, skipTypeNormalization: SkipTypeNormalization));
 
             if (syntax.Modifiers.Any(modifier => modifier.Text == "params"))
             {
@@ -390,7 +392,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            VisitMethod(node, "__contains__", node.ParameterList.Parameters, Utils.NormalizeType(_typeConverter.GetType(node.ReturnType)), null);
+            VisitMethod(node, "__contains__", node.ParameterList.Parameters, _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null);
 
             if (_currentClass.Methods.All(m => m.Name != "__len__"))
             {

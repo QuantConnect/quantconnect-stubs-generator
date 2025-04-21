@@ -210,7 +210,7 @@ class TestDerivedEnumerable1(TestEnumerable):
     """"""This class has no documentation.""""""
 
 
-class TestEnumerable2(System.Collections.Generic.List[str]):
+class TestEnumerable2(typing.List[str]):
     """"""
     This will not inherit typing.Iterable directly, but IEnumerable[string] will.
     __iter__ will be generated for IEnumerable[string], not for this class.
@@ -271,13 +271,13 @@ class TestClass(System.Object):
         ...
 
     @overload
-    def __init__(self, enumerable: typing.Iterable[int]) -> None:
+    def __init__(self, enumerable: typing.List[int]) -> None:
         ...
 
-    def method_1(self, enumerable: typing.Iterable[str]) -> None:
+    def method_1(self, enumerable: typing.List[str]) -> None:
         ...
 
-    def method_2(self, some_param: typing.Union[datetime.datetime, datetime.date], enumerable: typing.Iterable[typing.Iterable[str]]) -> None:
+    def method_2(self, some_param: typing.Union[datetime.datetime, datetime.date], enumerable: typing.List[typing.List[str]]) -> None:
         ...
 "
                 }).SetName("GeneratesIterableOverloadsForEnumerableParameters"),

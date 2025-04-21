@@ -118,7 +118,8 @@ namespace QuantConnectStubsGenerator.Renderer
                 Static = method.Static,
                 Overload = method.Overload,
                 File = method.File,
-                DeprecationReason = method.DeprecationReason
+                DeprecationReason = method.DeprecationReason,
+                Class = method.Class
             };
 
             var summary = method.Summary;

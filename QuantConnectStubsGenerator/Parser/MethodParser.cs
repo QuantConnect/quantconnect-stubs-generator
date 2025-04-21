@@ -147,6 +147,7 @@ namespace QuantConnectStubsGenerator.Parser
 
             var method = new Method(name, returnType)
             {
+                Class = _currentClass,
                 Static = HasModifier(node, "static"),
                 File = _model.SyntaxTree.FilePath,
                 DeprecationReason = GetDeprecationReason(node)
@@ -370,10 +371,10 @@ namespace QuantConnectStubsGenerator.Parser
             if (_currentClass.Methods.All(m => m.Name != "__iter__"))
             {
                 var iteratorType = new PythonType("Iterator", "typing")
-            {
+                {
                     TypeParameters = typeParameters
                 };
-                _currentClass.Methods.Add(new Method("__iter__", iteratorType));
+                _currentClass.Methods.Add(new Method("__iter__", iteratorType) { Class = _currentClass });
             }
         }
 
@@ -393,7 +394,7 @@ namespace QuantConnectStubsGenerator.Parser
 
             if (_currentClass.Methods.All(m => m.Name != "__len__"))
             {
-                _currentClass.Methods.Add(new Method("__len__", new PythonType("int")));
+                _currentClass.Methods.Add(new Method("__len__", new PythonType("int")) { Class = _currentClass });
             }
         }
 

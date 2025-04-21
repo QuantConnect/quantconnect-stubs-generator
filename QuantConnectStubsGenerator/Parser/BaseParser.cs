@@ -145,6 +145,11 @@ namespace QuantConnectStubsGenerator.Parser
         /// </summary>
         protected bool ShouldSkip(MemberDeclarationSyntax node)
         {
+            if (node.AttributeLists.Any(list => list.Attributes.Any(x => x.Name.ToString() == "StubsIgnore")))
+            {
+                return true;
+            }
+
             if (HasModifier(node, "private") || HasModifier(node, "internal"))
             {
                 return true;

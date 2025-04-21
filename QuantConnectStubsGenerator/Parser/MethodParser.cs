@@ -295,11 +295,6 @@ namespace QuantConnectStubsGenerator.Parser
                 }
             }
 
-            if (ShouldSkip(method))
-            {
-                return;
-            }
-
             // Python.NET returns a tuple if a method has out parameters
             // The first item is the return value of the method, the following items are the out parameters
             if (outTypes.Count > 0)
@@ -522,42 +517,6 @@ namespace QuantConnectStubsGenerator.Parser
         {
             return doc.Contains("pandas DataFrame") || doc.Contains("pandas.DataFrame");
         }
-
-        /// <summary>
-        /// Special cases: skip some methods for which we don't want overrides to be generated for
-        /// </summary>
-        private bool ShouldSkip(Method method)
-        {
-            if (IsMethodToSkip(method, _baseDataMethodsToSkip))
-            {
-                return IsClass("IBaseData", "QuantConnect.Data");
-            }
-
-            if (IsMethodToSkip(method, _indicatorBaseMethodsToSkip))
-            {
-                return IsClass("IndicatorBase", "QuantConnect.Indicators");
-            }
-
-            if (IsMethodToSkip(method, _algorithmMethodsToSkip))
-            {
-                return IsClass("IAlgorithm", "QuantConnect.Interfaces");
-            }
-
-            return false;
-        }
-
-        private static bool IsMethodToSkip(Method method, Method[] methodsToSkip)
-        {
-            // Do this instead of using Method.Equals(), because we want to match only the method signature,
-            // not whether the method is the exact same in the same exact class.
-            return methodsToSkip.Any(x => x.Name == method.Name && x.Parameters.SequenceEqual(method.Parameters));
-        }
-
-        private bool IsClass(string name, string ns)
-        {
-            return _currentClass.GetClassAndBaseClasses(_context).Any(cls => cls.Type.Name == name && cls.Type.Namespace == ns);
-        }
-
     }
 }
 

@@ -26,6 +26,81 @@ namespace QuantConnectStubsGenerator.Parser
 {
     public class MethodParser : BaseParser
     {
+        private static readonly PythonType _pythonDateTimeType = new PythonType("Union", "typing")
+        {
+            TypeParameters = new List<PythonType>()
+            {
+                new PythonType("datetime", "datetime"),
+                new PythonType("date", "datetime")
+            }
+        };
+
+        private static readonly Method[] _baseDataMethodsToSkip =
+        {
+            // 1. BaseData.GetSource(SubscriptionDataConfig config, DateTime date, DataFeedEndpoint datafeed);
+            new Method("GetSource", new PythonType("str"))
+            {
+                Parameters =
+                {
+                    new Parameter("config", new PythonType("SubscriptionDataConfig", "QuantConnect.Data")),
+                    new Parameter("date", _pythonDateTimeType),
+                    new Parameter("datafeed", new PythonType("DataFeedEndpoint", "QuantConnect"))
+                }
+            },
+
+            // 2. BaseData.Reader(SubscriptionDataConfig config, string line, DateTime date, DataFeedEndpoint dataFeed);
+            new Method("Reader", new PythonType("BaseData", "QuantConnect.Data"))
+            {
+                Parameters =
+                {
+                    new Parameter("config", new PythonType("SubscriptionDataConfig", "QuantConnect.Data")),
+                    new Parameter("line", new PythonType("str")),
+                    new Parameter("date", _pythonDateTimeType),
+                    new Parameter("dataFeed", new PythonType("DataFeedEndpoint", "QuantConnect"))
+                }
+            },
+
+            // 3. BaseData.Reader(SubscriptionDataConfig config, StreamReader stream, DateTime date, bool isLiveMode);
+            new Method("Reader", new PythonType("BaseData", "QuantConnect.Data"))
+            {
+                Parameters =
+                {
+                    new Parameter("config", new PythonType("SubscriptionDataConfig", "QuantConnect.Data")),
+                    new Parameter("stream", new PythonType("StreamReader", "System.IO")),
+                    new Parameter("date", _pythonDateTimeType),
+                    new Parameter("isLiveMode", new PythonType("bool"))
+                }
+            }
+        };
+
+        private static readonly Method[] _indicatorBaseMethodsToSkip =
+        {
+            // 1. IndicatorBase.Update(DateTime time, decimal value);
+            new Method("Update", new PythonType("bool"))
+            {
+                Parameters =
+                {
+                    new Parameter("time", _pythonDateTimeType),
+                    new Parameter("value", new PythonType("float"))
+                }
+            },
+        };
+
+        private static readonly Method[] _algorithmMethodsToSkip =
+        {
+            // 1. IAlgorithm.OnEndOfDay();
+            new Method("OnEndOfDay", new PythonType("None")),
+
+            // 2. IAlgorithm.OnEndOfDay(string symbol);
+            new Method("OnEndOfDay", new PythonType("None"))
+            {
+                Parameters =
+                {
+                    new Parameter("symbol", new PythonType("str"))
+                }
+            },
+        };
+
         public MethodParser(ParseContext context, SemanticModel model) : base(context, model)
         {
         }
@@ -147,6 +222,7 @@ namespace QuantConnectStubsGenerator.Parser
 
             var method = new Method(name, returnType)
             {
+                Class = _currentClass,
                 Static = HasModifier(node, "static"),
                 File = _model.SyntaxTree.FilePath,
                 DeprecationReason = GetDeprecationReason(node)
@@ -217,6 +293,11 @@ namespace QuantConnectStubsGenerator.Parser
 
                     outTypes.Add(actualType);
                 }
+            }
+
+            if (ShouldSkip(method))
+            {
+                return;
             }
 
             // Python.NET returns a tuple if a method has out parameters
@@ -370,10 +451,10 @@ namespace QuantConnectStubsGenerator.Parser
             if (_currentClass.Methods.All(m => m.Name != "__iter__"))
             {
                 var iteratorType = new PythonType("Iterator", "typing")
-            {
+                {
                     TypeParameters = typeParameters
                 };
-                _currentClass.Methods.Add(new Method("__iter__", iteratorType));
+                _currentClass.Methods.Add(new Method("__iter__", iteratorType) { Class = _currentClass });
             }
         }
 
@@ -393,7 +474,7 @@ namespace QuantConnectStubsGenerator.Parser
 
             if (_currentClass.Methods.All(m => m.Name != "__len__"))
             {
-                _currentClass.Methods.Add(new Method("__len__", new PythonType("int")));
+                _currentClass.Methods.Add(new Method("__len__", new PythonType("int")) { Class = _currentClass });
             }
         }
 
@@ -441,6 +522,42 @@ namespace QuantConnectStubsGenerator.Parser
         {
             return doc.Contains("pandas DataFrame") || doc.Contains("pandas.DataFrame");
         }
+
+        /// <summary>
+        /// Special cases: skip some methods for which we don't want overrides to be generated for
+        /// </summary>
+        private bool ShouldSkip(Method method)
+        {
+            if (IsMethodToSkip(method, _baseDataMethodsToSkip))
+            {
+                return IsClass("IBaseData", "QuantConnect.Data");
+            }
+
+            if (IsMethodToSkip(method, _indicatorBaseMethodsToSkip))
+            {
+                return IsClass("IndicatorBase", "QuantConnect.Indicators");
+            }
+
+            if (IsMethodToSkip(method, _algorithmMethodsToSkip))
+            {
+                return IsClass("IAlgorithm", "QuantConnect.Interfaces");
+            }
+
+            return false;
+        }
+
+        private static bool IsMethodToSkip(Method method, Method[] methodsToSkip)
+        {
+            // Do this instead of using Method.Equals(), because we want to match only the method signature,
+            // not whether the method is the exact same in the same exact class.
+            return methodsToSkip.Any(x => x.Name == method.Name && x.Parameters.SequenceEqual(method.Parameters));
+        }
+
+        private bool IsClass(string name, string ns)
+        {
+            return _currentClass.GetClassAndBaseClasses(_context).Any(cls => cls.Type.Name == name && cls.Type.Namespace == ns);
+        }
+
     }
 }
 

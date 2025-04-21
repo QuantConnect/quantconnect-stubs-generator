@@ -112,7 +112,13 @@ namespace QuantConnectStubsGenerator.Model
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Name, Namespace, Alias, IsNamedTypeParameter);
+            var hash = 19;
+            foreach (var type in TypeParameters)
+            {
+                hash = hash * 31 + type.GetHashCode();
+            }
+
+            return HashCode.Combine(Name, Namespace, Alias, IsNamedTypeParameter, hash);
         }
 
         public static PythonType CreateUnion(params PythonType[] pythonTypes)

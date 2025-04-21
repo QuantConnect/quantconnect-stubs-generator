@@ -39,6 +39,8 @@ namespace QuantConnectStubsGenerator.Model
 
         public IList<Parameter> Parameters { get; }
 
+        public Class Class { get; set; }
+
         public Method(string name, PythonType returnType)
         {
             Name = name;
@@ -62,10 +64,9 @@ namespace QuantConnectStubsGenerator.Model
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
             return Name == other.Name
+                && Class.Equals(other.Class)
                 && Static == other.Static
                 && Overload == other.Overload
-                && File == other.File
-                && DeprecationReason == other.DeprecationReason
                 && Parameters.SequenceEqual(other.Parameters);
         }
 
@@ -78,7 +79,13 @@ namespace QuantConnectStubsGenerator.Model
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Name, Static, Overload, File, DeprecationReason, Parameters);
+            var hash = 19;
+            foreach (var parameter in Parameters)
+            {
+                hash = hash * 31 + parameter.GetHashCode();
+            }
+
+            return HashCode.Combine(Name, Static, Overload, Class, hash);
         }
     }
 }

@@ -238,12 +238,14 @@ namespace QuantConnectStubsGenerator.Parser
                     new Method("__iadd__", new PythonType("Self", "typing"))
                     {
                         Summary = "Registers an event handler.",
-                        Parameters = {new Parameter("item", classType.TypeParameters[0])}
+                        Parameters = {new Parameter("item", classType.TypeParameters[0])},
+                        Class = _currentClass
                     },
                     new Method("__isub__", new PythonType("Self", "typing"))
                     {
                         Summary = "Unregisters an event handler.",
-                        Parameters = {new Parameter("item", classType.TypeParameters[0])}
+                        Parameters = {new Parameter("item", classType.TypeParameters[0])},
+                        Class = _currentClass
                     },
                     new Method("__call__", classType.TypeParameters[1])
                     {
@@ -252,7 +254,8 @@ namespace QuantConnectStubsGenerator.Parser
                         {
                             new Parameter("*args", new PythonType("Any", "typing")),
                             new Parameter("**kwargs", new PythonType("Any", "typing"))
-                        }
+                        },
+                        Class = _currentClass
                     }
                 }
             });

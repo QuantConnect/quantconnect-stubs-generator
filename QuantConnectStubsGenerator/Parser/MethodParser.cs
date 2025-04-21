@@ -277,36 +277,28 @@ namespace QuantConnectStubsGenerator.Parser
             if (syntax.Modifiers.Any(modifier => modifier.Text == "params"))
             {
                 parameter.VarArgs = true;
-                parameter.Type = parameter.Type.TypeParameters[0];
+                var iterableType = new PythonType("Iterable", "typing") { TypeParameters = parameter.Type.TypeParameters };
+                parameter.Type = PythonType.CreateUnion(parameter.Type.TypeParameters[0], iterableType);
             }
 
             // Symbol parameters can be both a Symbol or a string in most methods
             if (parameter.Type.Namespace == "QuantConnect" && parameter.Type.Name == "Symbol")
             {
-                var unionType = new PythonType("Union", "typing");
-                unionType.TypeParameters.Add(parameter.Type);
-                unionType.TypeParameters.Add(new PythonType("str"));
-                parameter.Type = unionType;
+                parameter.Type = PythonType.CreateUnion(parameter.Type, new PythonType("str"));
             }
 
             // IDataConsolidator parameters can be either IDataConsolidator, PythonConsolidator or timedelta
             if (parameter.Type.Namespace == "QuantConnect.Data.Consolidators"
                 && parameter.Type.Name == "IDataConsolidator")
             {
-                var unionType = new PythonType("Union", "typing");
-                unionType.TypeParameters.Add(parameter.Type);
-                unionType.TypeParameters.Add(new PythonType("PythonConsolidator", "QuantConnect.Python"));
-                unionType.TypeParameters.Add(new PythonType("timedelta", "datetime"));
-                parameter.Type = unionType;
+                parameter.Type = PythonType.CreateUnion(parameter.Type,
+                    new PythonType("PythonConsolidator", "QuantConnect.Python"), new PythonType("timedelta", "datetime"));
             }
 
             // datetime parameters also accept dates
             if (parameter.Type.Namespace == "datetime" && parameter.Type.Name == "datetime")
             {
-                var unionType = new PythonType("Union", "typing");
-                unionType.TypeParameters.Add(parameter.Type);
-                unionType.TypeParameters.Add(new PythonType("date", "datetime"));
-                parameter.Type = unionType;
+                parameter.Type = PythonType.CreateUnion(parameter.Type, new PythonType("date", "datetime"));
             }
 
             // Methods like AddData<T> and History<T> have Python implementations accepting "T" as first parameter

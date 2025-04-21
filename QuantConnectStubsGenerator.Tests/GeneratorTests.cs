@@ -502,7 +502,7 @@ namespace QuantConnect.Test
             Assert.IsNull(internalFieldEvent);
         }
 
-        private class TestGenerator : Generator
+        internal class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }
             public TestGenerator() : base("/", "/", "/")

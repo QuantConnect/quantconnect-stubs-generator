@@ -14,8 +14,8 @@
 */
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace QuantConnectStubsGenerator.Model
 {
@@ -107,12 +107,22 @@ namespace QuantConnectStubsGenerator.Model
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((PythonType) obj);
+            return obj.GetType() == GetType() && Equals((PythonType)obj);
         }
 
         public override int GetHashCode()
         {
             return HashCode.Combine(Name, Namespace, Alias, IsNamedTypeParameter);
+        }
+
+        public static PythonType CreateUnion(params PythonType[] pythonTypes)
+        {
+            var unionType = new PythonType("Union", "typing");
+            foreach (var pythonType in pythonTypes ?? Enumerable.Empty<PythonType>())
+            {
+                unionType.TypeParameters.Add(pythonType);
+            }
+            return unionType;
         }
     }
 }

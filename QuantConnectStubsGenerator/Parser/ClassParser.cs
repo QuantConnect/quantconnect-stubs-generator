@@ -122,12 +122,12 @@ namespace QuantConnectStubsGenerator.Parser
             // "Cannot create consistent method ordering" errors appear when a Python class
             // extends from classes A and B where B extends from A
             // In this case we remove the direct inheritance on A
-            var interfacesToRemove = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+            var interfacesToRemove = new HashSet<INamedTypeSymbol>();
             foreach (var typeA in symbol.Interfaces)
             {
                 foreach (var typeB in symbol.Interfaces)
                 {
-                    if (typeB.Interfaces.Contains(typeA))
+                    if (typeB.Interfaces.Any(x => x.Name == typeA.Name && x.IsGenericType == typeA.IsGenericType))
                     {
                         interfacesToRemove.Add(typeA);
                     }

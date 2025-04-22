@@ -53,7 +53,6 @@ namespace QuantConnectStubsGenerator.Model
             Static = other.Static;
             Summary = other.Summary;
             Overload = other.Overload;
-            ReturnType = other.ReturnType;
             Parameters = other.Parameters;
             GenericType = other.GenericType;
             DeprecationReason = other.DeprecationReason;
@@ -67,6 +66,7 @@ namespace QuantConnectStubsGenerator.Model
                 && Class.Equals(other.Class)
                 && Static == other.Static
                 && Overload == other.Overload
+                && GenericType == other.GenericType
                 && Parameters.SequenceEqual(other.Parameters);
         }
 
@@ -85,7 +85,13 @@ namespace QuantConnectStubsGenerator.Model
                 hash = hash * 31 + parameter.GetHashCode();
             }
 
-            return HashCode.Combine(Name, Static, Overload, Class, hash);
+            return HashCode.Combine(Name, Static, Overload, Class, GenericType, hash);
+        }
+
+        public override string ToString()
+        {
+            var genericRepr = IsGeneric ? $"[{GenericType}]" : string.Empty;
+            return $"{Name}{genericRepr}({string.Join(", ", Parameters)}) -> {ReturnType}";
         }
     }
 }

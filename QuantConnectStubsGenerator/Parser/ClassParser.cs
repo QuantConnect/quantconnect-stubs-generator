@@ -127,7 +127,7 @@ namespace QuantConnectStubsGenerator.Parser
             {
                 foreach (var typeB in symbol.Interfaces)
                 {
-                    if (typeB.Interfaces.Any(x => x.Name == typeA.Name))
+                    if (typeB.Interfaces.Any(x => x.Name == typeA.Name && x.IsGenericType == typeA.IsGenericType))
                     {
                         interfacesToRemove.Add(typeA);
                     }

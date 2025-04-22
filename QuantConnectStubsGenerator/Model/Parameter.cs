@@ -59,6 +59,11 @@ namespace QuantConnectStubsGenerator.Model
         {
             return HashCode.Combine(Name, Type, VarArgs, Value);
         }
+
+        public override string ToString()
+        {
+            return $"{Name}: {Type}";
+        }
     }
 }
 

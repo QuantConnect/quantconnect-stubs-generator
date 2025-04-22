@@ -100,7 +100,8 @@ namespace QuantConnectStubsGenerator.Model
             return Name == other.Name
                    && Namespace == other.Namespace
                    && Alias == other.Alias
-                   && IsNamedTypeParameter == other.IsNamedTypeParameter;
+                   && IsNamedTypeParameter == other.IsNamedTypeParameter
+                   && TypeParameters.SequenceEqual(other.TypeParameters);
         }
 
         public override bool Equals(object obj)

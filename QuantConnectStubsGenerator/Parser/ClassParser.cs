@@ -61,7 +61,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         private Class ParseClass(BaseTypeDeclarationSyntax node)
         {
-            return new Class(_typeConverter.GetType(node, true))
+            return new Class(_typeConverter.GetType(node, true, true))
             {
                 Static = HasModifier(node, "static"),
                 Summary = ParseSummary(node),
@@ -105,7 +105,8 @@ namespace QuantConnectStubsGenerator.Parser
                 return types;
             }
 
-            var currentType = _typeConverter.GetType(node, true);
+            var currentType = _typeConverter.GetType(node, true, true);
+            var skipTypeNormalization = !currentType.Namespace.StartsWith("QuantConnect");
 
             if (symbol.BaseType != null)
             {
@@ -114,7 +115,7 @@ namespace QuantConnectStubsGenerator.Parser
 
                 if (!ShouldSkipBaseType(currentType, ns, name))
                 {
-                    types.Add(_typeConverter.GetType(symbol.BaseType));
+                    types.Add(_typeConverter.GetType(symbol.BaseType, skipTypeNormalization: skipTypeNormalization));
                 }
             }
 
@@ -135,7 +136,7 @@ namespace QuantConnectStubsGenerator.Parser
 
             foreach (var typeSymbol in symbol.Interfaces.Except(interfacesToRemove))
             {
-                var type = _typeConverter.GetType(typeSymbol);
+                var type = _typeConverter.GetType(typeSymbol, skipTypeNormalization: skipTypeNormalization);
 
                 // In C# a class can be extended multiple times with different amounts of generics
                 // In Python this is not possible, so we keep the type with the most generics

@@ -404,16 +404,16 @@ namespace QuantConnect.Test
             var testClass = classes.Single(x => x.Type.Name == "TestClass");
 
             var constructor1 = testClass.Methods.Where(x => x.Name == "__init__" && x.Parameters.Count == 1).Single();
-            Assert.AreEqual("typing.Iterable[int]", constructor1.Parameters[0].Type.ToPythonString());
+            Assert.AreEqual("typing.List[int]", constructor1.Parameters[0].Type.ToPythonString());
 
             var constructor2 = testClass.Methods.Where(x => x.Name == "__init__" && x.Parameters.Count == 2).Single();
             Assert.AreEqual("typing.Iterable[int]", constructor2.Parameters[1].Type.ToPythonString());
 
             var method1 = testClass.Methods.Single(x => x.Name == "Method1");
-            Assert.AreEqual("typing.Iterable[str]", method1.Parameters[0].Type.ToPythonString());
+            Assert.AreEqual("typing.List[str]", method1.Parameters[0].Type.ToPythonString());
 
             var method2 = testClass.Methods.Single(x => x.Name == "Method2");
-            Assert.AreEqual("typing.Iterable[typing.Iterable[str]]", method2.Parameters[0].Type.ToPythonString());
+            Assert.AreEqual("typing.List[typing.List[str]]", method2.Parameters[0].Type.ToPythonString());
         }
 
         [Test]

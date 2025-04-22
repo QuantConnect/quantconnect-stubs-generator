@@ -13,10 +13,9 @@
  * limitations under the License.
 */
 
-using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
 using QuantConnectStubsGenerator.Model;
-using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Parser
 {
@@ -46,7 +45,7 @@ namespace QuantConnectStubsGenerator.Parser
         /// Returns the Python type of the given node.
         /// Returns an aliased typing.Any if there is no Python type for the given symbol.
         /// </summary>
-        public PythonType GetType(SyntaxNode node, bool skipPythonTypeCheck = false)
+        public PythonType GetType(SyntaxNode node, bool skipPythonTypeCheck = false, bool skipTypeNormalization = false)
         {
             var symbol = GetSymbol(node);
 
@@ -69,14 +68,14 @@ namespace QuantConnectStubsGenerator.Parser
                 };
             }
 
-            return GetType(symbol, skipPythonTypeCheck);
+            return GetType(symbol, skipPythonTypeCheck, skipTypeNormalization);
         }
 
         /// <summary>
         /// Returns the Python type of the given symbol.
         /// Returns an aliased typing.Any if there is no Python type for the given symbol.
         /// </summary>
-        public PythonType GetType(ISymbol symbol, bool skipPythonTypeCheck = false)
+        public PythonType GetType(ISymbol symbol, bool skipPythonTypeCheck = false, bool skipTypeNormalization = false)
         {
             // Handle arrays
             if (symbol is IArrayTypeSymbol arrayTypeSymbol)
@@ -137,7 +136,12 @@ namespace QuantConnectStubsGenerator.Parser
                 }
             }
 
-            return CSharpTypeToPythonType(type, skipPythonTypeCheck);
+            var result = CSharpTypeToPythonType(type, skipPythonTypeCheck);
+            if (!skipTypeNormalization)
+            {
+                result = NormalizeType(result);
+            }
+            return result;
         }
 
         private string GetTypeName(ISymbol symbol)
@@ -219,6 +223,35 @@ namespace QuantConnectStubsGenerator.Parser
                 };
             }
 
+            return type;
+        }
+
+        private static PythonType NormalizeType(PythonType type)
+        {
+            if (type.Namespace == "System.Collections.Generic" && type.TypeParameters.Count == 1)
+            {
+                if (type.Name == "IReadOnlyList" || type.Name == "IReadOnlyCollection")
+                {
+                    return new PythonType("Sequence", "typing")
+                    {
+                        TypeParameters = { NormalizeType(type.TypeParameters[0]) }
+                    };
+                }
+                else if (type.Name == "IList" || type.Name == "List")
+                {
+                    return new PythonType("List", "typing")
+                    {
+                        TypeParameters = { NormalizeType(type.TypeParameters[0]) }
+                    };
+                }
+                else if (type.Name == "IEnumerable")
+                {
+                    return new PythonType("Iterable", "typing")
+                    {
+                        TypeParameters = { NormalizeType(type.TypeParameters[0]) }
+                    };
+                }
+            }
             return type;
         }
     }

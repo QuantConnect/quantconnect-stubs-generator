@@ -30,19 +30,19 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
-            VisitProperty(node, Utils.NormalizeType(_typeConverter.GetType(node.Type)), node.Identifier.Text);
+            VisitProperty(node, _typeConverter.GetType(node.Type), node.Identifier.Text);
         }
 
         public override void VisitFieldDeclaration(FieldDeclarationSyntax node)
         {
-            VisitField(node, Utils.NormalizeType(_typeConverter.GetType(node.Declaration.Type)));
+            VisitField(node, _typeConverter.GetType(node.Declaration.Type));
         }
 
         public override void VisitEventDeclaration(EventDeclarationSyntax node)
         {
             CreateEventContainerIfNecessary();
 
-            var callableType = Utils.NormalizeType(_typeConverter.GetType(node.Type));
+            var callableType = _typeConverter.GetType(node.Type);
             var type = new PythonType("_EventContainer")
             {
                 TypeParameters = {callableType, callableType.TypeParameters.Last()}
@@ -55,7 +55,7 @@ namespace QuantConnectStubsGenerator.Parser
         {
             CreateEventContainerIfNecessary();
 
-            var callableType = Utils.NormalizeType(_typeConverter.GetType(node.Declaration.Type));
+            var callableType = _typeConverter.GetType(node.Declaration.Type);
             var type = new PythonType("_EventContainer")
             {
                 TypeParameters = {callableType, callableType.TypeParameters.Last()}

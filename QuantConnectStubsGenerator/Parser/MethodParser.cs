@@ -365,11 +365,6 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            if (_currentClass.InheritsFrom.Any(t => t.Namespace == "typing" && t.Name == "Iterable"))
-            {
-                return;
-            }
-
             // Some GetEnumerator() methods return an IEnumerator, some return an IEnumerator<T>
             // typing.Iterable requires a type parameter, so we don't extend it if an IEnumerator is returned
             var typeParameters = returnType.TypeParameters;
@@ -382,7 +377,11 @@ namespace QuantConnectStubsGenerator.Parser
             {
                 TypeParameters = typeParameters
             };
-            _currentClass.InheritsFrom.Add(iterableType);
+
+            if (!_currentClass.InheritsFrom.Any(t => t.Namespace == "typing" && t.Name == "Iterable"))
+            {
+                _currentClass.InheritsFrom.Add(iterableType);
+            }
 
             if (_currentClass.Methods.All(m => m.Name != "__iter__"))
             {

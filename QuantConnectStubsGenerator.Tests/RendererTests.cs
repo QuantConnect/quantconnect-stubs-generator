@@ -199,6 +199,9 @@ TestEnumerable = typing.Any
 class TestEnumerable1(System.Object, typing.Iterable[int]):
     """"""This class has no documentation.""""""
 
+    def __iter__(self) -> typing.Iterator[int]:
+        ...
+
     def get_enumerator(self) -> System.Collections.Generic.IEnumerator[int]:
         ...
 

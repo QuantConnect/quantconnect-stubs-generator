@@ -67,7 +67,8 @@ namespace QuantConnectStubsGenerator.Parser
                 Summary = ParseSummary(node),
                 Interface = node is InterfaceDeclarationSyntax,
                 InheritsFrom = ParseInheritedTypes(node).ToList(),
-                MetaClass = ParseMetaClass(node)
+                MetaClass = ParseMetaClass(node),
+                AvoidImplicitTypes = HasAttribute(node.AttributeLists, "StubsAvoidImplicits")
             };
         }
 

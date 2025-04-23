@@ -141,11 +141,19 @@ namespace QuantConnectStubsGenerator.Parser
         }
 
         /// <summary>
+        /// Check if a node has an attribute like Obsolete or StubsIgnore.
+        /// </summary>
+        protected bool HasAttribute(SyntaxList<AttributeListSyntax> attributeList, string attribute)
+        {
+            return attributeList.Any(list => list.Attributes.Any(x => x.Name.ToString() == attribute));
+        }
+
+        /// <summary>
         /// We skip internal or private nodes
         /// </summary>
         protected bool ShouldSkip(MemberDeclarationSyntax node)
         {
-            if (node.AttributeLists.Any(list => list.Attributes.Any(x => x.Name.ToString() == "StubsIgnore")))
+            if (HasAttribute(node.AttributeLists, "StubsIgnore"))
             {
                 return true;
             }

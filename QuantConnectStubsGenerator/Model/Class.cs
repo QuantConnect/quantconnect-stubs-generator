@@ -35,6 +35,7 @@ namespace QuantConnectStubsGenerator.Model
 
         public IList<Property> Properties { get; } = new List<Property>();
         public HashSet<Method> Methods { get; } = new HashSet<Method>();
+        public bool AvoidImplicitTypes { get; set; }
 
         public Class(PythonType type)
         {

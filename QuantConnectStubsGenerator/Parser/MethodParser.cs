@@ -46,19 +46,28 @@ namespace QuantConnectStubsGenerator.Parser
                 var parameterType = node.TypeParameterList.Parameters.First();
                 genericType = _typeConverter.GetType(parameterType, skipTypeNormalization: SkipTypeNormalization);
             }
+
+            var avoidImplicitConversionTypes = ShouldAvoidImplicitConversionTypes(node);
             var returnType = _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization);
+
             VisitMethod(
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
                 returnType,
-                genericType);
+                genericType,
+                avoidImplicitConversionTypes);
 
             // Make the current class extend from typing.Iterable if this is an applicable GetEnumerator() method
             ExtendIterableIfNecessary(node, returnType);
 
             // Add __contains__ and __len__ methods to containers in System.Collections.Generic
             AddContainerMethodsIfNecessary(node);
+        }
+
+        private bool ShouldAvoidImplicitConversionTypes(MethodDeclarationSyntax node)
+        {
+            return HasAttribute(node.AttributeLists, "StubsAvoidImplicits") || _currentClass.GetClassAndBaseClasses(_context).Any(cls => cls.AvoidImplicitTypes);
         }
 
         public override void VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
@@ -68,7 +77,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            VisitMethod(node, "__init__", node.ParameterList.Parameters, new PythonType("None"), null);
+            VisitMethod(node, "__init__", node.ParameterList.Parameters, new PythonType("None"), null, false);
         }
 
         public override void VisitDelegateDeclaration(DelegateDeclarationSyntax node)
@@ -77,7 +86,7 @@ namespace QuantConnectStubsGenerator.Parser
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
-                _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null);
+                _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null, false);
         }
 
         public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
@@ -114,12 +123,12 @@ namespace QuantConnectStubsGenerator.Parser
                 returnType = new PythonType("Any", "typing");
             }
 
-            VisitMethod(node, "__getitem__", node.ParameterList.Parameters, returnType, null);
+            VisitMethod(node, "__getitem__", node.ParameterList.Parameters, returnType, null, false);
 
             var symbol = _typeConverter.GetSymbol(node);
             if (symbol is IPropertySymbol propertySymbol && !propertySymbol.IsReadOnly)
             {
-                VisitMethod(node, "__setitem__", node.ParameterList.Parameters, new PythonType("None"), null);
+                VisitMethod(node, "__setitem__", node.ParameterList.Parameters, new PythonType("None"), null, false);
 
                 var valueParameter = new Parameter("value", returnType);
                 _currentClass.Methods.Last().Parameters.Add(valueParameter);
@@ -131,7 +140,8 @@ namespace QuantConnectStubsGenerator.Parser
             string name,
             SeparatedSyntaxList<ParameterSyntax> parameterList,
             PythonType returnType,
-            PythonType genericType)
+            PythonType genericType,
+            bool avoidImplicitConversionTypes)
         {
             if (_currentClass == null || ShouldSkip(node))
             {
@@ -176,7 +186,7 @@ namespace QuantConnectStubsGenerator.Parser
 
             foreach (var parameter in parameterList)
             {
-                var parsedParameter = ParseParameter(parameter);
+                var parsedParameter = ParseParameter(parameter, avoidImplicitConversionTypes);
 
                 if (parsedParameter == null)
                 {
@@ -272,8 +282,9 @@ namespace QuantConnectStubsGenerator.Parser
             ImprovePythonAccessorIfNecessary(method);
         }
 
-        private Parameter ParseParameter(ParameterSyntax syntax)
+        private Parameter ParseParameter(ParameterSyntax syntax, bool avoidImplicitConversionTypes)
         {
+            avoidImplicitConversionTypes |= HasAttribute(syntax.AttributeLists, "StubsAvoidImplicits");
             var originalName = syntax.Identifier.Text;
             var parameter = new Parameter(FormatParameterName(originalName), _typeConverter.GetType(syntax.Type, skipTypeNormalization: SkipTypeNormalization));
 
@@ -284,24 +295,27 @@ namespace QuantConnectStubsGenerator.Parser
                 parameter.Type = PythonType.CreateUnion(parameter.Type.TypeParameters[0], iterableType);
             }
 
-            // Symbol parameters can be both a Symbol or a string in most methods
-            if (parameter.Type.Namespace == "QuantConnect" && parameter.Type.Name == "Symbol")
+            if (!avoidImplicitConversionTypes)
             {
-                parameter.Type = PythonType.CreateUnion(parameter.Type, new PythonType("str"), new PythonType("BaseContract", "QuantConnect.Data.Market"));
-            }
+                // Symbol parameters can be both a Symbol or a string in most methods
+                if (parameter.Type.Namespace == "QuantConnect" && parameter.Type.Name == "Symbol")
+                {
+                    parameter.Type = PythonType.CreateUnion(parameter.Type, new PythonType("str"), new PythonType("BaseContract", "QuantConnect.Data.Market"));
+                }
 
-            // IDataConsolidator parameters can be either IDataConsolidator, PythonConsolidator or timedelta
-            if (parameter.Type.Namespace == "QuantConnect.Data.Consolidators"
-                && parameter.Type.Name == "IDataConsolidator")
-            {
-                parameter.Type = PythonType.CreateUnion(parameter.Type,
-                    new PythonType("PythonConsolidator", "QuantConnect.Python"), new PythonType("timedelta", "datetime"));
-            }
+                // IDataConsolidator parameters can be either IDataConsolidator, PythonConsolidator or timedelta
+                if (parameter.Type.Namespace == "QuantConnect.Data.Consolidators"
+                    && parameter.Type.Name == "IDataConsolidator")
+                {
+                    parameter.Type = PythonType.CreateUnion(parameter.Type,
+                        new PythonType("PythonConsolidator", "QuantConnect.Python"), new PythonType("timedelta", "datetime"));
+                }
 
-            // datetime parameters also accept dates
-            if (parameter.Type.Namespace == "datetime" && parameter.Type.Name == "datetime")
-            {
-                parameter.Type = PythonType.CreateUnion(parameter.Type, new PythonType("date", "datetime"));
+                // datetime parameters also accept dates
+                if (parameter.Type.Namespace == "datetime" && parameter.Type.Name == "datetime")
+                {
+                    parameter.Type = PythonType.CreateUnion(parameter.Type, new PythonType("date", "datetime"));
+                }
             }
 
             // Methods like AddData<T> and History<T> have Python implementations accepting "T" as first parameter
@@ -392,7 +406,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
-            VisitMethod(node, "__contains__", node.ParameterList.Parameters, _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null);
+            VisitMethod(node, "__contains__", node.ParameterList.Parameters, _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null, false);
 
             if (_currentClass.Methods.All(m => m.Name != "__len__"))
             {

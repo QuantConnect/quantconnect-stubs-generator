@@ -280,6 +280,7 @@ namespace QuantConnectStubsGenerator.Parser
             _currentClass.Methods.Add(method);
 
             ImprovePythonAccessorIfNecessary(method);
+            ImproveDictionaryDefinitionIfNecessary(node, method);
         }
 
         private Parameter ParseParameter(ParameterSyntax syntax, bool avoidImplicitConversionTypes)
@@ -405,6 +406,11 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
+            AddContainerMethods(node);
+        }
+
+        private void AddContainerMethods(MethodDeclarationSyntax node)
+        {
             VisitMethod(node, "__contains__", node.ParameterList.Parameters, _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null, false);
 
             if (_currentClass.Methods.All(m => m.Name != "__len__"))
@@ -448,6 +454,44 @@ namespace QuantConnectStubsGenerator.Parser
             newMethod.ReturnType = existingMethod.ReturnType;
 
             _currentClass.Methods.Remove(existingMethod);
+        }
+
+        private void ImproveDictionaryDefinitionIfNecessary(MemberDeclarationSyntax node, Method method)
+        {
+            // We add container methods to classes that implement IDictionary or IEnumerable<KeyValuePair<TKey, TValue>>,
+            // because Python.Net does this to add support for operators like 'in' to work with these types
+            if (node is MethodDeclarationSyntax methodNode &&
+                method.Name == "ContainsKey" &&
+                method.Parameters.Count == 1 &&
+                _currentClass.Properties.Any(property => property.Name == "Count") &&
+                (_currentClass.GetClassAndBaseClasses(_context).Any(cls => cls.Interface && (IsIDictionary(cls) || IsKeyValuePairEnumerable(cls))) ||
+                    _currentClass.InheritsFrom.Any(x => x.Name == "Iterable" && x.Namespace == "typing" && x.TypeParameters.Count == 1 && IsKeyValuePair(x))))
+            {
+                AddContainerMethods(methodNode);
+            }
+        }
+
+        private static bool IsIDictionary(Class cls)
+        {
+            return cls.Type.Name == "IDictionary" &&
+                cls.Type.Namespace == "System.Collections" &&
+                cls.Type.TypeParameters.Count == 0;
+        }
+
+        private static bool IsKeyValuePairEnumerable(Class cls)
+        {
+            return cls.Type.Name == "IEnumerable" && cls.Type.Namespace == "System.Collections.Generic" &&
+                cls.Type.TypeParameters.Count == 1 &&
+                cls.Type.TypeParameters[0].Name == "KeyValuePair" &&
+                cls.Type.TypeParameters[0].Namespace == "System.Collections.Generic" &&
+                cls.Type.TypeParameters[0].TypeParameters.Count == 2;
+        }
+
+        private static bool IsKeyValuePair(PythonType type)
+        {
+            return type.TypeParameters[0].Name == "KeyValuePair" &&
+                type.TypeParameters[0].Namespace == "System.Collections.Generic" &&
+                type.TypeParameters[0].TypeParameters.Count == 2;
         }
 
         /// <summary>

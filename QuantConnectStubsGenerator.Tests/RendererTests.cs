@@ -366,6 +366,145 @@ class _EventContainer(typing.Generic[QuantConnect_Test__EventContainer_Callable,
         ...
 "
                 }).SetName("GeneratesEventContainerClassForEventsDelegates"),
+
+            // GeneratesContainerMethodsForDictionaries
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "IDictionary.cs",
+                        @"
+namespace System.Collections
+{
+    public interface IDictionary : ICollection
+    {
+    }
+
+    public interface IDictionary : ICollection
+    {
+    }
+}
+"
+                    },
+                    {
+                        "KeyValuePair.cs",
+                        @"
+namespace System.Collections.Generic
+{
+    public readonly struct KeyValuePair<TKey, TValue>
+    {
+    }
+}
+"
+                    },
+                    {
+                        "Test.cs",
+                        @"
+using System;
+using System.Collections;
+using System.Collections.Generic;
+
+namespace QuantConnect.Test
+{
+    public class TestDictionary<TKey, TValue> : IDictionary
+    {
+        private readonly Dictionary<TValue, TKey> _data = new();
+
+        public int Count => _data.Count
+
+        public bool ContainsKey(TKey key)
+        {
+            return data.ContainsKey(key);
+        }
+    }
+
+    public class TestDictionary2<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
+    {
+        private readonly List<KeyValuePair<TKey, TValue>> _data = new();
+
+        public int Count => _data.Count
+
+        public bool ContainsKey(TKey key)
+        {
+            return data.ContainsKey(key);
+        }
+    }
+}"
+                    }
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import Enum
+import abc
+
+import System.Collections
+
+class IDictionary(System.Collections.ICollection, metaclass=abc.ABCMeta):
+    """"""This class has no documentation.""""""
+",
+                    @"
+from typing import overload
+from enum import Enum
+import typing
+
+import System.Collections.Generic
+
+System_Collections_Generic_KeyValuePair_TKey = typing.TypeVar(""System_Collections_Generic_KeyValuePair_TKey"")
+System_Collections_Generic_KeyValuePair_TValue = typing.TypeVar(""System_Collections_Generic_KeyValuePair_TValue"")
+
+class KeyValuePair(typing.Generic[System_Collections_Generic_KeyValuePair_TKey, System_Collections_Generic_KeyValuePair_TValue]):
+    """"""This class has no documentation.""""""
+",
+                    @"
+from typing import overload
+from enum import Enum
+import typing
+
+import QuantConnect.Test
+import System
+import System.Collections
+import System.Collections.Generic
+
+QuantConnect_Test_TestDictionary_TKey = typing.TypeVar(""QuantConnect_Test_TestDictionary_TKey"")
+QuantConnect_Test_TestDictionary_TValue = typing.TypeVar(""QuantConnect_Test_TestDictionary_TValue"")
+QuantConnect_Test_TestDictionary2_TKey = typing.TypeVar(""QuantConnect_Test_TestDictionary2_TKey"")
+QuantConnect_Test_TestDictionary2_TValue = typing.TypeVar(""QuantConnect_Test_TestDictionary2_TValue"")
+
+class TestDictionary(typing.Generic[QuantConnect_Test_TestDictionary_TKey, QuantConnect_Test_TestDictionary_TValue], System.Object, System.Collections.IDictionary):
+    """"""This class has no documentation.""""""
+
+    @property
+    def count(self) -> int:
+        ...
+
+    def __contains__(self, key: QuantConnect_Test_TestDictionary_TKey) -> bool:
+        ...
+
+    def __len__(self) -> int:
+        ...
+
+    def contains_key(self, key: QuantConnect_Test_TestDictionary_TKey) -> bool:
+        ...
+
+class TestDictionary2(typing.Generic[QuantConnect_Test_TestDictionary2_TKey, QuantConnect_Test_TestDictionary2_TValue], System.Object, typing.Iterable[System.Collections.Generic.KeyValuePair[QuantConnect_Test_TestDictionary2_TKey, QuantConnect_Test_TestDictionary2_TValue]]):
+    """"""This class has no documentation.""""""
+
+    @property
+    def count(self) -> int:
+        ...
+
+    def __contains__(self, key: QuantConnect_Test_TestDictionary2_TKey) -> bool:
+        ...
+
+    def __len__(self) -> int:
+        ...
+
+    def contains_key(self, key: QuantConnect_Test_TestDictionary2_TKey) -> bool:
+        ...
+"
+                }).SetName("GeneratesContainerMethodsForDictionaries"),
         };
 
         private class TestGenerator : Generator

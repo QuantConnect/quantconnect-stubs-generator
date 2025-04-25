@@ -458,40 +458,15 @@ namespace QuantConnectStubsGenerator.Parser
 
         private void ImproveDictionaryDefinitionIfNecessary(MemberDeclarationSyntax node, Method method)
         {
-            // We add container methods to classes that implement IDictionary or IEnumerable<KeyValuePair<TKey, TValue>>,
+            // We add container methods to classes that implement Count and ContainsKey
             // because Python.Net does this to add support for operators like 'in' to work with these types
             if (node is MethodDeclarationSyntax methodNode &&
                 method.Name == "ContainsKey" &&
                 method.Parameters.Count == 1 &&
-                _currentClass.Properties.Any(property => property.Name == "Count") &&
-                (_currentClass.GetClassAndBaseClasses(_context).Any(cls => cls.Interface && (IsIDictionary(cls) || IsKeyValuePairEnumerable(cls))) ||
-                    _currentClass.InheritsFrom.Any(x => x.Name == "Iterable" && x.Namespace == "typing" && x.TypeParameters.Count == 1 && IsKeyValuePair(x))))
+                _currentClass.Properties.Any(property => property.Name == "Count"))
             {
                 AddContainerMethods(methodNode);
             }
-        }
-
-        private static bool IsIDictionary(Class cls)
-        {
-            return cls.Type.Name == "IDictionary" &&
-                cls.Type.Namespace == "System.Collections" &&
-                cls.Type.TypeParameters.Count == 0;
-        }
-
-        private static bool IsKeyValuePairEnumerable(Class cls)
-        {
-            return cls.Type.Name == "IEnumerable" && cls.Type.Namespace == "System.Collections.Generic" &&
-                cls.Type.TypeParameters.Count == 1 &&
-                cls.Type.TypeParameters[0].Name == "KeyValuePair" &&
-                cls.Type.TypeParameters[0].Namespace == "System.Collections.Generic" &&
-                cls.Type.TypeParameters[0].TypeParameters.Count == 2;
-        }
-
-        private static bool IsKeyValuePair(PythonType type)
-        {
-            return type.TypeParameters[0].Name == "KeyValuePair" &&
-                type.TypeParameters[0].Namespace == "System.Collections.Generic" &&
-                type.TypeParameters[0].TypeParameters.Count == 2;
         }
 
         /// <summary>

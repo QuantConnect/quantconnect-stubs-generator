@@ -280,6 +280,7 @@ namespace QuantConnectStubsGenerator.Parser
             _currentClass.Methods.Add(method);
 
             ImprovePythonAccessorIfNecessary(method);
+            ImproveDictionaryDefinitionIfNecessary(node, method);
         }
 
         private Parameter ParseParameter(ParameterSyntax syntax, bool avoidImplicitConversionTypes)
@@ -405,6 +406,11 @@ namespace QuantConnectStubsGenerator.Parser
                 return;
             }
 
+            AddContainerMethods(node);
+        }
+
+        private void AddContainerMethods(MethodDeclarationSyntax node)
+        {
             VisitMethod(node, "__contains__", node.ParameterList.Parameters, _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null, false);
 
             if (_currentClass.Methods.All(m => m.Name != "__len__"))
@@ -448,6 +454,19 @@ namespace QuantConnectStubsGenerator.Parser
             newMethod.ReturnType = existingMethod.ReturnType;
 
             _currentClass.Methods.Remove(existingMethod);
+        }
+
+        private void ImproveDictionaryDefinitionIfNecessary(MemberDeclarationSyntax node, Method method)
+        {
+            // We add container methods to classes that implement Count and ContainsKey
+            // because Python.Net does this to add support for operators like 'in' to work with these types
+            if (node is MethodDeclarationSyntax methodNode &&
+                method.Name == "ContainsKey" &&
+                method.Parameters.Count == 1 &&
+                _currentClass.Properties.Any(property => property.Name == "Count"))
+            {
+                AddContainerMethods(methodNode);
+            }
         }
 
         /// <summary>

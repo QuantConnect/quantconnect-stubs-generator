@@ -226,6 +226,7 @@ class TestEnumerable2(typing.List[str]):
                         "Test.cs",
                         @"
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace QuantConnect.Test
@@ -245,6 +246,10 @@ namespace QuantConnect.Test
         }
 
         public void Method2(DateTime someParam, IList<List<string>> enumerable)
+        {
+        }
+
+        public void Method3(IList listParam)
         {
         }
     }
@@ -278,6 +283,9 @@ class TestClass(System.Object):
         ...
 
     def method_2(self, some_param: typing.Union[datetime.datetime, datetime.date], enumerable: typing.List[typing.List[str]]) -> None:
+        ...
+
+    def method_3(self, list_param: typing.List[typing.Any]) -> None:
         ...
 "
                 }).SetName("GeneratesIterableOverloadsForEnumerableParameters"),

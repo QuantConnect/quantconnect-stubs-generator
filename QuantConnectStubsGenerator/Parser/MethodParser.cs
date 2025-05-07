@@ -288,7 +288,8 @@ namespace QuantConnectStubsGenerator.Parser
         {
             avoidImplicitConversionTypes |= HasAttribute(syntax.AttributeLists, "StubsAvoidImplicits");
             var originalName = syntax.Identifier.Text;
-            var parameter = new Parameter(FormatParameterName(originalName), _typeConverter.GetType(syntax.Type, skipTypeNormalization: SkipTypeNormalization));
+            var parameter = new Parameter(FormatParameterName(originalName),
+                _typeConverter.GetType(syntax.Type, skipTypeNormalization: SkipTypeNormalization, isParameter: true));
 
             if (syntax.Modifiers.Any(modifier => modifier.Text == "params"))
             {

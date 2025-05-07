@@ -407,7 +407,8 @@ namespace QuantConnect.Test
             Assert.AreEqual("typing.List[int]", constructor1.Parameters[0].Type.ToPythonString());
 
             var constructor2 = testClass.Methods.Where(x => x.Name == "__init__" && x.Parameters.Count == 2).Single();
-            Assert.AreEqual("typing.Iterable[int]", constructor2.Parameters[1].Type.ToPythonString());
+            // Enumerable parameters are always converted to List
+            Assert.AreEqual("typing.List[int]", constructor2.Parameters[1].Type.ToPythonString());
 
             var method1 = testClass.Methods.Single(x => x.Name == "Method1");
             Assert.AreEqual("typing.List[str]", method1.Parameters[0].Type.ToPythonString());

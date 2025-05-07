@@ -61,7 +61,7 @@ namespace QuantConnectStubsGenerator.Parser
 
         private Class ParseClass(BaseTypeDeclarationSyntax node)
         {
-            return new Class(_typeConverter.GetType(node, true, true))
+            return new Class(_typeConverter.GetType(node, true, true, false))
             {
                 Static = HasModifier(node, "static"),
                 Summary = ParseSummary(node),
@@ -106,7 +106,7 @@ namespace QuantConnectStubsGenerator.Parser
                 return types;
             }
 
-            var currentType = _typeConverter.GetType(node, true, true);
+            var currentType = _typeConverter.GetType(node, true, true, false);
             var skipTypeNormalization = !currentType.Namespace.StartsWith("QuantConnect");
 
             if (symbol.BaseType != null)

@@ -45,7 +45,7 @@ namespace QuantConnectStubsGenerator.Parser
         /// Returns the Python type of the given node.
         /// Returns an aliased typing.Any if there is no Python type for the given symbol.
         /// </summary>
-        public PythonType GetType(SyntaxNode node, bool skipPythonTypeCheck = false, bool skipTypeNormalization = false)
+        public PythonType GetType(SyntaxNode node, bool skipPythonTypeCheck = false, bool skipTypeNormalization = false, bool isParameter = false)
         {
             var symbol = GetSymbol(node);
 
@@ -68,20 +68,20 @@ namespace QuantConnectStubsGenerator.Parser
                 };
             }
 
-            return GetType(symbol, skipPythonTypeCheck, skipTypeNormalization);
+            return GetType(symbol, skipPythonTypeCheck, skipTypeNormalization, isParameter);
         }
 
         /// <summary>
         /// Returns the Python type of the given symbol.
         /// Returns an aliased typing.Any if there is no Python type for the given symbol.
         /// </summary>
-        public PythonType GetType(ISymbol symbol, bool skipPythonTypeCheck = false, bool skipTypeNormalization = false)
+        public PythonType GetType(ISymbol symbol, bool skipPythonTypeCheck = false, bool skipTypeNormalization = false, bool isParameter = false)
         {
             // Handle arrays
             if (symbol is IArrayTypeSymbol arrayTypeSymbol)
             {
                 var listType = new PythonType("List", "typing");
-                listType.TypeParameters.Add(GetType(arrayTypeSymbol.ElementType));
+                listType.TypeParameters.Add(GetType(arrayTypeSymbol.ElementType, isParameter: isParameter));
                 return listType;
             }
 
@@ -112,10 +112,10 @@ namespace QuantConnectStubsGenerator.Parser
 
                     foreach (var parameter in namedTypeSymbol.DelegateInvokeMethod.Parameters)
                     {
-                        parameters.Add(GetType(parameter.Type));
+                        parameters.Add(GetType(parameter.Type, isParameter: isParameter));
                     }
 
-                    parameters.Add(GetType(namedTypeSymbol.DelegateInvokeMethod.ReturnType));
+                    parameters.Add(GetType(namedTypeSymbol.DelegateInvokeMethod.ReturnType, isParameter: isParameter));
 
                     return new PythonType("Callable", "typing")
                     {
@@ -125,7 +125,7 @@ namespace QuantConnectStubsGenerator.Parser
 
                 foreach (var typeParameter in namedTypeSymbol.TypeArguments)
                 {
-                    var paramType = GetType(typeParameter);
+                    var paramType = GetType(typeParameter, isParameter: isParameter);
 
                     if (typeParameter is ITypeParameterSymbol)
                     {
@@ -139,7 +139,7 @@ namespace QuantConnectStubsGenerator.Parser
             var result = CSharpTypeToPythonType(type, skipPythonTypeCheck);
             if (!skipTypeNormalization)
             {
-                result = NormalizeType(result);
+                result = NormalizeType(result, isParameter);
             }
             return result;
         }
@@ -226,29 +226,50 @@ namespace QuantConnectStubsGenerator.Parser
             return type;
         }
 
-        private static PythonType NormalizeType(PythonType type)
+        private static PythonType NormalizeType(PythonType type, bool isParameter)
         {
             if (type.Namespace == "System.Collections.Generic" && type.TypeParameters.Count == 1)
             {
+                var isList = false;
                 if (type.Name == "IReadOnlyList" || type.Name == "IReadOnlyCollection")
                 {
-                    return new PythonType("Sequence", "typing")
+                    if (!isParameter)
                     {
-                        TypeParameters = { NormalizeType(type.TypeParameters[0]) }
-                    };
+                        return new PythonType("Sequence", "typing")
+                        {
+                            TypeParameters = { NormalizeType(type.TypeParameters[0], isParameter) }
+                        };
+                    }
+                    isList = true;
                 }
                 else if (type.Name == "IList" || type.Name == "List")
                 {
-                    return new PythonType("List", "typing")
+                    if (!isParameter)
                     {
-                        TypeParameters = { NormalizeType(type.TypeParameters[0]) }
-                    };
+                        return new PythonType("List", "typing")
+                        {
+                            TypeParameters = { NormalizeType(type.TypeParameters[0], isParameter) }
+                        };
+                    }
+                    isList = true;
                 }
                 else if (type.Name == "IEnumerable")
                 {
-                    return new PythonType("Iterable", "typing")
+                    if (!isParameter)
                     {
-                        TypeParameters = { NormalizeType(type.TypeParameters[0]) }
+                        return new PythonType("Iterable", "typing")
+                        {
+                            TypeParameters = { NormalizeType(type.TypeParameters[0], isParameter) }
+                        };
+                    }
+                    isList = true;
+                }
+
+                if (isList)
+                {
+                    return new PythonType("List", "typing")
+                    {
+                        TypeParameters = { NormalizeType(type.TypeParameters[0], isParameter) }
                     };
                 }
             }

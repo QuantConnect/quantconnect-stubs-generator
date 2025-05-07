@@ -267,7 +267,7 @@ class TestClass(System.Object):
     """"""This class has no documentation.""""""
 
     @overload
-    def __init__(self, some_param: int, enumerable: typing.Iterable[int]) -> None:
+    def __init__(self, some_param: int, enumerable: typing.List[int]) -> None:
         ...
 
     @overload

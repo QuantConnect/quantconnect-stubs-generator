@@ -505,6 +505,104 @@ class TestDictionary2(typing.Generic[QuantConnect_Test_TestDictionary2_TKey, Qua
         ...
 "
                 }).SetName("GeneratesContainerMethodsForDictionaries"),
+
+            // GeneratesMethodsWithSymbolImplicitConversionForInheritedGenericClasses
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Symbol.cs",
+                        @"
+namespace QuantConnect
+{
+    public class Symbol
+    {
+    }
+}"
+                    },
+                    {
+                        "Test.cs",
+                        @"
+using System;
+using System.Collections;
+using System.Collections.Generic;
+
+namespace QuantConnect.Test
+{
+    public class TestGenericClass<T1, T2>
+    {
+        public T1 TestMethod1(T1 t1Param, T2 t2Param) {}
+
+        /// <summary>
+        /// This method will not be explicitly added to TestClass because it does not need
+        /// the Symbol implicit conversion support, given that non of its parameters is directly T1
+        /// (which will be set to Symbol in the class below)
+        /// </summary>
+        public T2 TestMethod2(List<T1> t1Param, T2 t2Param) {}
+
+        public List<Dictionary<T1, T2>> TestMethod3(T1 t1Param, List<Dictionary<T1, List<T2>>> t2Param) {}
+    }
+
+    public class TestClass : TestGenericClass<Symbol, DateTime>
+    {
+    }
+}"
+                    }
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import Enum
+import QuantConnect
+import System
+
+
+class Symbol(System.Object):
+    """"""This class has no documentation.""""""
+",
+                    @"
+from typing import overload
+from enum import Enum
+import datetime
+import typing
+
+import QuantConnect
+import QuantConnect.Data.Market
+import QuantConnect.Test
+import System
+import System.Collections.Generic
+
+QuantConnect_Test_TestGenericClass_T1 = typing.TypeVar(""QuantConnect_Test_TestGenericClass_T1"")
+QuantConnect_Test_TestGenericClass_T2 = typing.TypeVar(""QuantConnect_Test_TestGenericClass_T2"")
+
+class TestGenericClass(typing.Generic[QuantConnect_Test_TestGenericClass_T1, QuantConnect_Test_TestGenericClass_T2], System.Object):
+    """"""This class has no documentation.""""""
+
+    def test_method_1(self, t_1_param: QuantConnect_Test_TestGenericClass_T1, t_2_param: QuantConnect_Test_TestGenericClass_T2) -> QuantConnect_Test_TestGenericClass_T1:
+        ...
+
+    def test_method_2(self, t_1_param: typing.List[QuantConnect_Test_TestGenericClass_T1], t_2_param: QuantConnect_Test_TestGenericClass_T2) -> QuantConnect_Test_TestGenericClass_T2:
+        """"""
+        This method will not be explicitly added to TestClass because it does not need
+        the Symbol implicit conversion support, given that non of its parameters is directly T1
+        (which will be set to Symbol in the class below)
+        """"""
+        ...
+
+    def test_method_3(self, t_1_param: QuantConnect_Test_TestGenericClass_T1, t_2_param: typing.List[System.Collections.Generic.Dictionary[QuantConnect_Test_TestGenericClass_T1, typing.List[QuantConnect_Test_TestGenericClass_T2]]]) -> typing.List[System.Collections.Generic.Dictionary[QuantConnect_Test_TestGenericClass_T1, QuantConnect_Test_TestGenericClass_T2]]:
+        ...
+
+class TestClass(QuantConnect.Test.TestGenericClass[QuantConnect.Symbol, datetime.datetime]):
+    """"""This class has no documentation.""""""
+
+    def test_method_1(self, t_1_param: typing.Union[QuantConnect.Symbol, str, QuantConnect.Data.Market.BaseContract], t_2_param: datetime.datetime) -> QuantConnect.Symbol:
+        ...
+
+    def test_method_3(self, t_1_param: typing.Union[QuantConnect.Symbol, str, QuantConnect.Data.Market.BaseContract], t_2_param: typing.List[System.Collections.Generic.Dictionary[QuantConnect.Symbol, typing.List[datetime.datetime]]]) -> typing.List[System.Collections.Generic.Dictionary[QuantConnect.Symbol, datetime.datetime]]:
+        ...
+"
+                }).SetName("GeneratesMethodsWithSymbolImplicitConversionForInheritedGenericClasses"),
         };
 
         private class TestGenerator : Generator

@@ -53,7 +53,7 @@ namespace QuantConnectStubsGenerator.Model
             Static = other.Static;
             Summary = other.Summary;
             Overload = other.Overload;
-            Parameters = other.Parameters;
+            Parameters = other.Parameters.Select(x => x).ToList();
             GenericType = other.GenericType;
             DeprecationReason = other.DeprecationReason;
         }

@@ -114,7 +114,7 @@ namespace QuantConnectStubsGenerator
                     // Remove Python implementations for methods where there is both a Python as well as a C# implementation
                     // The parsed C# implementation is usually more useful for autocomplete
                     // To improve it a little bit we move the return type of the Python implementation to the C# implementation
-                    PostProcessClass(cls);
+                    PostProcessClass(cls, context);
 
                     // Mark methods which appear multiple times as overloaded
                     MarkOverloads(cls);
@@ -246,7 +246,7 @@ namespace QuantConnectStubsGenerator
             }
         }
 
-        private void PostProcessClass(Class cls)
+        private void PostProcessClass(Class cls, ParseContext context)
         {
             var loggingMethods = new HashSet<string>
             {
@@ -255,6 +255,8 @@ namespace QuantConnectStubsGenerator
                 "QCAlgorithm.Log",
                 "QCAlgorithm.Quit"
             };
+
+            HandleSymbolGenericClass(cls, context);
 
             HandleGenericMethods(cls);
 
@@ -456,6 +458,115 @@ namespace QuantConnectStubsGenerator
             // Ensure parent directories exist
             new FileInfo(path).Directory?.Create();
             return new StreamWriter(path);
+        }
+
+        /// <summary>
+        /// Handles the case where a class inherits from a generic class with Symbol as one of the type parameters.
+        /// We need to get all methods from the base class which are any of the generic types that is Symbol
+        /// and replace it with an union of Symbol, str and BaseContract like we do elsewhere to support Symbol implicit conversion.
+        /// </summary>
+        private void HandleSymbolGenericClass(Class cls, ParseContext context)
+        {
+            var symbolGenericBaseClasses = cls.InheritsFrom
+                .Where(x => x.Namespace.StartsWith("QuantConnect") && x.TypeParameters.Count > 0 && x.TypeParameters.Any(y => y.Equals(PythonType.SymbolType)))
+                .ToList();
+
+            if (symbolGenericBaseClasses.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var baseClassType in symbolGenericBaseClasses)
+            {
+                var ns = context.GetNamespaceByName(baseClassType.Namespace);
+                var baseClass = ns.GetClassByType(baseClassType);
+
+                // Map generic types to their corresponding types
+                var genericTypes = new Dictionary<PythonType, PythonType>();
+                for (var i = 0; i < baseClassType.TypeParameters.Count; i++)
+                {
+                    genericTypes.Add(baseClass.Type.TypeParameters[i], baseClassType.TypeParameters[i]);
+                }
+
+                foreach (var method in baseClass.Methods)
+                {
+                    var adjusted = false;
+                    var adjustedMethod = new Method(method.Name, method);
+                    adjustedMethod.Parameters.Clear();
+
+                    foreach (var parameter in method.Parameters)
+                    {
+                        if (TryReplaceGenericTypes(parameter.Type, genericTypes, false,
+                            out var adjustedParameterType, out var adjustedParameterSymbolImplicitConversion))
+                        {
+                            adjustedMethod.Parameters.Add(new Parameter(parameter)
+                            {
+                                Type = adjustedParameterType
+                            });
+                            adjusted |= adjustedParameterSymbolImplicitConversion;
+                        }
+                        else
+                        {
+                            adjustedMethod.Parameters.Add(parameter);
+                        }
+                    }
+
+                    if (TryReplaceGenericTypes(method.ReturnType, genericTypes, true, out var adjustedReturnType, out var _))
+                    {
+                        adjustedMethod.ReturnType = adjustedReturnType;
+                    }
+
+                    // Only add the adjusted method if it has a Symbol (with implicit conversion) argument,
+                    // else, mypy will not complain since the inheritance will take care of it.
+                    if (adjusted)
+                    {
+                        adjustedMethod.Class = cls;
+                        cls.Methods.Add(adjustedMethod);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Recursively replaces generic types in the given type with their corresponding types from the genericTypes dictionary.
+        /// </summary>
+        private bool TryReplaceGenericTypes(PythonType type, Dictionary<PythonType, PythonType> genericTypes, bool avoidImplicitConversions,
+            out PythonType adjustedType, out bool adjustedSymbolImplicitConversion)
+        {
+            adjustedSymbolImplicitConversion = false;
+            if (type.TypeParameters.Count == 0)
+            {
+                adjustedType = type;
+                if (!genericTypes.TryGetValue(type, out var mappedType))
+                {
+                    return false;
+                }
+
+                if (!avoidImplicitConversions && mappedType.Equals(PythonType.SymbolType))
+                {
+                    adjustedType = PythonType.ImplicitConversionParameterSymbolType;
+                    adjustedSymbolImplicitConversion = true;
+                }
+                else
+                {
+                    adjustedType = mappedType;
+                }
+
+                return true;
+            }
+
+            var adjusted = false;
+            adjustedType = new PythonType(type);
+            adjustedType.TypeParameters.Clear();
+
+            foreach (var typeParameter in type.TypeParameters)
+            {
+                adjusted |= TryReplaceGenericTypes(typeParameter, genericTypes, true, out var adjustedTypeParameter, out var adjustedParameterSymbolImplicitConversion);
+                adjustedType.TypeParameters.Add(adjustedTypeParameter);
+                adjustedSymbolImplicitConversion |= adjustedParameterSymbolImplicitConversion;
+            }
+
+            return adjusted;
         }
     }
 }

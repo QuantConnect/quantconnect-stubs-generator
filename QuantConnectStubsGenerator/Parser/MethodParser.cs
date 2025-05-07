@@ -299,9 +299,9 @@ namespace QuantConnectStubsGenerator.Parser
             if (!avoidImplicitConversionTypes)
             {
                 // Symbol parameters can be both a Symbol or a string in most methods
-                if (parameter.Type.Namespace == "QuantConnect" && parameter.Type.Name == "Symbol")
+                if (parameter.Type.Equals(PythonType.SymbolType))
                 {
-                    parameter.Type = PythonType.CreateUnion(parameter.Type, new PythonType("str"), new PythonType("BaseContract", "QuantConnect.Data.Market"));
+                    parameter.Type = PythonType.ImplicitConversionParameterSymbolType;
                 }
 
                 // IDataConsolidator parameters can be either IDataConsolidator, PythonConsolidator or timedelta

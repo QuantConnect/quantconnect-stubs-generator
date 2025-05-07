@@ -21,6 +21,10 @@ namespace QuantConnectStubsGenerator.Model
 {
     public class PythonType : IEquatable<PythonType>
     {
+        public static readonly PythonType SymbolType = new PythonType("Symbol", "QuantConnect");
+        public static readonly PythonType ImplicitConversionParameterSymbolType =
+            CreateUnion(SymbolType, new PythonType("str"), new PythonType("BaseContract", "QuantConnect.Data.Market"));
+
         public string Name { get; set; }
         public string Namespace { get; set; }
 
@@ -33,6 +37,14 @@ namespace QuantConnectStubsGenerator.Model
         {
             Name = name;
             Namespace = ns;
+        }
+
+        public PythonType(PythonType other)
+            : this(other.Name, other.Namespace)
+        {
+            Alias = other.Alias;
+            IsNamedTypeParameter = other.IsNamedTypeParameter;
+            TypeParameters = new List<PythonType>(other.TypeParameters);
         }
 
         public string GetBaseName()

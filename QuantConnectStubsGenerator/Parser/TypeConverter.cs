@@ -228,9 +228,12 @@ namespace QuantConnectStubsGenerator.Parser
 
         private static PythonType NormalizeType(PythonType type, bool isParameter)
         {
+            var isList = false;
+            var isGeneric = false;
             if (type.Namespace == "System.Collections.Generic" && type.TypeParameters.Count == 1)
             {
-                var isList = false;
+                isGeneric = true;
+
                 if (type.Name == "IReadOnlyList" || type.Name == "IReadOnlyCollection")
                 {
                     if (!isParameter)
@@ -264,15 +267,28 @@ namespace QuantConnectStubsGenerator.Parser
                     }
                     isList = true;
                 }
+            }
+            else if (type.Namespace == "System.Collections" && type.Name == "IList")
+            {
+                isList = true;
+            }
 
-                if (isList)
+            if (isList)
+            {
+                if (isGeneric)
                 {
                     return new PythonType("List", "typing")
                     {
                         TypeParameters = { NormalizeType(type.TypeParameters[0], isParameter) }
                     };
                 }
+
+                return new PythonType("List", "typing")
+                {
+                    TypeParameters = { new PythonType("Any", "typing") }
+                };
             }
+
             return type;
         }
     }

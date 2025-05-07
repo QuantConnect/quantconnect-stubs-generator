@@ -277,6 +277,7 @@ namespace QuantConnectStubsGenerator.Parser
                     : paramText;
             }
             method.GenericType = genericType;
+            method.AvoidImplicitTypes = avoidImplicitConversionTypes;
             _currentClass.Methods.Add(method);
 
             ImprovePythonAccessorIfNecessary(method);

@@ -41,6 +41,8 @@ namespace QuantConnectStubsGenerator.Model
 
         public Class Class { get; set; }
 
+        public bool AvoidImplicitTypes { get; set; }
+
         public Method(string name, PythonType returnType)
         {
             Name = name;
@@ -53,7 +55,8 @@ namespace QuantConnectStubsGenerator.Model
             Static = other.Static;
             Summary = other.Summary;
             Overload = other.Overload;
-            Parameters = other.Parameters.Select(x => x).ToList();
+            // Create a new list, so it can be modified for each method separately
+            Parameters = other.Parameters.ToList();
             GenericType = other.GenericType;
             DeprecationReason = other.DeprecationReason;
         }
@@ -62,12 +65,31 @@ namespace QuantConnectStubsGenerator.Model
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return Name == other.Name
-                && Class.Equals(other.Class)
-                && Static == other.Static
-                && Overload == other.Overload
-                && GenericType == other.GenericType
-                && Parameters.SequenceEqual(other.Parameters);
+
+            if (Name != other.Name
+                || !Class.Equals(other.Class)
+                || Static != other.Static
+                || Overload != other.Overload
+                || GenericType != other.GenericType
+                || Parameters.Count != other.Parameters.Count)
+            {
+                return false;
+            }
+
+            // Don't use Parameter.Equals() because a different parameter name does not make a method different
+            for (var i = 0; i < Parameters.Count; i++)
+            {
+                var parameter = Parameters[i];
+                var otherParameter = other.Parameters[i];
+                if (!parameter.Type.Equals(otherParameter.Type)
+                    || parameter.VarArgs != otherParameter.VarArgs
+                    || parameter.Value != otherParameter.Value)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public override bool Equals(object obj)

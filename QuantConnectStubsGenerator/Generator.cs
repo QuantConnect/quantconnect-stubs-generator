@@ -467,6 +467,11 @@ namespace QuantConnectStubsGenerator
         /// </summary>
         private void HandleSymbolGenericClass(Class cls, ParseContext context)
         {
+            if (cls.AvoidImplicitTypes)
+            {
+                return;
+            }
+
             var symbolGenericBaseClasses = cls.InheritsFrom
                 .Where(x => x.Namespace.StartsWith("QuantConnect") && x.TypeParameters.Count > 0 && x.TypeParameters.Any(y => y.Equals(PythonType.SymbolType)))
                 .ToList();
@@ -490,6 +495,11 @@ namespace QuantConnectStubsGenerator
 
                 foreach (var method in baseClass.Methods)
                 {
+                    if (method.AvoidImplicitTypes)
+                    {
+                        continue;
+                    }
+
                     var adjusted = false;
                     var adjustedMethod = new Method(method.Name, method);
                     adjustedMethod.Parameters.Clear();

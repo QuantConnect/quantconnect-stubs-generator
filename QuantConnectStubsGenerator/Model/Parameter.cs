@@ -42,7 +42,8 @@ namespace QuantConnectStubsGenerator.Model
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return Type.Equals(other.Type)
+            return Name == other.Name
+                && Type.Equals(other.Type)
                 && VarArgs == other.VarArgs
                 && Value == other.Value;
         }
@@ -56,7 +57,7 @@ namespace QuantConnectStubsGenerator.Model
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Type, VarArgs, Value);
+            return HashCode.Combine(Name, Type, VarArgs, Value);
         }
 
         public override string ToString()

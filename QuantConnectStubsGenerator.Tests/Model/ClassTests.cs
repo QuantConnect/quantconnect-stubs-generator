@@ -40,7 +40,7 @@ namespace QuantConnectStubsGenerator.Tests.Model
                 IsNamedTypeParameter = true
             });
 
-            childCls.InheritsFrom.Add(new PythonType("Any", "typing"));
+            childCls.InheritsFrom.Add(PythonType.Any);
 
             var usedTypes = parentCls.GetUsedTypes().ToList();
 

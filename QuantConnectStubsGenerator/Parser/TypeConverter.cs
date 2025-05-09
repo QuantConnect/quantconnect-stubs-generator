@@ -55,16 +55,16 @@ namespace QuantConnectStubsGenerator.Parser
                 {
                     "PyList" => new PythonType("List", "typing")
                     {
-                        TypeParameters = new List<PythonType> {new PythonType("Any", "typing")}
+                        TypeParameters = new List<PythonType> {PythonType.Any}
                     },
                     "PyDict" => new PythonType("Dict", "typing")
                     {
                         TypeParameters = new List<PythonType>
                         {
-                            new PythonType("Any", "typing"), new PythonType("Any", "typing")
+                            PythonType.Any, PythonType.Any
                         }
                     },
-                    _ => new PythonType("Any", "typing")
+                    _ => PythonType.Any
                 };
             }
 
@@ -88,7 +88,7 @@ namespace QuantConnectStubsGenerator.Parser
             // Use typing.Any as fallback if there is no type information in the given symbol
             if (symbol == null || symbol.Name == "" || symbol.ContainingNamespace == null)
             {
-                return new PythonType("Any", "typing");
+                return PythonType.Any;
             }
 
             var name = GetTypeName(symbol);
@@ -285,7 +285,7 @@ namespace QuantConnectStubsGenerator.Parser
 
                 return new PythonType("List", "typing")
                 {
-                    TypeParameters = { new PythonType("Any", "typing") }
+                    TypeParameters = { PythonType.Any }
                 };
             }
 

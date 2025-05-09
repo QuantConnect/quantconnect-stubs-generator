@@ -26,6 +26,43 @@ namespace QuantConnectStubsGenerator.Parser
 {
     public class MethodParser : BaseParser
     {
+
+        private static readonly IReadOnlyDictionary<string, string> _operators = new Dictionary<string, string>()
+        {
+            // Arithmetic operators
+            { "+", "__add__" },
+            { "-", "__sub__" },
+            { "*", "__mul__" },
+            { "/", "__truediv__" },
+            { "%", "__mod__" },
+
+            // Comparison operators
+            { "==", "__eq__" },
+            { "!=", "__ne__" },
+            { "<", "__lt__" },
+            { "<=", "__le__" },
+            { ">", "__gt__" },
+            { ">=", "__ge__" },
+
+            // Bitwise and shift operators
+            { "&", "__and__" },
+            { "|", "__or__" },
+            { "^", "__xor__" },
+            { "<<", "__lshift__" },
+            { ">>", "__rshift__" },
+            { "~", "__invert__" },
+        };
+
+        private static readonly IReadOnlyList<string> _operatorsWithCompountAssignment = new List<string>()
+        {
+            "+", "-", "*", "/", "%", "&", "|", "^", "<<", ">>"
+        };
+
+        private static readonly IReadOnlyList<string> _pythonComparisonMethods = new List<string>()
+        {
+            "__lt__", "__le__", "__gt__", "__ge__"
+        };
+
         private bool SkipTypeNormalization => !_currentClass?.Type.Namespace.StartsWith("QuantConnect") ?? true;
 
         public MethodParser(ParseContext context, SemanticModel model) : base(context, model)
@@ -50,7 +87,7 @@ namespace QuantConnectStubsGenerator.Parser
             var avoidImplicitConversionTypes = ShouldAvoidImplicitConversionTypes(node);
             var returnType = _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization);
 
-            VisitMethod(
+            var method = VisitMethod(
                 node,
                 node.Identifier.Text,
                 node.ParameterList.Parameters,
@@ -60,6 +97,9 @@ namespace QuantConnectStubsGenerator.Parser
 
             // Make the current class extend from typing.Iterable if this is an applicable GetEnumerator() method
             ExtendIterableIfNecessary(node, returnType);
+
+            // Add <, >, <=, >= methods to make the class comparable
+            MakeComparableIfNecessary(method);
 
             // Add __contains__ and __len__ methods to containers in System.Collections.Generic
             AddContainerMethodsIfNecessary(node);
@@ -89,6 +129,42 @@ namespace QuantConnectStubsGenerator.Parser
                 _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null, false);
         }
 
+        public override void VisitOperatorDeclaration(OperatorDeclarationSyntax node)
+        {
+            if (!_operators.TryGetValue(node.OperatorToken.Text, out var pythonOperatorName) ||
+                !TryGenerateOperatorMethod(node, pythonOperatorName))
+            {
+                // Not a supported operator
+                return;
+            }
+
+            if (_operatorsWithCompountAssignment.Contains(node.OperatorToken.Text))
+            {
+                // Add the compound assignment operator
+                var compoundAssignmentOperator = $"__i{pythonOperatorName.Replace("__", "")}__";
+                TryGenerateOperatorMethod(node, compoundAssignmentOperator);
+            }
+        }
+
+        private bool TryGenerateOperatorMethod(OperatorDeclarationSyntax node, string pythonOperatorName)
+        {
+            var operatorMethod = VisitMethod(
+                node,
+                pythonOperatorName,
+                node.ParameterList.Parameters,
+                _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null, false);
+
+            if (operatorMethod == null)
+            {
+                return false;
+            }
+
+            operatorMethod.Static = false;
+            operatorMethod.Parameters.RemoveAt(0);
+
+            return true;
+        }
+
         public override void VisitIndexerDeclaration(IndexerDeclarationSyntax node)
         {
             if (ShouldSkip(node))
@@ -113,14 +189,14 @@ namespace QuantConnectStubsGenerator.Parser
                         {
                             TypeParameters = {new PythonType("Tick", "QuantConnect.Data.Market")}
                         },
-                        new PythonType("Any", "typing")
+                        PythonType.Any
                     }
                 };
             }
 
             if (returnType.Namespace == "System" && returnType.Name == "Object")
             {
-                returnType = new PythonType("Any", "typing");
+                returnType = PythonType.Any;
             }
 
             VisitMethod(node, "__getitem__", node.ParameterList.Parameters, returnType, null, false);
@@ -135,7 +211,7 @@ namespace QuantConnectStubsGenerator.Parser
             }
         }
 
-        private void VisitMethod(
+        private Method VisitMethod(
             MemberDeclarationSyntax node,
             string name,
             SeparatedSyntaxList<ParameterSyntax> parameterList,
@@ -145,14 +221,14 @@ namespace QuantConnectStubsGenerator.Parser
         {
             if (_currentClass == null || ShouldSkip(node))
             {
-                return;
+                return null;
             }
 
             // Some methods in the AST have parameters without names
             // Because these parameters cause syntax errors in the generated Python code we skip those methods
             if (parameterList.Any(parameter => FormatParameterName(parameter.Identifier.Text) == ""))
             {
-                return;
+                return null;
             }
 
             var originalReturnType = returnType;
@@ -282,6 +358,8 @@ namespace QuantConnectStubsGenerator.Parser
 
             ImprovePythonAccessorIfNecessary(method);
             ImproveDictionaryDefinitionIfNecessary(node, method);
+
+            return method;
         }
 
         private Parameter ParseParameter(ParameterSyntax syntax, bool avoidImplicitConversionTypes)
@@ -332,7 +410,7 @@ namespace QuantConnectStubsGenerator.Parser
             // System.Object parameters can accept anything
             if (parameter.Type.Namespace == "System" && parameter.Type.Name == "Object")
             {
-                parameter.Type = new PythonType("Any", "typing");
+                parameter.Type = PythonType.Any;
             }
 
             if (syntax.Default != null)
@@ -477,6 +555,29 @@ namespace QuantConnectStubsGenerator.Parser
         private bool CheckDocSuggestsPandasDataFrame(string doc)
         {
             return doc.Contains("pandas DataFrame") || doc.Contains("pandas.DataFrame");
+        }
+
+        /// <summary>
+        /// Adds python comparison magic methods (__lt__, __le__, __gt__, __ge__) to the class if it implements IComparable
+        /// </summary>
+        private void MakeComparableIfNecessary(Method method)
+        {
+            if (method == null ||
+                method.Name != "CompareTo" ||
+                method.Parameters.Count != 1 ||
+                method.ReturnType.ToPythonString() != "int" ||
+                !_currentClass.GetBaseClasses(_context).Any(cls => cls.Type.Name == "IComparable" && cls.Type.Namespace == "System"))
+            {
+                return;
+            }
+
+            var parameterType = method.Parameters[0].Type;
+            foreach (var methodName in _pythonComparisonMethods)
+            {
+                var comparisonMethod = new Method(methodName, new PythonType("bool")) { Class = method.Class };
+                comparisonMethod.Parameters.Add(new Parameter("other", parameterType));
+                comparisonMethod.Class.Methods.Add(comparisonMethod);
+            }
         }
     }
 }

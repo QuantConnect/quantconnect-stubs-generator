@@ -611,6 +611,288 @@ class TestClass(QuantConnect.Test.TestGenericClass[QuantConnect.Symbol, datetime
         ...
 "
                 }).SetName("GeneratesMethodsWithSymbolImplicitConversionForInheritedGenericClasses"),
+
+            // GeneratesOperatorsMagicMethods
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "System.cs",
+                        @"
+namespace System
+{
+    public interface IComparable
+    {
+    }
+
+    public interface IComparable<T>
+    {
+    }
+}"
+                    },
+                    {
+                        "Test.cs",
+                        @"
+using System;
+
+namespace QuantConnect.Test
+{
+    public class TestClass
+    {
+        public static TestClass operator +(TestClass a, TestClass b)
+        {
+            return new TestClass();
+        }
+        public static TestClass operator -(TestClass a, TestClass b)
+        {
+            return new TestClass();
+        }
+        public static TestClass operator *(TestClass a, TestClass b)
+        {
+            return new TestClass();
+        }
+        public static TestClass operator /(TestClass a, TestClass b)
+        {
+            return new TestClass();
+        }
+        public static TestClass operator %(TestClass a, TestClass b)
+        {
+            return new TestClass();
+        }
+        public static bool operator ==(TestClass a, TestClass b)
+        {
+            return true;
+        }
+        public static bool operator !=(TestClass a, TestClass b)
+        {
+            return false;
+        }
+        public static bool operator >(TestClass a, TestClass b)
+        {
+            return true;
+        }
+        public static bool operator <(TestClass a, TestClass b)
+        {
+            return false;
+        }
+        public static bool operator >=(TestClass a, TestClass b)
+        {
+            return true;
+        }
+        public static bool operator <=(TestClass a, TestClass b)
+        {
+            return false;
+        }
+        public static TestClass operator &(TestClass a, TestClass b)
+        {
+            return new TestClass();
+        }
+        public static TestClass operator |(TestClass a, TestClass b)
+        {
+            return new TestClass();
+        }
+        public static TestClass operator ^(TestClass a, TestClass b)
+        {
+            return new TestClass();
+        }
+        public static TestClass operator >>(TestClass a, int b)
+        {
+            return new TestClass();
+        }
+        public static TestClass operator <<(TestClass a, int b)
+        {
+            return new TestClass();
+        }
+    }
+
+    public class TestComparableClass1 : IComparable
+    {
+        public int CompareTo(object obj)
+        {
+            return 0;
+        }
+    }
+
+    public class TestComparableClass2 : IComparable<TestComparableClass2>
+    {
+        public int CompareTo(TestComparableClass2 obj)
+        {
+            return 0;
+        }
+    }
+
+    public class TestComparableClass3 : IComparable<TestComparableClass2>
+    {
+        public int CompareTo(TestComparableClass2 obj)
+        {
+            return 0;
+        }
+    }
+}"
+                    }
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import Enum
+import abc
+import typing
+
+import System
+
+System_IComparable_T = typing.TypeVar(""System_IComparable_T"")
+
+class IComparable(typing.Generic[System_IComparable_T], metaclass=abc.ABCMeta):
+    """"""This class has no documentation.""""""
+
+",
+                    @"
+from typing import overload
+from enum import Enum
+import typing
+
+import QuantConnect.Test
+import System
+
+QuantConnect_Test_TestComparableClass2 = typing.Any
+
+class TestClass(System.Object):
+    """"""This class has no documentation.""""""
+
+    def __add__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __and__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __eq__(self, b: QuantConnect.Test.TestClass) -> bool:
+        ...
+
+    def __ge__(self, b: QuantConnect.Test.TestClass) -> bool:
+        ...
+
+    def __gt__(self, b: QuantConnect.Test.TestClass) -> bool:
+        ...
+
+    def __iadd__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __iand__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __ilshift__(self, b: int) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __imod__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __imul__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __ior__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __irshift__(self, b: int) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __isub__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __itruediv__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __ixor__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __le__(self, b: QuantConnect.Test.TestClass) -> bool:
+        ...
+
+    def __lshift__(self, b: int) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __lt__(self, b: QuantConnect.Test.TestClass) -> bool:
+        ...
+
+    def __mod__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __mul__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __ne__(self, b: QuantConnect.Test.TestClass) -> bool:
+        ...
+
+    def __or__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __rshift__(self, b: int) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __sub__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __truediv__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __xor__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+class TestComparableClass1(System.Object, System.IComparable):
+    """"""This class has no documentation.""""""
+
+    def __ge__(self, other: typing.Any) -> bool:
+        ...
+
+    def __gt__(self, other: typing.Any) -> bool:
+        ...
+
+    def __le__(self, other: typing.Any) -> bool:
+        ...
+
+    def __lt__(self, other: typing.Any) -> bool:
+        ...
+
+    def compare_to(self, obj: typing.Any) -> int:
+        ...
+
+class TestComparableClass2(System.Object, System.IComparable[QuantConnect_Test_TestComparableClass2]):
+    """"""This class has no documentation.""""""
+
+    def __ge__(self, other: QuantConnect.Test.TestComparableClass2) -> bool:
+        ...
+
+    def __gt__(self, other: QuantConnect.Test.TestComparableClass2) -> bool:
+        ...
+
+    def __le__(self, other: QuantConnect.Test.TestComparableClass2) -> bool:
+        ...
+
+    def __lt__(self, other: QuantConnect.Test.TestComparableClass2) -> bool:
+        ...
+
+    def compare_to(self, obj: QuantConnect.Test.TestComparableClass2) -> int:
+        ...
+
+class TestComparableClass3(System.Object, System.IComparable[QuantConnect.Test.TestComparableClass2]):
+    """"""This class has no documentation.""""""
+
+    def __ge__(self, other: QuantConnect.Test.TestComparableClass2) -> bool:
+        ...
+
+    def __gt__(self, other: QuantConnect.Test.TestComparableClass2) -> bool:
+        ...
+
+    def __le__(self, other: QuantConnect.Test.TestComparableClass2) -> bool:
+        ...
+
+    def __lt__(self, other: QuantConnect.Test.TestComparableClass2) -> bool:
+        ...
+
+    def compare_to(self, obj: QuantConnect.Test.TestComparableClass2) -> int:
+        ...
+"
+                }).SetName("GeneratesOperatorsMagicMethods"),
         };
 
         private class TestGenerator : Generator

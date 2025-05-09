@@ -252,8 +252,8 @@ namespace QuantConnectStubsGenerator.Parser
                         Summary = "Fires the event.",
                         Parameters =
                         {
-                            new Parameter("*args", new PythonType("Any", "typing")),
-                            new Parameter("**kwargs", new PythonType("Any", "typing"))
+                            new Parameter("*args", PythonType.Any),
+                            new Parameter("**kwargs", PythonType.Any)
                         },
                         Class = _currentClass
                     }

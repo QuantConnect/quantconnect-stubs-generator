@@ -73,7 +73,11 @@ setup(
         ""License :: OSI Approved :: Apache Software License"",
         ""Programming Language :: Python :: 3""
     ],
-    install_requires=[""pandas"", ""matplotlib""],
+    install_requires=[
+        ""pandas<2.3.0; python_version<'3.10'"",
+        ""pandas>=2.3.0; python_version>='3.10'"",
+        ""matplotlib""
+    ],
     packages=[
 {string.Join(",\n", namespaces.Select(ns => new string(' ', 8) + $"\"{ns}\""))}
     ],

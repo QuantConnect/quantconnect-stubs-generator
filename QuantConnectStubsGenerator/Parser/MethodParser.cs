@@ -69,6 +69,17 @@ namespace QuantConnectStubsGenerator.Parser
         {
         }
 
+        protected override void EnterClass(BaseTypeDeclarationSyntax node)
+        {
+            base.EnterClass(node);
+
+            // Pythonnet adds __int__() method to enums to allow implicit conversion to int
+            if (_currentClass.IsEnum())
+            {
+                AddIntImplicitOperatorMethod();
+            }
+        }
+
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             PythonType genericType = null;
@@ -578,6 +589,15 @@ namespace QuantConnectStubsGenerator.Parser
                 comparisonMethod.Parameters.Add(new Parameter("other", parameterType));
                 comparisonMethod.Class.Methods.Add(comparisonMethod);
             }
+        }
+
+        /// <summary>
+        /// Adds the __int__() method to the class if it is an enum.
+        /// </summary>
+        private void AddIntImplicitOperatorMethod()
+        {
+            var intImplicitOperatorMethod = new Method("__int__", new PythonType("int")) { Class = _currentClass };
+            _currentClass.Methods.Add(intImplicitOperatorMethod);
         }
     }
 }

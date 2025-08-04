@@ -115,7 +115,12 @@ namespace QuantConnectStubsGenerator.Parser
                         parameters.Add(GetType(parameter.Type, isParameter: isParameter));
                     }
 
-                    parameters.Add(GetType(namedTypeSymbol.DelegateInvokeMethod.ReturnType, isParameter: isParameter));
+                    var returnType = GetType(namedTypeSymbol.DelegateInvokeMethod.ReturnType, isParameter: isParameter);
+                    if (returnType.Equals(PythonType.None))
+                    {
+                        returnType = PythonType.Any;
+                    }
+                    parameters.Add(returnType);
 
                     return new PythonType("Callable", "typing")
                     {

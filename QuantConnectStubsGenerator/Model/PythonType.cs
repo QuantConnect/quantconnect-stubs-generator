@@ -26,6 +26,7 @@ namespace QuantConnectStubsGenerator.Model
             CreateUnion(SymbolType, new PythonType("str"), new PythonType("BaseContract", "QuantConnect.Data.Market"));
 
         public static readonly PythonType Any = new PythonType("Any", "typing");
+        public static readonly PythonType None = new PythonType("None");
 
         public string Name { get; set; }
         public string Namespace { get; set; }

@@ -351,11 +351,11 @@ class TestClass(System.Object):
     """"""This class has no documentation.""""""
 
     @property
-    def test_event(self) -> _EventContainer[typing.Callable[[System.Object, IndicatorDataPoint], None], None]:
+    def test_event(self) -> _EventContainer[typing.Callable[[System.Object, IndicatorDataPoint], typing.Any], typing.Any]:
         ...
 
     @test_event.setter
-    def test_event(self, value: _EventContainer[typing.Callable[[System.Object, IndicatorDataPoint], None], None]) -> None:
+    def test_event(self, value: _EventContainer[typing.Callable[[System.Object, IndicatorDataPoint], typing.Any], typing.Any]) -> None:
         ...
 
 class _EventContainer(typing.Generic[QuantConnect_Test__EventContainer_Callable, QuantConnect_Test__EventContainer_ReturnType]):

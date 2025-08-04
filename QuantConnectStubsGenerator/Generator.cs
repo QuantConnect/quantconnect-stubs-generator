@@ -275,7 +275,8 @@ namespace QuantConnectStubsGenerator
                     }
 
                     var paramName = m.Parameters[0].Name;
-                    return paramName != "type" && paramName != "dataType" && paramName != "T";
+                    return paramName != "type" && paramName != "dataType" && paramName != "T" &&
+                        !m.Parameters.Any(p => p.Name == "handler" && p.Type == PythonType.Any);
                 })
                 .ToList();
 

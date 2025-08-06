@@ -65,7 +65,7 @@ namespace QuantConnect.MethodParserTests
         }
 
         [Test]
-        public void CallableMethodsAcceptLambas()
+        public void CallableMethodsAcceptLambdas()
         {
             var testGenerator = new TestGenerator
             {

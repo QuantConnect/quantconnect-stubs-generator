@@ -15,6 +15,7 @@
 
 using System.Linq;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
 using static QuantConnectStubsGenerator.Tests.GeneratorTests;
 
 namespace QuantConnectStubsGenerator.Tests
@@ -61,6 +62,53 @@ namespace QuantConnect.MethodParserTests
 
             Assert.AreEqual(1, method.Parameters.Count);
             Assert.AreEqual("Union", method.Parameters[0].Type.Name);
+        }
+
+        [Test]
+        public void CallableMethodsAcceptLambdas()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+using System;
+
+namespace QuantConnect.MethodParserTests
+{
+    public class TestClass
+    {
+        public void TestMethod(Action<string> handler)
+        {
+        }
+    }
+}" }
+            }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var namespaces = result.GetNamespaces().ToList();
+            Assert.AreEqual(2, namespaces.Count);
+
+            var baseNameSpace = namespaces.Single(x => x.Name == "QuantConnect");
+            var testNameSpace = namespaces.Single(x => x.Name == "QuantConnect.MethodParserTests");
+            var testClass = testNameSpace.GetClasses().Single();
+
+            var method = testClass.Methods.Single();
+
+            Assert.AreEqual("TestMethod", method.Name);
+
+            Assert.AreEqual(1, method.Parameters.Count);
+            var parameter = method.Parameters[0];
+            Assert.AreEqual("Callable", parameter.Type.Name);
+            Assert.AreEqual("typing", parameter.Type.Namespace);
+
+            Assert.AreEqual(2, parameter.Type.TypeParameters.Count);
+            Assert.AreEqual("str", parameter.Type.TypeParameters[0].Name);
+            Assert.IsNull(parameter.Type.TypeParameters[0].Namespace);
+            Assert.AreEqual("Any", parameter.Type.TypeParameters[1].Name);
+            Assert.AreEqual("typing", parameter.Type.TypeParameters[1].Namespace);
         }
     }
 }

@@ -115,7 +115,12 @@ namespace QuantConnectStubsGenerator.Parser
                         parameters.Add(GetType(parameter.Type, isParameter: isParameter));
                     }
 
-                    parameters.Add(GetType(namedTypeSymbol.DelegateInvokeMethod.ReturnType, isParameter: isParameter));
+                    var returnType = GetType(namedTypeSymbol.DelegateInvokeMethod.ReturnType, isParameter: isParameter);
+                    if (returnType.Equals(PythonType.None))
+                    {
+                        returnType = PythonType.Any;
+                    }
+                    parameters.Add(returnType);
 
                     return new PythonType("Callable", "typing")
                     {
@@ -236,24 +241,13 @@ namespace QuantConnectStubsGenerator.Parser
 
                 if (type.Name == "IReadOnlyList" || type.Name == "IReadOnlyCollection")
                 {
-                    if (!isParameter)
+                    return new PythonType("Sequence", "typing")
                     {
-                        return new PythonType("Sequence", "typing")
-                        {
-                            TypeParameters = { NormalizeType(type.TypeParameters[0], isParameter) }
-                        };
-                    }
-                    isList = true;
+                        TypeParameters = { NormalizeType(type.TypeParameters[0], isParameter) }
+                    };
                 }
                 else if (type.Name == "IList" || type.Name == "List")
                 {
-                    if (!isParameter)
-                    {
-                        return new PythonType("List", "typing")
-                        {
-                            TypeParameters = { NormalizeType(type.TypeParameters[0], isParameter) }
-                        };
-                    }
                     isList = true;
                 }
                 else if (type.Name == "IEnumerable")

@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Utility;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Text.RegularExpressions;
 
 namespace QuantConnectStubsGenerator.Parser
 {

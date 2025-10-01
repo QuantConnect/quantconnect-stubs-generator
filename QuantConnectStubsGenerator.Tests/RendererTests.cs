@@ -639,10 +639,22 @@ namespace QuantConnect.Test
 {
     public class TestClass
     {
+        /// <summary>
+        /// Addition operator
+        /// </summary>
+        /// <param name=""a"">Left operand</param>
+        /// <param name=""b"">Right operand</param>
+        /// <returns>Addition result</returns>
         public static TestClass operator +(TestClass a, TestClass b)
         {
             return new TestClass();
         }
+        /// <summary>
+        /// Subtraction operator
+        /// </summary>
+        /// <param name=""a"">Left operand</param>
+        /// <param name=""b"">Right operand</param>
+        /// <returns>Subtraction result</returns>
         public static TestClass operator -(TestClass a, TestClass b)
         {
             return new TestClass();
@@ -700,6 +712,22 @@ namespace QuantConnect.Test
             return new TestClass();
         }
         public static TestClass operator <<(TestClass a, int b)
+        {
+            return new TestClass();
+        }
+
+        /// <summary>
+        /// Unary + operator
+        /// </summary>
+        public static TestClass operator +(TestClass operand)
+        {
+            return new TestClass();
+        }
+
+        /// <summary>
+        /// Unary - operator
+        /// </summary>
+        public static TestClass operator -(TestClass operand)
         {
             return new TestClass();
         }
@@ -761,6 +789,12 @@ class TestClass(System.Object):
     """"""This class has no documentation.""""""
 
     def __add__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        """"""
+        Addition operator
+
+        :param b: Right operand
+        :returns: Addition result.
+        """"""
         ...
 
     def __and__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
@@ -776,6 +810,12 @@ class TestClass(System.Object):
         ...
 
     def __iadd__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        """"""
+        Addition operator
+
+        :param b: Right operand
+        :returns: Addition result.
+        """"""
         ...
 
     def __iand__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
@@ -797,6 +837,12 @@ class TestClass(System.Object):
         ...
 
     def __isub__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        """"""
+        Subtraction operator
+
+        :param b: Right operand
+        :returns: Subtraction result.
+        """"""
         ...
 
     def __itruediv__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
@@ -823,13 +869,27 @@ class TestClass(System.Object):
     def __ne__(self, b: QuantConnect.Test.TestClass) -> bool:
         ...
 
+    def __neg__(self) -> QuantConnect.Test.TestClass:
+        """"""Unary - operator""""""
+        ...
+
     def __or__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        ...
+
+    def __pos__(self) -> QuantConnect.Test.TestClass:
+        """"""Unary + operator""""""
         ...
 
     def __rshift__(self, b: int) -> QuantConnect.Test.TestClass:
         ...
 
     def __sub__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
+        """"""
+        Subtraction operator
+
+        :param b: Right operand
+        :returns: Subtraction result.
+        """"""
         ...
 
     def __truediv__(self, b: QuantConnect.Test.TestClass) -> QuantConnect.Test.TestClass:
@@ -893,6 +953,65 @@ class TestComparableClass3(System.Object, System.IComparable[QuantConnect.Test.T
         ...
 "
                 }).SetName("GeneratesOperatorsMagicMethods"),
+
+            // DoesntReplacePartialMatchesWhenSnakeCasingParameterNamesInSummary
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test.cs",
+                        @"
+namespace QuantConnect.TestNamespace
+{
+
+    public class TestClass
+    {
+        /// <summary>
+        /// This is a test method for the security type parameter. The partial matches should not be replaced.
+        /// The first parameter is an upper case character, which will be replaced with a lower case character, 
+        /// but it shouldn't be replaced in the rest of the summary.
+        /// The third parameter name will be snake-cased, but when replacing in the string, 
+        /// the last parameter should be left untouched so that is also correctly snake-cased afterwards.
+        /// </summary>
+        /// <param name=""T"">Test param 1</param>
+        /// <param name=""securityType"">Test param 2</param>
+        /// <param name=""someParam"">Test param 3</param>
+        /// <param name=""someParamWithSuffix"">Test param 4</param>
+        public void TestMethod(string T, string securityType, string someParam, string someParamWithSuffix)
+        {
+        }
+    }
+}"
+                    },
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import Enum
+import QuantConnect.TestNamespace
+import System
+
+
+class TestClass(System.Object):
+    """"""This class has no documentation.""""""
+
+    def test_method(self, t: str, security_type: str, some_param: str, some_param_with_suffix: str) -> None:
+        """"""
+        This is a test method for the security type parameter. The partial matches should not be replaced.
+        The first parameter is an upper case character, which will be replaced with a lower case character,
+        but it shouldn't be replaced in the rest of the summary.
+        The third parameter name will be snake-cased, but when replacing in the string,
+        the last parameter should be left untouched so that is also correctly snake-cased afterwards.
+
+        :param t: Test param 1
+        :param security_type: Test param 2
+        :param some_param: Test param 3
+        :param some_param_with_suffix: Test param 4
+        """"""
+        ...
+",
+                }).SetName("DoesntReplacePartialMatchesWhenSnakeCasingParameterNamesInSummary"),
         };
 
         private class TestGenerator : Generator

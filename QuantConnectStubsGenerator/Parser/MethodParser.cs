@@ -142,6 +142,13 @@ namespace QuantConnectStubsGenerator.Parser
 
         public override void VisitOperatorDeclaration(OperatorDeclarationSyntax node)
         {
+            // Especial cases for unary + and - operators
+            if ((node.OperatorToken.Text == "+" || node.OperatorToken.Text == "-") && node.ParameterList.Parameters.Count == 1)
+            {
+                TryGenerateOperatorMethod(node, node.OperatorToken.Text == "+" ? "__pos__" : "__neg__");
+                return;
+            }
+
             if (!_operators.TryGetValue(node.OperatorToken.Text, out var pythonOperatorName) ||
                 !TryGenerateOperatorMethod(node, pythonOperatorName))
             {
@@ -163,7 +170,10 @@ namespace QuantConnectStubsGenerator.Parser
                 node,
                 pythonOperatorName,
                 node.ParameterList.Parameters,
-                _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization), null, false);
+                _typeConverter.GetType(node.ReturnType, skipTypeNormalization: SkipTypeNormalization),
+                null,
+                false,
+                isOperatorMethod: true);
 
             if (operatorMethod == null)
             {
@@ -171,7 +181,6 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             operatorMethod.Static = false;
-            operatorMethod.Parameters.RemoveAt(0);
 
             return true;
         }
@@ -228,7 +237,8 @@ namespace QuantConnectStubsGenerator.Parser
             SeparatedSyntaxList<ParameterSyntax> parameterList,
             PythonType returnType,
             PythonType genericType,
-            bool avoidImplicitConversionTypes)
+            bool avoidImplicitConversionTypes,
+            bool isOperatorMethod = false)
         {
             if (_currentClass == null || ShouldSkip(node))
             {
@@ -271,8 +281,9 @@ namespace QuantConnectStubsGenerator.Parser
             var docStrings = new List<string>();
             var outTypes = new List<PythonType>();
 
-            foreach (var parameter in parameterList)
+            for (var i = isOperatorMethod ? 1 : 0; i < parameterList.Count; i++)
             {
+                var parameter = parameterList[i];
                 var parsedParameter = ParseParameter(parameter, avoidImplicitConversionTypes);
 
                 if (parsedParameter == null)

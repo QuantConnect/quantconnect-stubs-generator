@@ -16,6 +16,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Utility;
 
@@ -142,7 +143,10 @@ namespace QuantConnectStubsGenerator.Renderer
                     Value = parameter.Value
                 });
 
-                summary = summary?.Replace(parameter.Name, snakeCasedParameterName);
+                if (summary != null)
+                {
+                    summary = Regex.Replace(summary, @$"\b{parameter.Name}\b", snakeCasedParameterName);
+                }
             }
 
             snakeCasedMethod.Summary = summary;

@@ -17,6 +17,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using NUnit.Framework;
 using QuantConnectStubsGenerator.Model;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -1012,6 +1013,55 @@ class TestClass(System.Object):
         ...
 ",
                 }).SetName("DoesntReplacePartialMatchesWhenSnakeCasingParameterNamesInSummary"),
+
+            // BracketsAreReplacedWithAngularBracketsInDocstringsToAvoidMarkdownIssues
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test1.cs",
+                        @"
+namespace QuantConnect.Namespace
+{
+    public class TestClass
+    {
+        /// <summary>
+        /// A ticket might be in the following format: [Ticker][2 digit day code][1 char month code][2/1 digit year code].
+        /// Another test: [sds]sdsd[] 222 [] [abc][].
+        /// </summary>
+        /// <param name=""someArg"">Test in argument: [sds]sdsd[] 222 [] [abc][]</param>
+        /// <returns>Test in returns: [sds]sdsd[] 222 [] [abc][]</returns>
+        public int Test(int someArg)
+        {
+            return someArg;
+        }
+    }
+}"
+                    },
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import Enum
+import QuantConnect.Namespace
+import System
+
+
+class TestClass(System.Object):
+    """"""This class has no documentation.""""""
+
+    def test(self, some_arg: int) -> int:
+        """"""
+        A ticket might be in the following format: <Ticker><2 digit day code><1 char month code><2/1 digit year code>.
+        Another test: <sds>sdsd<> 222 <> <abc><>.
+
+        :param some_arg: Test in argument: <sds>sdsd<> 222 <> <abc><>
+        :returns: Test in returns: <sds>sdsd<> 222 <> <abc><>.
+        """"""
+        ...
+",
+                }).SetName("BracketsAreReplacedWithAngularBracketsInDocstringsToAvoidMarkdownIssues"),
         };
 
         private class TestGenerator : Generator

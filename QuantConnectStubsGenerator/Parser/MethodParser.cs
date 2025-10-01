@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Utility;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Text.RegularExpressions;
 
 namespace QuantConnectStubsGenerator.Parser
 {
@@ -62,6 +63,8 @@ namespace QuantConnectStubsGenerator.Parser
         {
             "__lt__", "__le__", "__gt__", "__ge__"
         };
+
+        private static readonly Regex _summaryCleanupRegex = new Regex(@"\[([^\[\]]*?)\]");
 
         private bool SkipTypeNormalization => !_currentClass?.Type.Namespace.StartsWith("QuantConnect") ?? true;
 
@@ -373,6 +376,7 @@ namespace QuantConnectStubsGenerator.Parser
                 method.Summary = method.Summary != null
                     ? method.Summary + "\n\n" + paramText
                     : paramText;
+                method.Summary = _summaryCleanupRegex.Replace(method.Summary, "<$1>");
             }
             method.GenericType = genericType;
             method.AvoidImplicitTypes = avoidImplicitConversionTypes;

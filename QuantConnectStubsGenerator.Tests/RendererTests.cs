@@ -17,6 +17,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using NUnit.Framework;
 using QuantConnectStubsGenerator.Model;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -212,8 +213,8 @@ class TestDerivedEnumerable1(TestEnumerable):
 
 class TestEnumerable2(typing.List[str]):
     """"""
-    This will not inherit typing.Iterable directly, but IEnumerable[string] will.
-    __iter__ will be generated for IEnumerable[string], not for this class.
+    This will not inherit typing.Iterable directly, but IEnumerable<string> will.
+    __iter__ will be generated for IEnumerable<string>, not for this class.
     """"""
 "
                 }).SetName("CSharpEnumeratorsArePythonIterables"),
@@ -1012,6 +1013,80 @@ class TestClass(System.Object):
         ...
 ",
                 }).SetName("DoesntReplacePartialMatchesWhenSnakeCasingParameterNamesInSummary"),
+
+            // BracketsAreReplacedWithAngularBracketsInDocstringsToAvoidMarkdownIssues
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test1.cs",
+                        @"
+namespace QuantConnect.Namespace
+{
+    /// <summary>
+    /// A ticket might be in the following format: [Ticker][2 digit day code][1 char month code][2/1 digit year code].
+    /// Another test: [sds]sdsd[] 222 [] [abc][].
+    /// </summary>
+    public class TestClass
+    {
+        /// <summary>
+        /// A ticket might be in the following format: [Ticker][2 digit day code][1 char month code][2/1 digit year code].
+        /// Another test: [sds]sdsd[] 222 [] [abc][].
+        /// </summary>
+        public int TestProperty { get; set; }
+
+        /// <summary>
+        /// A ticket might be in the following format: [Ticker][2 digit day code][1 char month code][2/1 digit year code].
+        /// Another test: [sds]sdsd[] 222 [] [abc][].
+        /// </summary>
+        /// <param name=""someArg"">Test in argument: [sds]sdsd[] 222 [] [abc][]</param>
+        /// <returns>Test in returns: [sds]sdsd[] 222 [] [abc][]</returns>
+        public int TestMethod(int someArg)
+        {
+            return someArg;
+        }
+    }
+}"
+                    },
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import Enum
+import QuantConnect.Namespace
+import System
+
+
+class TestClass(System.Object):
+    """"""
+    A ticket might be in the following format: <Ticker><2 digit day code><1 char month code><2/1 digit year code>.
+    Another test: <sds>sdsd<> 222 <> <abc><>.
+    """"""
+
+    @property
+    def test_property(self) -> int:
+        """"""
+        A ticket might be in the following format: <Ticker><2 digit day code><1 char month code><2/1 digit year code>.
+        Another test: <sds>sdsd<> 222 <> <abc><>.
+        """"""
+        ...
+
+    @test_property.setter
+    def test_property(self, value: int) -> None:
+        ...
+
+    def test_method(self, some_arg: int) -> int:
+        """"""
+        A ticket might be in the following format: <Ticker><2 digit day code><1 char month code><2/1 digit year code>.
+        Another test: <sds>sdsd<> 222 <> <abc><>.
+
+        :param some_arg: Test in argument: <sds>sdsd<> 222 <> <abc><>
+        :returns: Test in returns: <sds>sdsd<> 222 <> <abc><>.
+        """"""
+        ...
+",
+                }).SetName("BracketsAreReplacedWithAngularBracketsInDocstringsToAvoidMarkdownIssues"),
         };
 
         private class TestGenerator : Generator

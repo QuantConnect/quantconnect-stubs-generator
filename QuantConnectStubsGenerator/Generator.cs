@@ -31,6 +31,8 @@ namespace QuantConnectStubsGenerator
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Generator));
 
+        private static readonly Regex _summaryCleanupRegex = new Regex(@"\[([^\[\]]*?)\]");
+
         private readonly string _leanPath;
         private readonly string _runtimePath;
         private readonly string _outputDirectory;
@@ -260,6 +262,8 @@ namespace QuantConnectStubsGenerator
 
             HandleGenericMethods(cls);
 
+            CleanUpSummaries(cls);
+
             var pythonMethodsToRemove = cls.Methods
                 .Where(m => m.File != null && m.File.EndsWith(".Python.cs"))
                 // Python implementations of logging methods accept any parameter type
@@ -452,6 +456,24 @@ namespace QuantConnectStubsGenerator
                 // remove those we've moved around
                 cls.Methods.RemoveWhere(x => x.Name.Equals(genericMethodName, StringComparison.InvariantCultureIgnoreCase));
             }
+        }
+
+        private void CleanUpSummaries(Class cls)
+        {
+            cls.Summary = CleanUpSummary(cls.Summary);
+            foreach (var method in cls.Methods)
+            {
+                method.Summary = CleanUpSummary(method.Summary);
+            }
+            foreach (var property in cls.Properties)
+            {
+                property.Summary = CleanUpSummary(property.Summary);
+            }
+        }
+
+        private string CleanUpSummary(string summary)
+        {
+            return summary != null ? _summaryCleanupRegex.Replace(summary, "<$1>") : null;
         }
 
         protected virtual TextWriter CreateWriter(string path)

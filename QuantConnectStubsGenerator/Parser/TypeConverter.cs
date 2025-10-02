@@ -51,21 +51,9 @@ namespace QuantConnectStubsGenerator.Parser
 
             if (symbol == null)
             {
-                return node.ToFullString().Trim() switch
-                {
-                    "PyList" => new PythonType("List", "typing")
-                    {
-                        TypeParameters = new List<PythonType> {PythonType.Any}
-                    },
-                    "PyDict" => new PythonType("Dict", "typing")
-                    {
-                        TypeParameters = new List<PythonType>
-                        {
-                            PythonType.Any, PythonType.Any
-                        }
-                    },
-                    _ => PythonType.Any
-                };
+                return TryConvertPythonnetType(node.ToFullString().Trim(), out var pythonType)
+                    ? pythonType
+                    : PythonType.Any;
             }
 
             return GetType(symbol, skipPythonTypeCheck, skipTypeNormalization, isParameter);
@@ -89,6 +77,11 @@ namespace QuantConnectStubsGenerator.Parser
             if (symbol == null || symbol.Name == "" || symbol.ContainingNamespace == null)
             {
                 return PythonType.Any;
+            }
+
+            if (TryConvertPythonnetType(symbol.Name, out var pythonType))
+            {
+                return pythonType;
             }
 
             var name = GetTypeName(symbol);
@@ -229,6 +222,37 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             return type;
+        }
+
+        private static bool TryConvertPythonnetType(string typeName, out PythonType pythonType)
+        {
+            switch (typeName)
+            {
+                case "PyObject":
+                    pythonType = PythonType.Any;
+                    return true;
+
+                case "PyList":
+                    pythonType = new PythonType("List", "typing")
+                    {
+                        TypeParameters = new List<PythonType> { PythonType.Any }
+                    };
+                    return true;
+
+                case "PyDict":
+                    pythonType = new PythonType("Dict", "typing")
+                    {
+                        TypeParameters = new List<PythonType>
+                        {
+                            PythonType.Any, PythonType.Any
+                        }
+                    };
+                    return true;
+
+                default:
+                    pythonType = null;
+                    return false;
+            }
         }
 
         private static PythonType NormalizeType(PythonType type, bool isParameter)

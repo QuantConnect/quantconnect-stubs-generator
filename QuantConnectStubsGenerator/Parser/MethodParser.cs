@@ -69,17 +69,6 @@ namespace QuantConnectStubsGenerator.Parser
         {
         }
 
-        protected override void EnterClass(BaseTypeDeclarationSyntax node)
-        {
-            base.EnterClass(node);
-
-            // Pythonnet adds __int__() method to enums to allow implicit conversion to int
-            if (_currentClass.IsEnum())
-            {
-                AddIntImplicitOperatorMethod();
-            }
-        }
-
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             PythonType genericType = null;

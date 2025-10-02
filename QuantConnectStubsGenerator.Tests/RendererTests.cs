@@ -105,7 +105,7 @@ namespace QuantConnect.Namespace2
                 {
                     @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import abc
 
 import QuantConnect.Namespace1
@@ -125,7 +125,7 @@ class BaseClass(System.Object, QuantConnect.Namespace1.IInterface):
 ",
                 @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import abc
 
 import QuantConnect.Namespace1
@@ -187,7 +187,7 @@ namespace QuantConnect.Test
                 {
                 @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import typing
 
 import QuantConnect.Test
@@ -261,7 +261,7 @@ namespace QuantConnect.Test
                 {
                 @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import datetime
 import typing
 
@@ -326,7 +326,7 @@ namespace QuantConnect.Test
                 {
                 @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import typing
 
 import QuantConnect.Test
@@ -445,7 +445,7 @@ namespace QuantConnect.Test
                 {
                     @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import abc
 
 import System.Collections
@@ -455,7 +455,7 @@ class IDictionary(System.Collections.ICollection, metaclass=abc.ABCMeta):
 ",
                     @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import typing
 
 import System.Collections.Generic
@@ -468,7 +468,7 @@ class KeyValuePair(typing.Generic[System_Collections_Generic_KeyValuePair_TKey, 
 ",
                     @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import typing
 
 import QuantConnect.Test
@@ -562,7 +562,7 @@ namespace QuantConnect.Test
                 {
                     @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import QuantConnect
 import System
 
@@ -572,7 +572,7 @@ class Symbol(System.Object):
 ",
                     @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import datetime
 import typing
 
@@ -764,7 +764,7 @@ namespace QuantConnect.Test
                 {
                     @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import abc
 import typing
 
@@ -778,7 +778,7 @@ class IComparable(typing.Generic[System_IComparable_T], metaclass=abc.ABCMeta):
 ",
                     @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import typing
 
 import QuantConnect.Test
@@ -989,7 +989,7 @@ namespace QuantConnect.TestNamespace
                 {
                     @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import QuantConnect.TestNamespace
 import System
 
@@ -1053,7 +1053,7 @@ namespace QuantConnect.Namespace
                 {
                     @"
 from typing import overload
-from enum import Enum
+from enum import IntEnum
 import QuantConnect.Namespace
 import System
 

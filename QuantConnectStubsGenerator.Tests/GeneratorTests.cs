@@ -503,45 +503,6 @@ namespace QuantConnect.Test
             Assert.IsNull(internalFieldEvent);
         }
 
-        [Test]
-        public void GeneratesIntImplicitConversionOperatorForEnums()
-        {
-            var testGenerator = new TestGenerator
-            {
-                Files = new()
-                {
-                    {
-                        "Test.cs",
-                        @"
-using System;
-
-namespace QuantConnect.Test
-{
-    public enum TestEnum
-    {
-        Value1,
-        Value2,
-        Value3
-    }
-}"
-                    }
-                }
-            };
-
-            var result = testGenerator.GenerateModelsPublic();
-
-            var ns = result.GetNamespaces().Single(x => x.Name == "QuantConnect.Test");
-            var classes = ns.GetClasses().ToList();
-            var testEnum = classes.Single(x => x.Type.Name == "TestEnum");
-
-            Assert.IsTrue(testEnum.IsEnum());
-
-            var intImplicitConversionMethod = testEnum.Methods.SingleOrDefault(m => m.Name == "__int__");
-            Assert.IsNotNull(intImplicitConversionMethod);
-            Assert.AreEqual(0, intImplicitConversionMethod.Parameters.Count);
-            Assert.AreEqual(new PythonType("int"), intImplicitConversionMethod.ReturnType);
-        }
-
         internal class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

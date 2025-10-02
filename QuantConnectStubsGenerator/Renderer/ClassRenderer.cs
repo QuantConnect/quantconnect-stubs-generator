@@ -64,8 +64,9 @@ namespace QuantConnectStubsGenerator.Renderer
                 {
                     if (inherited[i].Equals("System.Enum", StringComparison.InvariantCultureIgnoreCase))
                     {
-                        // 'Enum' is a python base type which is handled better by mypy if we used 'System' it assumes the enum value and causes a warning/missmatch
-                        inherited[i] = "Enum";
+                        // 'IntEnum' is a python base type which is handled better by mypy if we used 'System' it assumes the enum value and causes a warning/missmatch.
+                        // We use IntEnum to hint that the enum values are integers which is the case for all QuantConnect enums.
+                        inherited[i] = "IntEnum";
                     }
                 }
                 Write($"({string.Join(", ", inherited)})");

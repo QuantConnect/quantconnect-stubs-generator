@@ -42,11 +42,6 @@ namespace QuantConnectStubsGenerator.Model
             Type = type;
         }
 
-        public bool IsEnum()
-        {
-            return InheritsFrom.Any(type => type.ToPythonString() == "System.Enum");
-        }
-
         public IEnumerable<PythonType> GetUsedTypes()
         {
             var types = new HashSet<PythonType>();

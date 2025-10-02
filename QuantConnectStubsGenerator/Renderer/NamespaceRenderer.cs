@@ -34,7 +34,7 @@ namespace QuantConnectStubsGenerator.Renderer
             // Fix for Jedi; Include import of typing instead of using typing.overload
             WriteLine("from typing import overload");
             // fix for python enums
-            WriteLine("from enum import Enum");
+            WriteLine("from enum import IntEnum");
 
             var usedTypes = ns
                 .GetParentClasses()

@@ -248,26 +248,10 @@ namespace QuantConnectStubsGenerator.Parser
                 Class = _currentClass,
                 Static = HasModifier(node, "static"),
                 File = _model.SyntaxTree.FilePath,
-                DeprecationReason = GetDeprecationReason(node)
+                DeprecationReason = GetDeprecationReason(node),
+                Documentation = GetXmlDocumentation(node, CodeEntityType.Class),
             };
 
-            var doc = ParseDocumentation(node);
-            if (doc["summary"] != null)
-            {
-                method.Summary = doc["summary"].GetText();
-            }
-
-            if (HasModifier(node, "protected"))
-            {
-                method.Summary = AppendSummary(method.Summary, "This method is protected.");
-            }
-
-            if (method.DeprecationReason != null)
-            {
-                method.Summary = AppendSummary(method.Summary, method.DeprecationReason);
-            }
-
-            var docStrings = new List<string>();
             var outTypes = new List<PythonType>();
 
             for (var i = isOperatorMethod ? 1 : 0; i < parameterList.Count; i++)
@@ -278,29 +262,6 @@ namespace QuantConnectStubsGenerator.Parser
                 if (parsedParameter == null)
                 {
                     continue;
-                }
-
-                foreach (XmlElement paramNode in doc.GetElementsByTagName("param"))
-                {
-                    if (paramNode.Attributes["name"]?.Value != parameter.Identifier.Text)
-                    {
-                        continue;
-                    }
-
-                    var text = paramNode.GetText();
-
-                    if (text.Trim().Length == 0)
-                    {
-                        continue;
-                    }
-
-                    if (CheckDocSuggestsPandasDataFrame(text))
-                    {
-                        parsedParameter.Type = new PythonType("DataFrame", "pandas");
-                    }
-
-                    docStrings.Add($":param {parsedParameter.Name}: {text}");
-                    break;
                 }
 
                 method.Parameters.Add(parsedParameter);
@@ -329,40 +290,23 @@ namespace QuantConnectStubsGenerator.Parser
                 method.ReturnType = tupleType;
             }
 
-            var returnsParts = new List<string>();
-
+            var doc = method.Documentation["root"];
+            var returnsText = (string)null;
             if (doc["returns"] != null)
             {
-                var text = doc["returns"].GetText();
+                var text = doc["returns"].GetText(method, _context, false);
 
                 if (text.Trim().Length > 0)
                 {
-                    returnsParts.Add(text);
+                    returnsText = text.EndsWith(".") ? text : text + ".";
                 }
             }
 
-            if (returnsParts.Count > 0)
+            if (returnsText != null && CheckDocSuggestsPandasDataFrame(returnsText))
             {
-                var parts = returnsParts.Select(part => part.EndsWith(".") ? part : part + ".");
-                var text = string.Join(" ", parts);
-
-                docStrings.Add($":returns: {text}");
-
-                if (CheckDocSuggestsPandasDataFrame(text))
-                {
-                    method.ReturnType = new PythonType("DataFrame", "pandas");
-                }
+                method.ReturnType = new PythonType("DataFrame", "pandas");
             }
 
-            docStrings = docStrings.Select(str => str.Replace('\n', ' ')).ToList();
-
-            if (docStrings.Count > 0)
-            {
-                var paramText = string.Join("\n", docStrings);
-                method.Summary = method.Summary != null
-                    ? method.Summary + "\n\n" + paramText
-                    : paramText;
-            }
             method.GenericType = genericType;
             method.AvoidImplicitTypes = avoidImplicitConversionTypes;
             _currentClass.Methods.Add(method);
@@ -432,7 +376,7 @@ namespace QuantConnectStubsGenerator.Parser
             return parameter;
         }
 
-        private string FormatParameterName(string name)
+        public static string FormatParameterName(string name)
         {
             // Remove "@" prefix
             if (name.StartsWith("@"))

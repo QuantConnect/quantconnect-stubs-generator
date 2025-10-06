@@ -41,7 +41,7 @@ namespace QuantConnectStubsGenerator.Renderer
                 .SelectMany(cls => cls.GetUsedTypes())
                 .ToList();
 
-            RenderImports(usedTypes);
+            RenderImports(ns);
             RenderTypeAliases(usedTypes);
             RenderTypeVars(usedTypes);
 
@@ -50,15 +50,9 @@ namespace QuantConnectStubsGenerator.Renderer
             RenderClasses(ns);
         }
 
-        private void RenderImports(IEnumerable<PythonType> usedTypes)
+        private void RenderImports(Namespace ns)
         {
-            // Retrieve all used namespaces
-            var namespacesToImport = usedTypes
-                .Where(type => type.Namespace != null)
-                .Select(type => type.Namespace)
-                .Distinct()
-                .OrderBy(namespaceToImport => namespaceToImport, StringComparer.Ordinal)
-                .ToList();
+            var namespacesToImport = ns.NamespacesToImport;
 
             if (namespacesToImport.Count == 0)
             {
@@ -68,9 +62,9 @@ namespace QuantConnectStubsGenerator.Renderer
             var systemNamespaces = namespacesToImport.Where(ns => char.IsLower(ns[0]) && ns != "pandas").ToList();
             var nonSystemNamespaces = namespacesToImport.Except(systemNamespaces).ToList();
 
-            foreach (var ns in systemNamespaces)
+            foreach (var systemNs in systemNamespaces)
             {
-                WriteLine($"import {ns}");
+                WriteLine($"import {systemNs}");
             }
 
             if (systemNamespaces.Count > 0 && nonSystemNamespaces.Count > 0)
@@ -78,9 +72,9 @@ namespace QuantConnectStubsGenerator.Renderer
                 WriteLine();
             }
 
-            foreach (var ns in nonSystemNamespaces)
+            foreach (var nonSystemNs in nonSystemNamespaces)
             {
-                WriteLine($"import {ns}");
+                WriteLine($"import {nonSystemNs}");
             }
 
             WriteLine();

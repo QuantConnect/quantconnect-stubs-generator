@@ -15,7 +15,7 @@
 
 namespace QuantConnectStubsGenerator.Model
 {
-    public class Property
+    public class Property : CodeEntity
     {
         public string Name { get; }
 
@@ -29,8 +29,6 @@ namespace QuantConnectStubsGenerator.Model
 
         public string Value { get; set; }
 
-        public string Summary { get; set; }
-
         public string DeprecationReason { get; set; }
 
         public bool HasSetter { get; set; }
@@ -42,9 +40,8 @@ namespace QuantConnectStubsGenerator.Model
             Name = name;
         }
 
-        public Property(Property template, string name)
+        public Property(Property template, string name) : this(name)
         {
-            Name = name;
             Type = template.Type;
             Static = template.Static;
             Abstract = template.Abstract;
@@ -54,6 +51,7 @@ namespace QuantConnectStubsGenerator.Model
             DeprecationReason = template.DeprecationReason;
             HasSetter = template.HasSetter;
             Class = template.Class;
+            Documentation = template.Documentation;
         }
     }
 }

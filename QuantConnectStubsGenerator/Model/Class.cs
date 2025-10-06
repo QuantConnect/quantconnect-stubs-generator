@@ -18,11 +18,9 @@ using System.Linq;
 
 namespace QuantConnectStubsGenerator.Model
 {
-    public class Class
+    public class Class : CodeEntity
     {
         public PythonType Type { get; }
-
-        public string Summary { get; set; }
 
         public bool Static { get; set; }
         public bool Interface { get; set; }

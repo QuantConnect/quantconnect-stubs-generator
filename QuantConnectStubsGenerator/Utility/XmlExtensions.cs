@@ -15,6 +15,7 @@
 
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Xml;
 using QuantConnectStubsGenerator.Model;
 
@@ -136,6 +137,7 @@ namespace QuantConnectStubsGenerator.Utility
 
             if (parts.Length == 1)
             {
+                // Could be either a method or a property of the class itself
                 var method = entityClass.Methods.FirstOrDefault(x => x.Name == parts[0]);
                 if (method != null)
                 {
@@ -148,52 +150,44 @@ namespace QuantConnectStubsGenerator.Utility
                     return property;
                 }
 
+                // It's  a class, let's try to find it
+                var ns = context.GetNamespaceByName(entityClass.Type.Namespace);
                 return context.GetNamespaces()
-                    .Where(x => x.Name.StartsWith("QuantConnect"))
+                    .Where(x => x.Name.StartsWith("QuantConnect") && IsInNamespace(x, ns))
                     .SelectMany(x => x.GetClasses())
-                    .FirstOrDefault(x => x.Type.Name == parts[0]);
+                    .FirstOrDefault(x => x.Type.Name == fullName);
             }
 
             var entityNamespace = context.GetNamespaceByName(entityClass.Type.Namespace);
-            var namespaces = context.GetNamespaces().Where(x => x.Name.StartsWith("QuantConnect")).ToList();
-            var currentNamespace = (Namespace)null;
 
-            foreach (var ns in namespaces)
+            foreach (var ns in context.GetNamespaces().Where(x => x.Name.StartsWith("QuantConnect")))
             {
-                currentNamespace = ns;
-
                 foreach (var cls in ns.GetClasses())
                 {
                     foreach (var method in cls.Methods)
                     {
-                        if (method.Name == name && BelongsToClass(fullName, cls))
+                        if (method.Name == name && BelongsToClass(fullName, cls) && IsInNamespace(ns, entityNamespace))
                         {
-                            if (ns.Name == entityNamespace.Name || entityNamespace.NamespacesToImport.Contains(ns.Name))
-                            {
-                                return method;
-                            }
+                            return method;
                         }
                     }
 
+                    // Not a method
                     if (!isMethod)
                     {
+                        // Could be a property of the current class
                         foreach (var property in cls.Properties)
                         {
-                            if (property.Name == name && BelongsToClass(fullName, cls))
+                            if (property.Name == name && BelongsToClass(fullName, cls) && IsInNamespace(ns, entityNamespace))
                             {
-                                if (ns.Name == entityNamespace.Name || entityNamespace.NamespacesToImport.Contains(ns.Name))
-                                {
-                                    return property;
-                                }
+                                return property;
                             }
                         }
 
-                        if (cls.Type.Name == fullName)
+                        // Not a property, could be the current class itself
+                        if (cls.Type.Name == fullName && IsInNamespace(ns, entityNamespace))
                         {
-                            if (ns.Name == entityNamespace.Name || entityNamespace.NamespacesToImport.Contains(ns.Name))
-                            {
-                                return cls;
-                            }
+                            return cls;
                         }
                     }
                 }
@@ -202,9 +196,16 @@ namespace QuantConnectStubsGenerator.Utility
             return null;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool BelongsToClass(string fullName, Class cls)
         {
             return fullName.Substring(0, fullName.LastIndexOf('.')) == cls.Type.Name;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsInNamespace(Namespace ns, Namespace entityNamespace)
+        {
+            return ns.Name == entityNamespace.Name || entityNamespace.NamespacesToImport.Contains(ns.Name);
         }
     }
 }

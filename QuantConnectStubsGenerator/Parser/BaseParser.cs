@@ -41,16 +41,6 @@ namespace QuantConnectStubsGenerator.Parser
             _typeConverter = new TypeConverter(model);
         }
 
-        public override void VisitUsingDirective(UsingDirectiveSyntax node)
-        {
-            base.VisitUsingDirective(node);
-        }
-
-        public override void VisitUsingStatement(UsingStatementSyntax node)
-        {
-            base.VisitUsingStatement(node);
-        }
-
         /// <summary>
         /// Handles 'namespace QuantConnect.Indicators;' sintax
         /// </summary>
@@ -307,7 +297,7 @@ namespace QuantConnectStubsGenerator.Parser
                 var hasSummary = xmlSummary != null;
                 xmlSummary ??= doc.CreateElement("summary");
                 doc["root"].AppendChild(xmlSummary);
-                xmlSummary.AppendChild(doc.CreateTextNode((!hasSummary ? "" : "\n\n") + $"This {nameof(codeEntityType).ToString()} is protected."));
+                xmlSummary.AppendChild(doc.CreateTextNode((!hasSummary ? "" : "\n\n") + $"This {nameof(codeEntityType)} is protected."));
             }
 
             var deprecationReason = GetDeprecationReason(node);

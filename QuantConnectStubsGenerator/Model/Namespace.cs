@@ -23,6 +23,8 @@ namespace QuantConnectStubsGenerator.Model
     {
         public string Name { get; }
 
+        public List<string> NamespacesToImport { get; set; }
+
         private readonly IDictionary<string, Class> _classes = new Dictionary<string, Class>();
 
         public Namespace(string name)

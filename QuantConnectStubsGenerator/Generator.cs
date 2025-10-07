@@ -24,6 +24,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using QuantConnectStubsGenerator.Model;
 using QuantConnectStubsGenerator.Parser;
 using QuantConnectStubsGenerator.Renderer;
+using System.Xml;
+using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator
 {
@@ -98,7 +100,6 @@ namespace QuantConnectStubsGenerator
             // Perform post-processing on all parsed classes
             foreach (var ns in context.GetNamespaces())
             {
-
                 // Remove problematic method "GetMethodInfo" from System.Reflection.RuntimeReflectionExtensions
                 // KW arg is `del` which python is not a fan of. TODO: Make this post filtering more generic?
                 if (ns.Name == "System.Reflection")
@@ -109,7 +110,6 @@ namespace QuantConnectStubsGenerator
 
                     reflectionClass.Methods.Remove(badMethod);
                 }
-
 
                 foreach (var cls in ns.GetClasses())
                 {
@@ -123,9 +123,32 @@ namespace QuantConnectStubsGenerator
                 }
             }
 
+            // We do this in steps (post process classes and then get namespaces to import and generate summaries)
+            // because we need classes to be fully processed before we can generate summaries and determine imports
+            foreach (var ns in context.GetNamespaces())
+            {
+                ns.NamespacesToImport = GetNamespacesToImport(ns);
+                foreach (var cls in ns.GetClasses())
+                {
+                    GenerateSummaries(cls, context);
+                }
+            }
+
             // Create empty namespaces to fill gaps in between namespaces like "A.B" and "A.B.C.D"
             // This is needed to make import resolution work correctly
             CreateEmptyNamespaces(context);
+        }
+
+        private static List<string> GetNamespacesToImport(Namespace ns)
+        {
+            return ns
+                .GetParentClasses()
+                .SelectMany(cls => cls.GetUsedTypes())
+                .Where(type => type.Namespace != null)
+                .Select(type => type.Namespace)
+                .Distinct()
+                .OrderBy(namespaceToImport => namespaceToImport, StringComparer.Ordinal)
+                .ToList();
         }
 
         protected virtual IEnumerable<SyntaxTree> GetSyntaxTrees()
@@ -261,8 +284,6 @@ namespace QuantConnectStubsGenerator
             HandleSymbolGenericClass(cls, context);
 
             HandleGenericMethods(cls);
-
-            CleanUpSummaries(cls);
 
             var pythonMethodsToRemove = cls.Methods
                 .Where(m => m.File != null && m.File.EndsWith(".Python.cs"))
@@ -458,22 +479,66 @@ namespace QuantConnectStubsGenerator
             }
         }
 
-        private void CleanUpSummaries(Class cls)
-        {
-            cls.Summary = CleanUpSummary(cls.Summary);
-            foreach (var method in cls.Methods)
-            {
-                method.Summary = CleanUpSummary(method.Summary);
-            }
-            foreach (var property in cls.Properties)
-            {
-                property.Summary = CleanUpSummary(property.Summary);
-            }
-        }
-
         private string CleanUpSummary(string summary)
         {
             return summary != null ? _summaryCleanupRegex.Replace(summary, "<$1>") : null;
+        }
+
+        private void GenerateSummaries(Class cls, ParseContext context)
+        {
+            if (!cls.Type.Namespace.StartsWith("QuantConnect"))
+            {
+                return;
+            }
+
+            foreach (var entity in new CodeEntity[] { cls }.Concat(cls.Methods).Concat(cls.Properties))
+            {
+                if (entity.Documentation == null)
+                {
+                    continue;
+                }
+
+                var summaryNode = entity.Documentation["root"]["summary"];
+                if (summaryNode != null)
+                {
+                    entity.Summary = summaryNode.GetText(entity, context);
+                }
+
+                var xmlDocument = entity.Documentation.DocumentElement;
+                var summaryLines = new List<string>();
+                if (entity is Method method)
+                {
+                    foreach (XmlElement docParameter in xmlDocument.SelectNodes(".//param"))
+                    {
+                        var formattedDocParameterName = MethodParser.FormatParameterName(docParameter.Attributes["name"]?.Value);
+                        if (method.Parameters.Any(x => x.Name == formattedDocParameterName))
+                        {
+                            summaryLines.Add($":param {formattedDocParameterName}: {docParameter.GetText(entity, context)}");
+                        }
+                    }
+
+                    var returnsNode = xmlDocument["returns"];
+                    if (returnsNode != null)
+                    {
+                        var returnsText = returnsNode.GetText(entity, context);
+                        if (returnsText.Trim().Length > 0)
+                        {
+                            returnsText = returnsText.EndsWith(".") ? returnsText : returnsText + ".";
+                            summaryLines.Add($":returns: {returnsText}");
+                        }
+                    }
+
+                    if (summaryLines.Count > 0)
+                    {
+                        var summaryParamsText = string.Join("\n", summaryLines);
+                        entity.Summary = entity.Summary != null
+                            ? entity.Summary.TrimEnd() + "\n\n" + summaryParamsText
+                            : summaryParamsText;
+                    }
+                }
+
+                entity.Summary = CleanUpSummary(entity.Summary);
+            }
         }
 
         protected virtual TextWriter CreateWriter(string path)

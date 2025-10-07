@@ -19,15 +19,13 @@ using System.Linq;
 
 namespace QuantConnectStubsGenerator.Model
 {
-    public class Method : IEquatable<Method>
+    public class Method : CodeEntity, IEquatable<Method>
     {
         public string Name { get; }
         public PythonType ReturnType { get; set; }
 
         public bool Static { get; set; }
         public bool Overload { get; set; }
-
-        public string Summary { get; set; }
 
         public string File { get; set; }
 
@@ -59,6 +57,7 @@ namespace QuantConnectStubsGenerator.Model
             Parameters = other.Parameters.ToList();
             GenericType = other.GenericType;
             DeprecationReason = other.DeprecationReason;
+            Documentation = other.Documentation;
         }
 
         public bool Equals(Method other)

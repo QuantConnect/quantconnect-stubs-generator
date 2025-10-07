@@ -1087,6 +1087,325 @@ class TestClass(System.Object):
         ...
 ",
                 }).SetName("BracketsAreReplacedWithAngularBracketsInDocstringsToAvoidMarkdownIssues"),
+
+            // CodeReferencesInDocsAreSnakeCased
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test1.cs",
+                        @"
+using System;
+using QuantConnect.TestNamespace;
+
+namespace QuantConnect.TestNamespace
+{
+    public class ReferencedClass
+    {
+        public class InnerClass
+        {
+            public int TestField = 0;
+            public const int TestConstField = 0;
+            public static readonly int TestReadonlyField = 0;
+            public int TestReadonlyProperty { get; }
+            public int TestProperty { get; set; }
+
+            public int TestMethod1(int x, string y)
+            {
+                return x;
+            }
+            public int TestMethod2()
+            {
+                return 0;
+            }
+        }
+    }
+}
+
+namespace QuantConnect.Namespace
+{
+    /// <summary>
+    /// References in class summary:
+    /// A method reference: <see cref=""ReferencedMethod""/>.
+    /// A param reference: <paramref name=""argName""/>.
+    /// A class reference: <see cref=""ReferencedClass""/>.
+    /// A nested class reference: <see cref=""ReferencedClass.InnerClass""/>.
+    /// A field reference: <see cref=""ReferencedClass.InnerClass.TestField""/>.
+    /// A const field reference: <see cref=""ReferencedClass.InnerClass.TestConstField""/>.
+    /// A readonly field reference <see cref=""ReferencedClass.InnerClass.TestReadonlyField""/>.
+    /// A readonly property reference <see cref=""ReferencedClass.InnerClass.TestReadonlyProperty""/>.
+    /// A property reference: <see cref=""ReferencedClass.InnerClass.TestProperty""/>.
+    /// A method with args reference: <see cref=""ReferencedClass.InnerClass.TestMethod1(int, string)""/>.
+    /// A method without args reference <see cref=""ReferencedClass.InnerClass.TestMethod2""/>.
+    /// </summary>
+    public class TestClass
+    {
+        /// <summary>
+        /// References in field summary:
+        /// A method reference: <see cref=""ReferencedMethod""/>.
+        /// A param reference: <paramref name=""argName""/>.
+        /// A class reference: <see cref=""ReferencedClass""/>.
+        /// A nested class reference: <see cref=""ReferencedClass.InnerClass""/>.
+        /// A field reference: <see cref=""ReferencedClass.InnerClass.TestField""/>.
+        /// A const field reference: <see cref=""ReferencedClass.InnerClass.TestConstField""/>.
+        /// A readonly field reference <see cref=""ReferencedClass.InnerClass.TestReadonlyField""/>.
+        /// A readonly property reference <see cref=""ReferencedClass.InnerClass.TestReadonlyProperty""/>.
+        /// A property reference: <see cref=""ReferencedClass.InnerClass.TestProperty""/>.
+        /// A method with args reference: <see cref=""ReferencedClass.InnerClass.TestMethod1(int, string)""/>.
+        /// A method without args reference <see cref=""ReferencedClass.InnerClass.TestMethod2""/>.
+        /// </summary>
+        public int TestField;
+
+        /// <summary>
+        /// References in property summary:
+        /// A method reference: <see cref=""ReferencedMethod""/>.
+        /// A param reference: <paramref name=""argName""/>.
+        /// A class reference: <see cref=""ReferencedClass""/>.
+        /// A nested class reference: <see cref=""ReferencedClass.InnerClass""/>.
+        /// A field reference: <see cref=""ReferencedClass.InnerClass.TestField""/>.
+        /// A const field reference: <see cref=""ReferencedClass.InnerClass.TestConstField""/>.
+        /// A readonly field reference <see cref=""ReferencedClass.InnerClass.TestReadonlyField""/>.
+        /// A readonly property reference <see cref=""ReferencedClass.InnerClass.TestReadonlyProperty""/>.
+        /// A property reference: <see cref=""ReferencedClass.InnerClass.TestProperty""/>.
+        /// A method with args reference: <see cref=""ReferencedClass.InnerClass.TestMethod1(int, string)""/>.
+        /// A method without args reference <see cref=""ReferencedClass.InnerClass.TestMethod2""/>.
+        /// </summary>
+        public int TestProperty { get; set; }
+
+        /// <summary>
+        /// References in event summary:
+        /// A method reference: <see cref=""ReferencedMethod""/>.
+        /// A param reference: <paramref name=""argName""/>.
+        /// A class reference: <see cref=""ReferencedClass""/>.
+        /// A nested class reference: <see cref=""ReferencedClass.InnerClass""/>.
+        /// A field reference: <see cref=""ReferencedClass.InnerClass.TestField""/>.
+        /// A const field reference: <see cref=""ReferencedClass.InnerClass.TestConstField""/>.
+        /// A readonly field reference <see cref=""ReferencedClass.InnerClass.TestReadonlyField""/>.
+        /// A readonly property reference <see cref=""ReferencedClass.InnerClass.TestReadonlyProperty""/>.
+        /// A property reference: <see cref=""ReferencedClass.InnerClass.TestProperty""/>.
+        /// A method with args reference: <see cref=""ReferencedClass.InnerClass.TestMethod1(int, string)""/>.
+        /// A method without args reference <see cref=""ReferencedClass.InnerClass.TestMethod2""/>.
+        /// </summary>
+        public event EventHandler<string> TestEvent;
+
+        /// <summary>
+        /// References in method summary:
+        /// A method reference: <see cref=""ReferencedMethod""/>.
+        /// A param reference: <paramref name=""argName""/>.
+        /// A class reference: <see cref=""ReferencedClass""/>.
+        /// A nested class reference: <see cref=""ReferencedClass.InnerClass""/>.
+        /// A field reference: <see cref=""ReferencedClass.InnerClass.TestField""/>.
+        /// A const field reference: <see cref=""ReferencedClass.InnerClass.TestConstField""/>.
+        /// A readonly field reference <see cref=""ReferencedClass.InnerClass.TestReadonlyField""/>.
+        /// A readonly property reference <see cref=""ReferencedClass.InnerClass.TestReadonlyProperty""/>.
+        /// A property reference: <see cref=""ReferencedClass.InnerClass.TestProperty""/>.
+        /// A method with args reference: <see cref=""ReferencedClass.InnerClass.TestMethod1(int, string)""/>.
+        /// A method without args reference <see cref=""ReferencedClass.InnerClass.TestMethod2""/>.
+        /// </summary>
+        /// <param name=""argName"">Argument description. Reference in param node <see cref=""ReferencedMethod""/></param>
+        /// <returns>Return <paramref name=""argName""/> untouched. Reference in returns node <see cref=""ReferencedMethod""/></returns>
+        public int TestMethod(int argName)
+        {
+            return argName;
+        }
+
+        public ReferencedClass ReferencedClassInstance { get; set; }
+
+        public void ReferencedMethod()
+        {
+        }
+    }
+}"
+                    },
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import IntEnum
+import QuantConnect.TestNamespace
+import System
+
+
+class ReferencedClass(System.Object):
+    """"""This class has no documentation.""""""
+
+    class InnerClass(System.Object):
+        """"""This class has no documentation.""""""
+
+        @property
+        def test_field(self) -> int:
+            ...
+
+        @test_field.setter
+        def test_field(self, value: int) -> None:
+            ...
+
+        TEST_CONST_FIELD: int = 0
+
+        TEST_READONLY_FIELD: int = 0
+
+        @property
+        def test_readonly_property(self) -> int:
+            ...
+
+        @property
+        def test_property(self) -> int:
+            ...
+
+        @test_property.setter
+        def test_property(self, value: int) -> None:
+            ...
+
+        def test_method_1(self, x: int, y: str) -> int:
+            ...
+
+        def test_method_2(self) -> int:
+            ...
+",
+                    @"
+from typing import overload
+from enum import IntEnum
+import typing
+
+import QuantConnect.Namespace
+import QuantConnect.TestNamespace
+import System
+
+QuantConnect_Namespace__EventContainer_Callable = typing.TypeVar(""QuantConnect_Namespace__EventContainer_Callable"")
+QuantConnect_Namespace__EventContainer_ReturnType = typing.TypeVar(""QuantConnect_Namespace__EventContainer_ReturnType"")
+
+
+class TestClass(System.Object):
+    """"""
+    References in class summary:
+    A method reference: referenced_method.
+    A param reference: arg_name.
+    A class reference: ReferencedClass.
+    A nested class reference: ReferencedClass.InnerClass.
+    A field reference: ReferencedClass.InnerClass.test_field.
+    A const field reference: ReferencedClass.InnerClass.TEST_CONST_FIELD.
+    A readonly field reference ReferencedClass.InnerClass.TEST_READONLY_FIELD.
+    A readonly property reference ReferencedClass.InnerClass.test_readonly_property.
+    A property reference: ReferencedClass.InnerClass.test_property.
+    A method with args reference: ReferencedClass.InnerClass.test_method_1(int, string).
+    A method without args reference ReferencedClass.InnerClass.test_method_2.
+    """"""
+
+    @property
+    def test_field(self) -> int:
+        """"""
+        References in field summary:
+        A method reference: referenced_method.
+        A param reference: arg_name.
+        A class reference: ReferencedClass.
+        A nested class reference: ReferencedClass.InnerClass.
+        A field reference: ReferencedClass.InnerClass.test_field.
+        A const field reference: ReferencedClass.InnerClass.TEST_CONST_FIELD.
+        A readonly field reference ReferencedClass.InnerClass.TEST_READONLY_FIELD.
+        A readonly property reference ReferencedClass.InnerClass.test_readonly_property.
+        A property reference: ReferencedClass.InnerClass.test_property.
+        A method with args reference: ReferencedClass.InnerClass.test_method_1(int, string).
+        A method without args reference ReferencedClass.InnerClass.test_method_2.
+        """"""
+        ...
+
+    @test_field.setter
+    def test_field(self, value: int) -> None:
+        ...
+
+    @property
+    def test_property(self) -> int:
+        """"""
+        References in property summary:
+        A method reference: referenced_method.
+        A param reference: arg_name.
+        A class reference: ReferencedClass.
+        A nested class reference: ReferencedClass.InnerClass.
+        A field reference: ReferencedClass.InnerClass.test_field.
+        A const field reference: ReferencedClass.InnerClass.TEST_CONST_FIELD.
+        A readonly field reference ReferencedClass.InnerClass.TEST_READONLY_FIELD.
+        A readonly property reference ReferencedClass.InnerClass.test_readonly_property.
+        A property reference: ReferencedClass.InnerClass.test_property.
+        A method with args reference: ReferencedClass.InnerClass.test_method_1(int, string).
+        A method without args reference ReferencedClass.InnerClass.test_method_2.
+        """"""
+        ...
+
+    @test_property.setter
+    def test_property(self, value: int) -> None:
+        ...
+
+    @property
+    def test_event(self) -> _EventContainer[typing.Callable[[System.Object, str], typing.Any], typing.Any]:
+        """"""
+        References in event summary:
+        A method reference: referenced_method.
+        A param reference: arg_name.
+        A class reference: ReferencedClass.
+        A nested class reference: ReferencedClass.InnerClass.
+        A field reference: ReferencedClass.InnerClass.test_field.
+        A const field reference: ReferencedClass.InnerClass.TEST_CONST_FIELD.
+        A readonly field reference ReferencedClass.InnerClass.TEST_READONLY_FIELD.
+        A readonly property reference ReferencedClass.InnerClass.test_readonly_property.
+        A property reference: ReferencedClass.InnerClass.test_property.
+        A method with args reference: ReferencedClass.InnerClass.test_method_1(int, string).
+        A method without args reference ReferencedClass.InnerClass.test_method_2.
+        """"""
+        ...
+
+    @test_event.setter
+    def test_event(self, value: _EventContainer[typing.Callable[[System.Object, str], typing.Any], typing.Any]) -> None:
+        ...
+
+    @property
+    def referenced_class_instance(self) -> QuantConnect.TestNamespace.ReferencedClass:
+        ...
+
+    @referenced_class_instance.setter
+    def referenced_class_instance(self, value: QuantConnect.TestNamespace.ReferencedClass) -> None:
+        ...
+
+    def referenced_method(self) -> None:
+        ...
+
+    def test_method(self, arg_name: int) -> int:
+        """"""
+        References in method summary:
+        A method reference: referenced_method.
+        A param reference: arg_name.
+        A class reference: ReferencedClass.
+        A nested class reference: ReferencedClass.InnerClass.
+        A field reference: ReferencedClass.InnerClass.test_field.
+        A const field reference: ReferencedClass.InnerClass.TEST_CONST_FIELD.
+        A readonly field reference ReferencedClass.InnerClass.TEST_READONLY_FIELD.
+        A readonly property reference ReferencedClass.InnerClass.test_readonly_property.
+        A property reference: ReferencedClass.InnerClass.test_property.
+        A method with args reference: ReferencedClass.InnerClass.test_method_1(int, string).
+        A method without args reference ReferencedClass.InnerClass.test_method_2.
+
+        :param arg_name: Argument description. Reference in param node referenced_method
+        :returns: Return arg_name untouched. Reference in returns node referenced_method.
+        """"""
+        ...
+
+
+class _EventContainer(typing.Generic[QuantConnect_Namespace__EventContainer_Callable, QuantConnect_Namespace__EventContainer_ReturnType]):
+    """"""This class is used to provide accurate autocomplete on events and cannot be imported.""""""
+
+    def __call__(self, *args: typing.Any, **kwargs: typing.Any) -> QuantConnect_Namespace__EventContainer_ReturnType:
+        """"""Fires the event.""""""
+        ...
+
+    def __iadd__(self, item: QuantConnect_Namespace__EventContainer_Callable) -> typing.Self:
+        """"""Registers an event handler.""""""
+        ...
+
+    def __isub__(self, item: QuantConnect_Namespace__EventContainer_Callable) -> typing.Self:
+        """"""Unregisters an event handler.""""""
+        ...
+",
+                }).SetName("CodeReferencesInDocsAreSnakeCased"),
         };
 
         private class TestGenerator : Generator

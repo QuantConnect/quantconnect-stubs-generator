@@ -199,13 +199,14 @@ namespace QuantConnectStubsGenerator.Parser
                             return "This member is marked as obsolete.";
                         }
 
-                        var reason = arguments[0].Expression.ToString().Trim('"');
+                        var reason = _model.GetConstantValue(arguments[0].Expression);
+                        var reasonMessage = reason.HasValue ? reason.Value as string : arguments[0].Expression.ToString();
 
                         // The stubs are meant to make writing algorithms easier
                         // If a member is not deprecated for algorithm use, we don't mark it as deprecated at all
-                        if (!reason.Contains("provided for algorithm use only"))
+                        if (!reasonMessage.Contains("provided for algorithm use only"))
                         {
-                            return reason;
+                            return reasonMessage;
                         }
                     }
                 }
@@ -218,7 +219,7 @@ namespace QuantConnectStubsGenerator.Parser
         /// Parses the documentation above a node to an XML element.
         /// If the documentation contains a summary, this is then accessible with element["summary"].
         /// </summary>
-        protected XmlElement ParseDocumentation(SyntaxNode node)
+        protected XmlDocument ParseDocumentation(SyntaxNode node)
         {
             var lines = node
                 .GetLeadingTrivia()
@@ -274,7 +275,7 @@ namespace QuantConnectStubsGenerator.Parser
                 doc.LoadXml("<root></root>");
             }
 
-            return doc["root"];
+            return doc;
         }
 
         /// <summary>
@@ -284,6 +285,31 @@ namespace QuantConnectStubsGenerator.Parser
         protected string AppendSummary(string currentSummary, string text)
         {
             return currentSummary != null ? currentSummary + "\n\n" + text : text;
+        }
+
+        protected XmlDocument GetXmlDocumentation(MemberDeclarationSyntax node, CodeEntityType codeEntityType)
+        {
+            var doc = ParseDocumentation(node);
+            var xmlSummary = doc["root"]["summary"];
+
+            if (HasModifier(node, "protected"))
+            {
+                var hasSummary = xmlSummary != null;
+                xmlSummary ??= doc.CreateElement("summary");
+                doc["root"].AppendChild(xmlSummary);
+                xmlSummary.AppendChild(doc.CreateTextNode((!hasSummary ? "" : "\n\n") + $"This {nameof(codeEntityType)} is protected."));
+            }
+
+            var deprecationReason = GetDeprecationReason(node);
+            if (deprecationReason != null)
+            {
+                var hasSummary = xmlSummary != null;
+                xmlSummary ??= doc.CreateElement("summary");
+                doc["root"].AppendChild(xmlSummary);
+                xmlSummary.AppendChild(doc.CreateTextNode((!hasSummary ? "" : "\n\n") + deprecationReason));
+            }
+
+            return doc;
         }
 
         /// <summary>

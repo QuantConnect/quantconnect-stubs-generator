@@ -19,7 +19,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using QuantConnectStubsGenerator.Model;
-using QuantConnectStubsGenerator.Utility;
 
 namespace QuantConnectStubsGenerator.Parser
 {
@@ -64,36 +63,12 @@ namespace QuantConnectStubsGenerator.Parser
             return new Class(_typeConverter.GetType(node, true, true, false))
             {
                 Static = HasModifier(node, "static"),
-                Summary = ParseSummary(node),
+                Documentation = GetXmlDocumentation(node, CodeEntityType.Class),
                 Interface = node is InterfaceDeclarationSyntax,
                 InheritsFrom = ParseInheritedTypes(node).ToList(),
                 MetaClass = ParseMetaClass(node),
                 AvoidImplicitTypes = HasAttribute(node.AttributeLists, "StubsAvoidImplicits")
             };
-        }
-
-        private string ParseSummary(BaseTypeDeclarationSyntax node)
-        {
-            string summary = null;
-
-            var doc = ParseDocumentation(node);
-            if (doc["summary"] != null)
-            {
-                summary = doc["summary"].GetText();
-            }
-
-            if (HasModifier(node, "protected"))
-            {
-                summary = AppendSummary(summary, "This class is protected.");
-            }
-
-            var deprecationReason = GetDeprecationReason(node);
-            if (deprecationReason != null)
-            {
-                summary = AppendSummary(summary, deprecationReason);
-            }
-
-            return summary;
         }
 
         private IEnumerable<PythonType> ParseInheritedTypes(BaseTypeDeclarationSyntax node)

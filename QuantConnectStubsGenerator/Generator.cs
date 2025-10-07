@@ -479,19 +479,6 @@ namespace QuantConnectStubsGenerator
             }
         }
 
-        private void CleanUpSummaries(Class cls)
-        {
-            cls.Summary = CleanUpSummary(cls.Summary);
-            foreach (var method in cls.Methods)
-            {
-                method.Summary = CleanUpSummary(method.Summary);
-            }
-            foreach (var property in cls.Properties)
-            {
-                property.Summary = CleanUpSummary(property.Summary);
-            }
-        }
-
         private string CleanUpSummary(string summary)
         {
             return summary != null ? _summaryCleanupRegex.Replace(summary, "<$1>") : null;

@@ -23,7 +23,8 @@ namespace QuantConnectStubsGenerator.Model
     {
         public static readonly PythonType SymbolType = new PythonType("Symbol", "QuantConnect");
         public static readonly PythonType ImplicitConversionParameterSymbolType =
-            CreateUnion(SymbolType, new PythonType("str"), new PythonType("BaseContract", "QuantConnect.Data.Market"));
+            CreateUnion(SymbolType, new PythonType("str"), new PythonType("BaseContract", "QuantConnect.Data.Market"),
+                new PythonType("Security", "QuantConnect.Securities"));
 
         public static readonly PythonType Any = new PythonType("Any", "typing");
         public static readonly PythonType None = new PythonType("None");

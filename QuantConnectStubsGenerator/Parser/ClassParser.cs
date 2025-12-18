@@ -89,7 +89,7 @@ namespace QuantConnectStubsGenerator.Parser
                 var ns = symbol.BaseType.ContainingNamespace.Name;
                 var name = symbol.BaseType.Name;
 
-                if (!ShouldSkipBaseType(currentType, ns, name))
+                if (!ShouldSkipBaseType(currentType, symbol.BaseType))
                 {
                     types.Add(_typeConverter.GetType(symbol.BaseType, skipTypeNormalization: skipTypeNormalization));
                 }
@@ -189,16 +189,24 @@ namespace QuantConnectStubsGenerator.Parser
             };
         }
 
-        private bool ShouldSkipBaseType(PythonType currentType, string ns, string name)
+        private bool ShouldSkipBaseType(PythonType currentType, INamedTypeSymbol baseType)
         {
             // System.Object extends from System.Object in the AST, we skip this base type in Python
-            if (currentType.Namespace == "System" && currentType.Name == "Object" && ns == "System" && name == "Object")
+            if (currentType.Namespace == "System" && currentType.Name == "Object" &&
+                baseType.ContainingNamespace.Name == "System" && baseType.Name == "Object")
+            {
+                return true;
+            }
+
+            // External base classes will not be added as base classes in Python as we don't have their definitions.
+            // DynamicObject is the exception so that we can support dynamic types.
+            if (baseType.ContainingNamespace.Name == "" && baseType.Name != "DynamicObject")
             {
                 return true;
             }
 
             // We don't parse a ValueType, so we can't extend from it without errors
-            return ns == "System" && name == "ValueType";
+            return baseType.ContainingNamespace.Name == "System" && baseType.Name == "ValueType";
         }
     }
 }

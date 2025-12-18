@@ -169,7 +169,7 @@ namespace QuantConnect.Test
         }
     }
 
-    public class TestDerivedEnumerable1 : TestEnumerable
+    public class TestDerivedEnumerable1 : TestEnumerable1
     {
     }
 
@@ -194,9 +194,6 @@ import QuantConnect.Test
 import System
 import System.Collections.Generic
 
-TestEnumerable = typing.Any
-
-
 class TestEnumerable1(System.Object, typing.Iterable[int]):
     """"""This class has no documentation.""""""
 
@@ -206,8 +203,7 @@ class TestEnumerable1(System.Object, typing.Iterable[int]):
     def get_enumerator(self) -> System.Collections.Generic.IEnumerator[int]:
         ...
 
-
-class TestDerivedEnumerable1(TestEnumerable):
+class TestDerivedEnumerable1(QuantConnect.Test.TestEnumerable1):
     """"""This class has no documentation.""""""
 
 
@@ -578,6 +574,7 @@ import typing
 
 import QuantConnect
 import QuantConnect.Data.Market
+import QuantConnect.Securities
 import QuantConnect.Test
 import System
 import System.Collections.Generic
@@ -605,10 +602,10 @@ class TestGenericClass(typing.Generic[QuantConnect_Test_TestGenericClass_T1, Qua
 class TestClass(QuantConnect.Test.TestGenericClass[QuantConnect.Symbol, datetime.datetime]):
     """"""This class has no documentation.""""""
 
-    def test_method_1(self, t_1_param: typing.Union[QuantConnect.Symbol, str, QuantConnect.Data.Market.BaseContract], t_2_param: datetime.datetime) -> QuantConnect.Symbol:
+    def test_method_1(self, t_1_param: typing.Union[QuantConnect.Symbol, str, QuantConnect.Data.Market.BaseContract, QuantConnect.Securities.Security], t_2_param: datetime.datetime) -> QuantConnect.Symbol:
         ...
 
-    def test_method_3(self, t_1_param: typing.Union[QuantConnect.Symbol, str, QuantConnect.Data.Market.BaseContract], t_2_param: typing.List[System.Collections.Generic.Dictionary[QuantConnect.Symbol, typing.List[datetime.datetime]]]) -> typing.List[System.Collections.Generic.Dictionary[QuantConnect.Symbol, datetime.datetime]]:
+    def test_method_3(self, t_1_param: typing.Union[QuantConnect.Symbol, str, QuantConnect.Data.Market.BaseContract, QuantConnect.Securities.Security], t_2_param: typing.List[System.Collections.Generic.Dictionary[QuantConnect.Symbol, typing.List[datetime.datetime]]]) -> typing.List[System.Collections.Generic.Dictionary[QuantConnect.Symbol, datetime.datetime]]:
         ...
 "
                 }).SetName("GeneratesMethodsWithSymbolImplicitConversionForInheritedGenericClasses"),

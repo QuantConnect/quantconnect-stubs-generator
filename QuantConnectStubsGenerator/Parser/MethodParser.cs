@@ -241,7 +241,13 @@ namespace QuantConnectStubsGenerator.Parser
                 return null;
             }
 
-            var originalReturnType = returnType;
+            // pythonnet materializes IEnumerable<T> return values as indexable, sized
+            // collections, and user code routinely calls len()/[i]/.index() on them.
+            // Rewrite typing.Iterable[T] return types to typing.Sequence[T] so mypy accepts
+            // those valid runtime patterns while keeping the return type covariant — this
+            // matters when a subclass overrides the method with a narrower element type.
+            // Inheritance lists are untouched.
+            returnType = IterableReturnToSequence(returnType);
 
             var method = new Method(name, returnType)
             {
@@ -309,6 +315,20 @@ namespace QuantConnectStubsGenerator.Parser
 
             method.GenericType = genericType;
             method.AvoidImplicitTypes = avoidImplicitConversionTypes;
+
+            // When partial classes define the same signature in both a .Python.cs file and the
+            // plain .cs file (e.g. QCAlgorithm.Link(PyObject) vs QCAlgorithm.Link(object), both
+            // normalized to `command: Any`), HashSet dedupe is first-wins and ignores File.
+            // If the .Python.cs variant is visited first, PostProcessClass later deletes it
+            // as an override with no C# counterpart. Drop the .Python.cs entry so the .cs
+            // version can take its place.
+            if (!method.File.EndsWith(".Python.cs")
+                && _currentClass.Methods.TryGetValue(method, out var existing)
+                && existing.File.EndsWith(".Python.cs"))
+            {
+                _currentClass.Methods.Remove(existing);
+            }
+
             _currentClass.Methods.Add(method);
 
             ImprovePythonAccessorIfNecessary(method);
@@ -347,6 +367,16 @@ namespace QuantConnectStubsGenerator.Parser
                         new PythonType("PythonConsolidator", "QuantConnect.Python"), new PythonType("timedelta", "datetime"));
                 }
 
+                // IndicatorBase<IndicatorDataPoint> parameters also accept PythonIndicator (IndicatorBase<IBaseData>)
+                if (parameter.Type.Namespace == "QuantConnect.Indicators"
+                    && parameter.Type.Name == "IndicatorBase"
+                    && parameter.Type.TypeParameters.Count == 1
+                    && parameter.Type.TypeParameters[0].Name == "IndicatorDataPoint")
+                {
+                    parameter.Type = PythonType.CreateUnion(parameter.Type,
+                        new PythonType("PythonIndicator", "QuantConnect.Indicators"));
+                }
+
                 // datetime parameters also accept dates
                 if (parameter.Type.Namespace == "datetime" && parameter.Type.Name == "datetime")
                 {
@@ -360,6 +390,21 @@ namespace QuantConnectStubsGenerator.Parser
                 && (parameter.Name == "type" || parameter.Name == "dataType" || parameter.Name == "T"))
             {
                 parameter.Type = new PythonType("Type", "typing");
+            }
+
+            // PyObject tickers parameter: the Python.cs History wrapper accepts Symbol,
+            // List[Symbol], List[str], Universe, and Type (e.g. self.history(Fundamental, ...)),
+            // returning pandas.DataFrame in each case. Widen the typing so mypy picks this
+            // overload over the C# IEnumerable one.
+            if (parameter.Name == "tickers" && parameter.Type == PythonType.Any)
+            {
+                parameter.Type = PythonType.CreateUnion(
+                    new PythonType("Symbol", "QuantConnect"),
+                    new PythonType("List", "typing") { TypeParameters = { new PythonType("Symbol", "QuantConnect") } },
+                    new PythonType("List", "typing") { TypeParameters = { new PythonType("str") } },
+                    new PythonType("Universe", "QuantConnect.Data.UniverseSelection"),
+                    new PythonType("Type", "typing")
+                );
             }
 
             // System.Object parameters can accept anything
@@ -542,6 +587,31 @@ namespace QuantConnectStubsGenerator.Parser
         {
             var intImplicitOperatorMethod = new Method("__int__", new PythonType("int")) { Class = _currentClass };
             _currentClass.Methods.Add(intImplicitOperatorMethod);
+        }
+
+        /// <summary>
+        /// Rewrites typing.Iterable[T] to typing.Sequence[T] for a method return type.
+        /// Recurses into type parameters so nested forms like typing.Optional[typing.Iterable[T]]
+        /// are also rewritten. Safe to mutate in place: TypeConverter hands back fresh
+        /// PythonType instances for everything except the parameter-less PythonType.Any/None
+        /// singletons, which have no type parameters and are short-circuited.
+        /// </summary>
+        private static PythonType IterableReturnToSequence(PythonType type)
+        {
+            if (type.Namespace == "typing" && type.Name == "Iterable" && type.TypeParameters.Count == 1)
+            {
+                return new PythonType("Sequence", "typing")
+                {
+                    TypeParameters = { IterableReturnToSequence(type.TypeParameters[0]) }
+                };
+            }
+
+            for (var i = 0; i < type.TypeParameters.Count; i++)
+            {
+                type.TypeParameters[i] = IterableReturnToSequence(type.TypeParameters[i]);
+            }
+
+            return type;
         }
     }
 }

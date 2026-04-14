@@ -286,6 +286,23 @@ namespace QuantConnectStubsGenerator.Parser
                     isList = true;
                 }
             }
+            else if (type.Namespace == "System.Collections.Generic" && type.TypeParameters.Count == 2)
+            {
+                if (type.Name == "IReadOnlyDictionary")
+                {
+                    // typing.Mapping is the covariant read-only counterpart: it accepts
+                    // dict[K, V] subtypes at assignment sites, which lets user algorithms
+                    // override properties like DefaultMarkets with a plain dict literal.
+                    return new PythonType("Mapping", "typing")
+                    {
+                        TypeParameters =
+                        {
+                            NormalizeType(type.TypeParameters[0], isParameter),
+                            NormalizeType(type.TypeParameters[1], isParameter)
+                        }
+                    };
+                }
+            }
             else if (type.Namespace == "System.Collections" && type.Name == "IList")
             {
                 isList = true;

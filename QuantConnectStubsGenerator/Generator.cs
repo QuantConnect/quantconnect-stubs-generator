@@ -182,11 +182,17 @@ namespace QuantConnectStubsGenerator
                 .Select(project => $"{_leanPath}/{project}")
                 .ToList();
 
-            // Find all C# files in non-blacklisted projects in Lean
+            // Find all C# files in non-blacklisted projects in Lean. Normalize path separators
+            // once per file so the blacklist regex and prefix checks behave identically on
+            // Windows and Linux.
             var sourceFiles = Directory
                 .EnumerateFiles(_leanPath, "*.cs", SearchOption.AllDirectories)
-                .Where(file => !blacklistedRegex.Any(regex => regex.IsMatch(file)))
-                .Where(file => !blacklistedPrefixes.Any(file.Replace("\\", "/").StartsWith))
+                .Where(file =>
+                {
+                    var normalized = file.Replace("\\", "/");
+                    return !blacklistedRegex.Any(regex => regex.IsMatch(normalized))
+                        && !blacklistedPrefixes.Any(normalized.StartsWith);
+                })
                 .ToList();
 
             // Find all relevant C# files in the C# runtime
@@ -285,6 +291,19 @@ namespace QuantConnectStubsGenerator
 
             HandleGenericMethods(cls);
 
+            // Precompute non-.Python.cs signatures once to keep the .Python.cs filter O(N)
+            // instead of O(N²). The signature captures what Python.cs overloads need to match
+            // on to be considered redundant: same name + same (ordered) parameter types.
+            var csharpSignatures = cls.Methods
+                .Where(m => m.File != null && !m.File.EndsWith(".Python.cs"))
+                .Select(m => (m.Name, Params: m.Parameters.Select(p => p.Type).ToList()))
+                .ToList();
+
+            bool HasMatchingCSharpOverload(Method m) => csharpSignatures.Any(s =>
+                s.Name == m.Name
+                && s.Params.Count == m.Parameters.Count
+                && s.Params.Zip(m.Parameters, (t, p) => t.Equals(p.Type)).All(match => match));
+
             var pythonMethodsToRemove = cls.Methods
                 .Where(m => m.File != null && m.File.EndsWith(".Python.cs"))
                 // Python implementations of logging methods accept any parameter type
@@ -303,6 +322,12 @@ namespace QuantConnectStubsGenerator
                     return paramName != "type" && paramName != "dataType" && paramName != "T" &&
                         !m.Parameters.Any(p => p.Name == "handler" && p.Type == PythonType.Any);
                 })
+                // Only drop a .Python.cs method when a non-.Python.cs overload with the same
+                // signature already exists. Standalone Python-only overloads — e.g.
+                // Download(str, PyObject headers) whose C# counterpart takes
+                // List[KeyValuePair[str, str]] — stay put; removing them would lose the
+                // dict-friendly signature pythonnet exposes at runtime.
+                .Where(HasMatchingCSharpOverload)
                 .ToList();
 
             foreach (var pythonMethod in pythonMethodsToRemove)
@@ -314,6 +339,19 @@ namespace QuantConnectStubsGenerator
 
                 cls.Methods.Remove(pythonMethod);
             }
+
+            // Drop obsolete overloads that are pure back-compat shims — a non-obsolete same-name
+            // method with the same return type already covers the behavior. Keeping them forces
+            // Python subclass overrides to implement every signature, producing spurious
+            // "Signature incompatible with supertype" mypy errors. Obsolete overloads that
+            // differ in return type (e.g. Liquidate returning List[int] vs List[OrderTicket])
+            // are preserved because their behavior isn't captured by the other overloads.
+            var liveOverloadSignatures = cls.Methods
+                .Where(m => m.DeprecationReason == null)
+                .Select(m => (m.Name, m.ReturnType))
+                .ToHashSet();
+            cls.Methods.RemoveWhere(m => m.DeprecationReason != null
+                && liveOverloadSignatures.Contains((m.Name, m.ReturnType)));
         }
 
         private void MarkOverloads(Class cls)
@@ -457,13 +495,40 @@ namespace QuantConnectStubsGenerator
                 var indexer = new Method("__getitem__", newGenericClass.Type);
                 indexer.Parameters.Add(new Parameter("type", new PythonType("Type", "typing") { TypeParameters = [genericType] }));
                 newIndexableClass.Methods.Add(indexer);
-                foreach (var methods in cls.Methods.Where(x => x.Name == genericMethodName))
+                var allMethods = cls.Methods.Where(x => x.Name == genericMethodName).ToList();
+
+                // Collect first-parameter types covered by Python.cs overloads (e.g. Symbol,
+                // List[Symbol], List[str] from a Union[Symbol, List[Symbol], List[str]] tickers
+                // parameter). C# overloads whose first parameter overlaps with any of these
+                // are skipped so the Python.cs overloads — which return pandas.DataFrame — take
+                // precedence over the C# IEnumerable-returning counterparts.
+                static IEnumerable<PythonType> FlattenUnion(PythonType type)
                 {
-                    var targetClass = newIndexableClass;
-                    if (methods.IsGeneric)
+                    return type.Namespace == "typing" && type.Name == "Union"
+                        ? type.TypeParameters
+                        : new[] { type };
+                }
+                var pythonFirstParamTypes = allMethods
+                    .Where(x => !x.IsGeneric && x.File?.EndsWith(".Python.cs") == true && x.Parameters.Count > 0)
+                    .SelectMany(x => FlattenUnion(x.Parameters[0].Type))
+                    .Select(tp => tp.ToPythonString())
+                    .ToHashSet();
+
+                foreach (var methods in allMethods)
+                {
+                    // Skip C# overloads whose first parameter overlaps with a Python.cs overload
+                    // (e.g. History(Symbol, ...) and History(List<Symbol>, ...) are both overridden
+                    // by History(PyObject tickers, ...) whose tickers accepts Symbol/List[Symbol]/List[str]).
+                    if (!methods.IsGeneric
+                        && pythonFirstParamTypes.Count > 0
+                        && methods.File?.EndsWith(".Python.cs") != true
+                        && methods.Parameters.Count > 0
+                        && FlattenUnion(methods.Parameters[0].Type).Any(t => pythonFirstParamTypes.Contains(t.ToPythonString())))
                     {
-                        targetClass = newGenericClass;
+                        continue;
                     }
+
+                    var targetClass = methods.IsGeneric ? newGenericClass : newIndexableClass;
                     targetClass.Methods.Add(new Method("__call__", methods) { Overload = true });
                 }
                 var property = new Property(genericMethodName)

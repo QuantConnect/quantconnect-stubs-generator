@@ -290,10 +290,12 @@ namespace QuantConnectStubsGenerator.Parser
             {
                 if (type.Name == "IReadOnlyDictionary")
                 {
-                    // typing.Mapping is the covariant read-only counterpart: it accepts
-                    // dict[K, V] subtypes at assignment sites, which lets user algorithms
-                    // override properties like DefaultMarkets with a plain dict literal.
-                    return new PythonType("Mapping", "typing")
+                    // Expose as typing.Dict — pythonnet presents IReadOnlyDictionary<K, V>
+                    // with full dict semantics at runtime, and dict is the idiom users already
+                    // know. Using Dict (invariant) rather than Mapping (covariant read-only)
+                    // keeps overrides like `default_markets = { ... }` accepted without
+                    // introducing a less familiar ABC.
+                    return new PythonType("Dict", "typing")
                     {
                         TypeParameters =
                         {

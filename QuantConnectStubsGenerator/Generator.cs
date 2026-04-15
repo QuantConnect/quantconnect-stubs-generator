@@ -111,7 +111,9 @@ namespace QuantConnectStubsGenerator
                     reflectionClass.Methods.Remove(badMethod);
                 }
 
-                foreach (var cls in ns.GetClasses())
+                // Snapshot via ToList so PostProcessClass can register additional helper classes
+                // (e.g. the hoisted _TypedHistory generic helper) without invalidating the iterator.
+                foreach (var cls in ns.GetClasses().ToList())
                 {
                     // Remove Python implementations for methods where there is both a Python as well as a C# implementation
                     // The parsed C# implementation is usually more useful for autocomplete
@@ -289,13 +291,14 @@ namespace QuantConnectStubsGenerator
 
             HandleSymbolGenericClass(cls, context);
 
-            HandleGenericMethods(cls);
+            HandleGenericMethods(cls, context);
 
-            // Precompute non-.Python.cs signatures once to keep the .Python.cs filter O(N)
-            // instead of O(N²). The signature captures what Python.cs overloads need to match
-            // on to be considered redundant: same name + same (ordered) parameter types.
+            // Precompute non-PyObject signatures once to keep the filter O(N) instead of O(N²).
+            // We classify "C# equivalent" by the absence of a PyObject parameter rather than by
+            // ".Python.cs" file suffix so that partial classes declaring PyObject overloads in
+            // plain .cs files (e.g. some model classes) are handled correctly.
             var csharpSignatures = cls.Methods
-                .Where(m => m.File != null && !m.File.EndsWith(".Python.cs"))
+                .Where(m => !m.HasPyObjectParameter)
                 .Select(m => (m.Name, Params: m.Parameters.Select(p => p.Type).ToList()))
                 .ToList();
 
@@ -305,7 +308,7 @@ namespace QuantConnectStubsGenerator
                 && s.Params.Zip(m.Parameters, (t, p) => t.Equals(p.Type)).All(match => match));
 
             var pythonMethodsToRemove = cls.Methods
-                .Where(m => m.File != null && m.File.EndsWith(".Python.cs"))
+                .Where(m => m.HasPyObjectParameter)
                 // Python implementations of logging methods accept any parameter type
                 // C# implementations only accept strings/numbers, so we cannot remove the Python implementations
                 .Where(m => !loggingMethods.Contains($"{cls.Type.Name}.{m.Name}"))
@@ -322,7 +325,7 @@ namespace QuantConnectStubsGenerator
                     return paramName != "type" && paramName != "dataType" && paramName != "T" &&
                         !m.Parameters.Any(p => p.Name == "handler" && p.Type == PythonType.Any);
                 })
-                // Only drop a .Python.cs method when a non-.Python.cs overload with the same
+                // Only drop a PyObject-taking method when a non-PyObject overload with the same
                 // signature already exists. Standalone Python-only overloads — e.g.
                 // Download(str, PyObject headers) whose C# counterpart takes
                 // List[KeyValuePair[str, str]] — stay put; removing them would lose the
@@ -471,37 +474,68 @@ namespace QuantConnectStubsGenerator
         }
 
         /// <summary>
-        /// Helper method to support 'self.history(...)' and 'self.history[XYZ](...)' use cases at the same time. Solution is of the format:
+        /// Helper method to support 'self.history(...)' and 'self.history[XYZ](...)' at the same time.
+        /// Generated layout (issue #82: both helpers hoisted to namespace level with private names
+        /// so they don't appear as QCAlgorithm inner classes in IDE autocomplete; explicit
+        /// __getitem__ overloads are emitted for common data types so the set is discoverable):
         ///
-        /// class MyClass :
-        ///     class History :
-        ///         class History(typing.Generic[T]):
-        ///              def __call__(self, ticker: str) -> list[QuantConnect.Data.Market.DataDictionary[T]]: ...
-        ///         def __call__(self, ticker: str) -> pandas.DataFrame: ...
-        ///         def __getitem__(self, type: typing.Type[T]) -> History[T]: ...
+        /// class _History:
+        ///     def __call__(self, ticker: str) -> pandas.DataFrame: ...
+        ///     def __getitem__(self, type: typing.Type[T]) -> _TypedHistory[T]: ...
+        ///
+        /// class _TypedHistory(typing.Generic[T]):
+        ///     def __call__(self, ticker: str) -> list[QuantConnect.Data.Market.DataDictionary[T]]: ...
+        ///
+        /// class QCAlgorithm:
         ///     @property
-        ///     def history(self) -> History: ...
+        ///     def history(self) -> _History: ...
         /// </summary>
-        private void HandleGenericMethods(Class cls)
+        private void HandleGenericMethods(Class cls, ParseContext context)
         {
             // For all generic methods we need to perform a workaround see https://github.com/QuantConnect/quantconnect-stubs-generator/issues/38
             var genericMethodNames = cls.Methods.Where(x => x.IsGeneric).Select(x => x.Name).ToHashSet();
             foreach (var genericMethodName in genericMethodNames)
             {
                 var genericType = cls.Methods.Where(x => x.IsGeneric && x.Name == genericMethodName).First().GenericType;
-                var genericClassType = new PythonType(genericMethodName) { TypeParameters = [genericType] };
-                var newGenericClass = new Class(genericClassType) { Summary = string.Empty };
-                var newIndexableClass = new Class(new PythonType(genericMethodName)) { Summary = string.Empty };
-                var indexer = new Method("__getitem__", newGenericClass.Type);
-                indexer.Parameters.Add(new Parameter("type", new PythonType("Type", "typing") { TypeParameters = [genericType] }));
-                newIndexableClass.Methods.Add(indexer);
-                var allMethods = cls.Methods.Where(x => x.Name == genericMethodName).ToList();
 
-                // Collect first-parameter types covered by Python.cs overloads (e.g. Symbol,
-                // List[Symbol], List[str] from a Union[Symbol, List[Symbol], List[str]] tickers
-                // parameter). C# overloads whose first parameter overlaps with any of these
-                // are skipped so the Python.cs overloads — which return pandas.DataFrame — take
-                // precedence over the C# IEnumerable-returning counterparts.
+                // Helper classes — both hoisted to namespace level with private names so they
+                // don't clutter QCAlgorithm's inner-class namespace in IDE autocomplete (issue #82).
+                var indexableClassName = $"_{genericMethodName}";
+                var typedClassName = $"_Typed{genericMethodName}";
+                var typedClassType = new PythonType(typedClassName, cls.Type.Namespace) { TypeParameters = [genericType] };
+                var newGenericClass = new Class(typedClassType) { Summary = string.Empty };
+                var newIndexableClass = new Class(new PythonType(indexableClassName, cls.Type.Namespace)) { Summary = string.Empty };
+
+                // PyObject wrapper overloads first so the DataFrame-returning variants take
+                // precedence in mypy/pyright overload resolution when an arg matches both a
+                // typed C# overload (e.g. History(Symbol, int, Resolution)) and the wrapper.
+                var allMethods = cls.Methods.Where(x => x.Name == genericMethodName)
+                    .OrderBy(x => x.HasPyObjectParameter ? 0 : 1)
+                    .ToList();
+
+                // Scoped widening: the PyObject History wrapper's `tickers` parameter is declared
+                // as PyObject (→ Any). Widen to the concrete types it accepts at runtime so Symbol
+                // and the other supported shapes match the DataFrame-returning overload before
+                // the typed C# IEnumerable-returning overloads get a chance. Applied here (not
+                // globally in MethodParser) to avoid affecting non-History methods that happen
+                // to take a parameter named "tickers". Widening is performed on the copies we
+                // push into the helper classes below, not on the originals in cls.Methods —
+                // mutating a Method already in a HashSet would desync its hash and break the
+                // later RemoveWhere that evicts the moved methods from the outer class.
+                var tickersUnion = PythonType.CreateUnion(
+                    new PythonType("Symbol", "QuantConnect"),
+                    new PythonType("str"),
+                    new PythonType("List", "typing") { TypeParameters = { new PythonType("Symbol", "QuantConnect") } },
+                    new PythonType("List", "typing") { TypeParameters = { new PythonType("str") } },
+                    new PythonType("Universe", "QuantConnect.Data.UniverseSelection"),
+                    new PythonType("Type", "typing")
+                );
+
+                // Collect first-parameter types covered by PyObject wrapper overloads (e.g.
+                // Symbol, List[Symbol], List[str] from the widened tickers union). C# overloads
+                // whose first parameter overlaps with any of these are skipped so the wrapper
+                // overloads — which return pandas.DataFrame — take precedence over the C#
+                // IEnumerable-returning counterparts.
                 static IEnumerable<PythonType> FlattenUnion(PythonType type)
                 {
                     return type.Namespace == "typing" && type.Name == "Union"
@@ -509,36 +543,67 @@ namespace QuantConnectStubsGenerator
                         : new[] { type };
                 }
                 var pythonFirstParamTypes = allMethods
-                    .Where(x => !x.IsGeneric && x.File?.EndsWith(".Python.cs") == true && x.Parameters.Count > 0)
+                    .Where(x => !x.IsGeneric && x.HasPyObjectParameter && x.Parameters.Count > 0)
                     .SelectMany(x => FlattenUnion(x.Parameters[0].Type))
                     .Select(tp => tp.ToPythonString())
                     .ToHashSet();
 
                 foreach (var methods in allMethods)
                 {
-                    // Skip C# overloads whose first parameter overlaps with a Python.cs overload
-                    // (e.g. History(Symbol, ...) and History(List<Symbol>, ...) are both overridden
-                    // by History(PyObject tickers, ...) whose tickers accepts Symbol/List[Symbol]/List[str]).
+                    // Skip C# overloads whose first parameter is fully covered by a wrapper
+                    // overload (e.g. History(IEnumerable<Symbol>, ...) is covered by
+                    // History(PyObject tickers, ...) where tickers accepts List[Symbol]).
+                    // If any flattened type is NOT in the wrapper's set (e.g. a Symbol
+                    // first parameter that the wrapper's tickers Union does not include),
+                    // keep the C# overload so its distinct return type is preserved.
                     if (!methods.IsGeneric
                         && pythonFirstParamTypes.Count > 0
-                        && methods.File?.EndsWith(".Python.cs") != true
+                        && !methods.HasPyObjectParameter
                         && methods.Parameters.Count > 0
-                        && FlattenUnion(methods.Parameters[0].Type).Any(t => pythonFirstParamTypes.Contains(t.ToPythonString())))
+                        && FlattenUnion(methods.Parameters[0].Type).All(t => pythonFirstParamTypes.Contains(t.ToPythonString())))
                     {
                         continue;
                     }
 
                     var targetClass = methods.IsGeneric ? newGenericClass : newIndexableClass;
-                    targetClass.Methods.Add(new Method("__call__", methods) { Overload = true });
+                    var callMethod = new Method("__call__", methods) { Overload = true };
+                    if (methods.HasPyObjectParameter)
+                    {
+                        // Replace the Parameter instance (don't mutate — the original is shared
+                        // with cls.Methods and mutating would desync its hash there).
+                        for (var i = 0; i < callMethod.Parameters.Count; i++)
+                        {
+                            var p = callMethod.Parameters[i];
+                            if (p.Name == "tickers" && p.Type == PythonType.Any)
+                            {
+                                callMethod.Parameters[i] = new Parameter(p.Name, tickersUnion) { VarArgs = p.VarArgs, Value = p.Value };
+                            }
+                        }
+                    }
+                    targetClass.Methods.Add(callMethod);
                 }
+
+                // __getitem__ — single generic Type[T] form. Per-type explicit overloads
+                // were tried for discoverability (issue #82) but caused mypy to pick the
+                // first overload (e.g. Type[TradeBar]) for any Type[X] argument it couldn't
+                // strictly disprove, breaking custom-data-type history requests. The generic
+                // form correctly infers T from the argument for both mypy and pyright.
+                var indexer = new Method("__getitem__", typedClassType);
+                indexer.Parameters.Add(new Parameter("type", new PythonType("Type", "typing") { TypeParameters = [genericType] }));
+                newIndexableClass.Methods.Add(indexer);
+
                 var property = new Property(genericMethodName)
                 {
                     Type = newIndexableClass.Type,
                     Class = cls,
                 };
                 cls.Properties.Add(property);
-                cls.InnerClasses.Add(newIndexableClass);
-                newIndexableClass.InnerClasses.Add(newGenericClass);
+
+                // Hoist both helper classes to namespace level (siblings of cls), not nested.
+                var ns = context.GetNamespaceByName(cls.Type.Namespace);
+                ns.RegisterClass(newIndexableClass);
+                ns.RegisterClass(newGenericClass);
+
                 // remove those we've moved around
                 cls.Methods.RemoveWhere(x => x.Name.Equals(genericMethodName, StringComparison.InvariantCultureIgnoreCase));
             }

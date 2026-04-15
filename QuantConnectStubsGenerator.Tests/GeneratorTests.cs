@@ -195,22 +195,23 @@ namespace QuantConnect.GenericMethodsTest
             var baseNameSpace = namespaces.Single(x => x.Name == "QuantConnect");
             var testNameSpace = namespaces.Single(x => x.Name == "QuantConnect.GenericMethodsTest");
 
-            var testClass = testNameSpace.GetClasses().Single();
-            Assert.AreEqual("TestClass", testClass.Type.Name);
+            // The generic-method workaround hoists two helper classes to the namespace level
+            // (issue #82). TestClass keeps only the property; it has no History methods.
+            var testClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "TestClass");
+            Assert.AreEqual(0, testClass.Methods.Count);
+            Assert.AreEqual(0, testClass.InnerClasses.Count);
+            Assert.IsNotNull(testClass.Properties.SingleOrDefault(x => x.Name == "History"));
 
-            var testMethodCount = testClass.Methods.Count;
-            Assert.AreEqual(0, testMethodCount);
+            // The dispatch helper is non-generic and exposes __call__ + __getitem__.
+            var indexableClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "_History");
+            Assert.AreEqual(0, indexableClass.Type.TypeParameters?.Count ?? 0);
+            Assert.IsNotNull(indexableClass.Methods.SingleOrDefault(x => x.Name == "__getitem__"));
+            Assert.IsNotNull(indexableClass.Methods.SingleOrDefault(x => x.Name == "__call__"));
 
-            var innerClass = testClass.InnerClasses.Single();
-
-            Assert.AreEqual(0, innerClass.Type.TypeParameters?.Count ?? 0);
-            Assert.IsNotNull(innerClass.Methods.SingleOrDefault(x => x.Name == "__getitem__"));
-            Assert.IsNotNull(innerClass.Methods.SingleOrDefault(x => x.Name == "__call__"));
-
-            var innerInnerClass = innerClass.InnerClasses.Single();
-
-            Assert.AreNotEqual(0, innerInnerClass.Type.TypeParameters?.Count ?? 0);
-            Assert.AreEqual(2, innerInnerClass.Methods.Count(x => x.Name == "__call__"));
+            // The typed helper is generic and holds the Sequence[T]-returning overloads.
+            var typedClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "_TypedHistory");
+            Assert.AreNotEqual(0, typedClass.Type.TypeParameters?.Count ?? 0);
+            Assert.AreEqual(2, typedClass.Methods.Count(x => x.Name == "__call__"));
         }
 
         [Test]

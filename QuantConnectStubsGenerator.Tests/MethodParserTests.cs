@@ -184,8 +184,8 @@ namespace QuantConnect.MethodParserTests
         {
             // Reproduces the QCAlgorithm.Link / BroadcastCommand regression:
             // both partial files collapse to the same Python signature, and when the
-            // .Python.cs partial is visited first, PostProcessClass was deleting the
-            // survivor because the only entry in the HashSet had File=".Python.cs".
+            // PyObject-taking partial is visited first, PostProcessClass was deleting the
+            // survivor because the only entry in the HashSet was the PyObject variant.
             var testGenerator = new TestGenerator
             {
                 Files = new()
@@ -218,8 +218,8 @@ namespace QuantConnect.MethodParserTests
 
             var linkMethod = testClass.Methods.SingleOrDefault(x => x.Name == "Link");
             Assert.IsNotNull(linkMethod, "Link should be kept when the C# partial provides it alongside a PyObject overload");
-            Assert.IsFalse(linkMethod.File.EndsWith(".Python.cs"),
-                "The surviving Link should come from the non-.Python.cs partial so PostProcessClass does not remove it");
+            Assert.IsFalse(linkMethod.HasPyObjectParameter,
+                "The surviving Link should come from the C# partial so PostProcessClass does not remove it");
             Assert.AreEqual(1, linkMethod.Parameters.Count);
         }
 

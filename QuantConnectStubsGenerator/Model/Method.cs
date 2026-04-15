@@ -41,6 +41,14 @@ namespace QuantConnectStubsGenerator.Model
 
         public bool AvoidImplicitTypes { get; set; }
 
+        /// <summary>
+        /// True when at least one parameter was originally declared as PyObject in C#.
+        /// Used as a more reliable signal than the ".Python.cs" file suffix to identify
+        /// Python-equivalent overloads — some partial classes declare PyObject-taking
+        /// methods in plain ".cs" files alongside their C# counterparts.
+        /// </summary>
+        public bool HasPyObjectParameter { get; set; }
+
         public Method(string name, PythonType returnType)
         {
             Name = name;
@@ -58,6 +66,7 @@ namespace QuantConnectStubsGenerator.Model
             GenericType = other.GenericType;
             DeprecationReason = other.DeprecationReason;
             Documentation = other.Documentation;
+            HasPyObjectParameter = other.HasPyObjectParameter;
         }
 
         public bool Equals(Method other)

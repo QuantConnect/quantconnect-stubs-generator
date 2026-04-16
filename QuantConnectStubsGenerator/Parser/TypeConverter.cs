@@ -286,6 +286,25 @@ namespace QuantConnectStubsGenerator.Parser
                     isList = true;
                 }
             }
+            else if (type.Namespace == "System.Collections.Generic" && type.TypeParameters.Count == 2)
+            {
+                if (type.Name == "IReadOnlyDictionary")
+                {
+                    // Expose as typing.Dict — pythonnet presents IReadOnlyDictionary<K, V>
+                    // with full dict semantics at runtime, and dict is the idiom users already
+                    // know. Using Dict (invariant) rather than Mapping (covariant read-only)
+                    // keeps overrides like `default_markets = { ... }` accepted without
+                    // introducing a less familiar ABC.
+                    return new PythonType("Dict", "typing")
+                    {
+                        TypeParameters =
+                        {
+                            NormalizeType(type.TypeParameters[0], isParameter),
+                            NormalizeType(type.TypeParameters[1], isParameter)
+                        }
+                    };
+                }
+            }
             else if (type.Namespace == "System.Collections" && type.Name == "IList")
             {
                 isList = true;

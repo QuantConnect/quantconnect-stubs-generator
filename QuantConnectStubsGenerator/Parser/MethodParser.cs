@@ -241,7 +241,13 @@ namespace QuantConnectStubsGenerator.Parser
                 return null;
             }
 
-            var originalReturnType = returnType;
+            // pythonnet materializes IEnumerable<T> return values as indexable, sized
+            // collections, and user code routinely calls len()/[i]/.index() on them.
+            // Rewrite typing.Iterable[T] return types to typing.Sequence[T] so mypy accepts
+            // those valid runtime patterns while keeping the return type covariant — this
+            // matters when a subclass overrides the method with a narrower element type.
+            // Inheritance lists are untouched.
+            returnType = IterableReturnToSequence(returnType);
 
             var method = new Method(name, returnType)
             {
@@ -262,6 +268,16 @@ namespace QuantConnectStubsGenerator.Parser
                 if (parsedParameter == null)
                 {
                     continue;
+                }
+
+                // Detect PyObject parameters from the original syntax — by the time we read
+                // parsedParameter.Type it has already been collapsed to typing.Any, which also
+                // comes from System.Object and other sources. Relying on the raw syntax lets
+                // us flag Python-equivalent overloads regardless of whether they live in a
+                // .Python.cs file or a plain .cs partial.
+                if (parameter.Type is SimpleNameSyntax simpleName && simpleName.Identifier.Text == "PyObject")
+                {
+                    method.HasPyObjectParameter = true;
                 }
 
                 method.Parameters.Add(parsedParameter);
@@ -309,6 +325,20 @@ namespace QuantConnectStubsGenerator.Parser
 
             method.GenericType = genericType;
             method.AvoidImplicitTypes = avoidImplicitConversionTypes;
+
+            // When partial classes define the same signature in both a PyObject-taking and a
+            // plain-C# variant (e.g. QCAlgorithm.Link(PyObject) vs QCAlgorithm.Link(object),
+            // both normalized to `command: Any`), HashSet dedupe is first-wins and ignores
+            // which is which. If the PyObject variant is visited first, PostProcessClass later
+            // deletes it as an override with no C# counterpart. Drop the PyObject entry so the
+            // C# version can take its place.
+            if (!method.HasPyObjectParameter
+                && _currentClass.Methods.TryGetValue(method, out var existing)
+                && existing.HasPyObjectParameter)
+            {
+                _currentClass.Methods.Remove(existing);
+            }
+
             _currentClass.Methods.Add(method);
 
             ImprovePythonAccessorIfNecessary(method);
@@ -347,6 +377,16 @@ namespace QuantConnectStubsGenerator.Parser
                         new PythonType("PythonConsolidator", "QuantConnect.Python"), new PythonType("timedelta", "datetime"));
                 }
 
+                // IndicatorBase<IndicatorDataPoint> parameters also accept PythonIndicator (IndicatorBase<IBaseData>)
+                if (parameter.Type.Namespace == "QuantConnect.Indicators"
+                    && parameter.Type.Name == "IndicatorBase"
+                    && parameter.Type.TypeParameters.Count == 1
+                    && parameter.Type.TypeParameters[0].Name == "IndicatorDataPoint")
+                {
+                    parameter.Type = PythonType.CreateUnion(parameter.Type,
+                        new PythonType("PythonIndicator", "QuantConnect.Indicators"));
+                }
+
                 // datetime parameters also accept dates
                 if (parameter.Type.Namespace == "datetime" && parameter.Type.Name == "datetime")
                 {
@@ -354,9 +394,13 @@ namespace QuantConnectStubsGenerator.Parser
                 }
             }
 
-            // Methods like AddData<T> and History<T> have Python implementations accepting "T" as first parameter
-            // We set the types of these parameters to typing.Type instead of the default typing.Any
-            if (_model.SyntaxTree.FilePath.EndsWith(".Python.cs")
+            // Methods like AddData<T> and History<T> have Python wrappers that accept the data
+            // type as a PyObject first parameter (named "type"/"dataType"/"T"). Expose it as
+            // typing.Type instead of the default typing.Any. Detected via the syntax's raw
+            // PyObject declaration rather than a .Python.cs file-suffix check — PyObject-taking
+            // wrappers can live alongside their C# counterparts in plain .cs partials too.
+            if (syntax.Type is SimpleNameSyntax pyObjectSyntax
+                && pyObjectSyntax.Identifier.Text == "PyObject"
                 && (parameter.Name == "type" || parameter.Name == "dataType" || parameter.Name == "T"))
             {
                 parameter.Type = new PythonType("Type", "typing");
@@ -542,6 +586,31 @@ namespace QuantConnectStubsGenerator.Parser
         {
             var intImplicitOperatorMethod = new Method("__int__", new PythonType("int")) { Class = _currentClass };
             _currentClass.Methods.Add(intImplicitOperatorMethod);
+        }
+
+        /// <summary>
+        /// Rewrites typing.Iterable[T] to typing.Sequence[T] for a method return type.
+        /// Recurses into type parameters so nested forms like typing.Optional[typing.Iterable[T]]
+        /// are also rewritten. Safe to mutate in place: TypeConverter hands back fresh
+        /// PythonType instances for everything except the parameter-less PythonType.Any/None
+        /// singletons, which have no type parameters and are short-circuited.
+        /// </summary>
+        private static PythonType IterableReturnToSequence(PythonType type)
+        {
+            if (type.Namespace == "typing" && type.Name == "Iterable" && type.TypeParameters.Count == 1)
+            {
+                return new PythonType("Sequence", "typing")
+                {
+                    TypeParameters = { IterableReturnToSequence(type.TypeParameters[0]) }
+                };
+            }
+
+            for (var i = 0; i < type.TypeParameters.Count; i++)
+            {
+                type.TypeParameters[i] = IterableReturnToSequence(type.TypeParameters[i]);
+            }
+
+            return type;
         }
     }
 }

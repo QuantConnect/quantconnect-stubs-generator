@@ -178,5 +178,95 @@ namespace QuantConnect.MethodParserTests
             var method4 = testClass.Methods.Single(x => x.Name == "TestMethod4");
             Assert.AreEqual(expectedConvertedType, method4.ReturnType);
         }
+
+        [Test]
+        public void KeepsCSharpOverloadWhenPythonPartialSharesSignature()
+        {
+            // Reproduces the QCAlgorithm.Link / BroadcastCommand regression:
+            // both partial files collapse to the same Python signature, and when the
+            // PyObject-taking partial is visited first, PostProcessClass was deleting the
+            // survivor because the only entry in the HashSet was the PyObject variant.
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "TestClass.Python.cs", @"
+using Python.Runtime;
+
+namespace QuantConnect.MethodParserTests
+{
+    public partial class TestClass
+    {
+        public string Link(PyObject command) { return null; }
+    }
+}" },
+                    { "TestClass.cs", @"
+namespace QuantConnect.MethodParserTests
+{
+    public partial class TestClass
+    {
+        public string Link(object command) { return null; }
+    }
+}" }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var testNameSpace = result.GetNamespaces().Single(x => x.Name == "QuantConnect.MethodParserTests");
+            var testClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "TestClass");
+
+            var linkMethod = testClass.Methods.SingleOrDefault(x => x.Name == "Link");
+            Assert.IsNotNull(linkMethod, "Link should be kept when the C# partial provides it alongside a PyObject overload");
+            Assert.IsFalse(linkMethod.HasPyObjectParameter,
+                "The surviving Link should come from the C# partial so PostProcessClass does not remove it");
+            Assert.AreEqual(1, linkMethod.Parameters.Count);
+        }
+
+        [Test]
+        public void IndicatorBaseParametersAcceptPythonIndicator()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+namespace QuantConnect.Indicators
+{
+    public class IndicatorDataPoint { }
+
+    public class IndicatorBase<T> { }
+
+    public class TestClass
+    {
+        public void TestMethod(string symbol, IndicatorBase<IndicatorDataPoint> indicator)
+        {
+        }
+    }
+}" }
+            }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaces().Single(x => x.Name == "QuantConnect.Indicators");
+            var testClass = ns.GetClasses().Single(x => x.Type.Name == "TestClass");
+
+            var method = testClass.Methods.Single(x => x.Name == "TestMethod");
+            var indicatorParam = method.Parameters[1];
+
+            // Should be Union[IndicatorBase[IndicatorDataPoint], PythonIndicator]
+            Assert.AreEqual("Union", indicatorParam.Type.Name);
+            Assert.AreEqual("typing", indicatorParam.Type.Namespace);
+            Assert.AreEqual(2, indicatorParam.Type.TypeParameters.Count);
+
+            var indicatorBaseType = indicatorParam.Type.TypeParameters[0];
+            Assert.AreEqual("IndicatorBase", indicatorBaseType.Name);
+            Assert.AreEqual("IndicatorDataPoint", indicatorBaseType.TypeParameters[0].Name);
+
+            var pythonIndicatorType = indicatorParam.Type.TypeParameters[1];
+            Assert.AreEqual("PythonIndicator", pythonIndicatorType.Name);
+            Assert.AreEqual("QuantConnect.Indicators", pythonIndicatorType.Namespace);
+        }
     }
 }

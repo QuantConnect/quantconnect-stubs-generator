@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="log4net" Version="2.0.12" />
+		<PackageReference Include="log4net" Version="3.3.0" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
 		<PackageReference Include="QuikGraph" Version="2.3.0" />
 		<PackageReference Include="QuantConnect.pythonnet" Version="2.0.51" />

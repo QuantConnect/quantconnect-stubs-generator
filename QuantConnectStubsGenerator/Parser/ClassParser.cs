@@ -60,15 +60,38 @@ namespace QuantConnectStubsGenerator.Parser
 
         private Class ParseClass(BaseTypeDeclarationSyntax node)
         {
+            var inheritsFrom = ParseInheritedTypes(node).ToList();
+
+            // If this class implicitly converts to string in C#, it means you can use it
+            // wherever a string is expected. We reflect that in Python by inheriting from str
+            if (HasImplicitConversionToString(node) && !inheritsFrom.Any(t => t.Name == "str" && t.Namespace == null))
+            {
+                inheritsFrom.Insert(0, new PythonType("str"));
+            }
+
             return new Class(_typeConverter.GetType(node, true, true, false))
             {
                 Static = HasModifier(node, "static"),
                 Documentation = GetXmlDocumentation(node, CodeEntityType.Class),
                 Interface = node is InterfaceDeclarationSyntax,
-                InheritsFrom = ParseInheritedTypes(node).ToList(),
+                InheritsFrom = inheritsFrom,
                 MetaClass = ParseMetaClass(node),
                 AvoidImplicitTypes = HasAttribute(node.AttributeLists, "StubsAvoidImplicits")
             };
+        }
+
+        private static bool HasImplicitConversionToString(BaseTypeDeclarationSyntax node)
+        {
+            if (node is not TypeDeclarationSyntax typeDecl)
+            {
+                return false;
+            }
+
+            return typeDecl.Members
+                .OfType<ConversionOperatorDeclarationSyntax>()
+                .Any(op => op.ImplicitOrExplicitKeyword.IsKind(SyntaxKind.ImplicitKeyword)
+                           && op.Type is PredefinedTypeSyntax predefined
+                           && predefined.Keyword.IsKind(SyntaxKind.StringKeyword));
         }
 
         private IEnumerable<PythonType> ParseInheritedTypes(BaseTypeDeclarationSyntax node)

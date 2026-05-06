@@ -691,7 +691,7 @@ namespace QuantConnectStubsGenerator
             }
 
             var symbolGenericBaseClasses = cls.InheritsFrom
-                .Where(x => x.Namespace.StartsWith("QuantConnect") && x.TypeParameters.Count > 0 && x.TypeParameters.Any(y => y.Equals(PythonType.SymbolType)))
+                .Where(x => x.Namespace != null && x.Namespace.StartsWith("QuantConnect") && x.TypeParameters.Count > 0 && x.TypeParameters.Any(y => y.Equals(PythonType.SymbolType)))
                 .ToList();
 
             if (symbolGenericBaseClasses.Count == 0)

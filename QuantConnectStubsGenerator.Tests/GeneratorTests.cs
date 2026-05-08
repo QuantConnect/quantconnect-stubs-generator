@@ -504,6 +504,35 @@ namespace QuantConnect.Test
             Assert.IsNull(internalFieldEvent);
         }
 
+        [TestCase("implicit", true)]
+        [TestCase("explicit", false)]
+        public void StringConversionOperatorDeterminesStrInheritance(string keyword, bool shouldInheritFromStr)
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "TestClass.cs", $@"
+namespace QuantConnect
+{{
+    public class TestClass
+    {{
+        public static {keyword} operator string(TestClass obj)
+        {{
+            return obj.ToString();
+        }}
+    }}
+}}" }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var testClass = result.GetNamespaceByName("QuantConnect").GetClasses().Single(c => c.Type.Name == "TestClass");
+
+            Assert.AreEqual(shouldInheritFromStr, testClass.InheritsFrom.Any(t => t.Name == "str" && t.Namespace == null));
+        }
+
         internal class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

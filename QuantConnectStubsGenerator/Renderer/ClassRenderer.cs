@@ -111,7 +111,10 @@ namespace QuantConnectStubsGenerator.Renderer
                 .OrderBy(m => m.Name)
                 .ThenBy(m => m.DeprecationReason == null ? 0 : 1)
                 // pyobjects are converted into typing.any, we want those at the top so they resolve first which is what actually happens
-                .ThenBy(m => m.Parameters.Any(x => x.Type.Name.Equals("Any")) ? 0 : 1);
+                .ThenBy(m => m.HasPyObjectParameter
+                    // a security is actually an any so it will match much lighter, so we place security methods before
+                    ? 0 : m.Parameters.Any(x => x.Type.Name.Equals(PythonType.Security.Name) || x.Type.TypeParameters.Any(y => y.Name.Equals(PythonType.Security.Name)))
+                    ? 1 : 2);
 
             foreach (var method in orderedMethods)
             {

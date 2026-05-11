@@ -550,6 +550,7 @@ namespace QuantConnect.Test
 
     public class TestClass : TestGenericClass<Symbol, DateTime>
     {
+        public void TestMethod3(int number, DateTime time) {}
     }
 }"
                     }
@@ -605,7 +606,12 @@ class TestClass(QuantConnect.Test.TestGenericClass[QuantConnect.Symbol, datetime
     def test_method_1(self, t_1_param: typing.Union[QuantConnect.Symbol, str, QuantConnect.Data.Market.BaseContract, QuantConnect.Securities.Security], t_2_param: datetime.datetime) -> QuantConnect.Symbol:
         ...
 
+    @overload
     def test_method_3(self, t_1_param: typing.Union[QuantConnect.Symbol, str, QuantConnect.Data.Market.BaseContract, QuantConnect.Securities.Security], t_2_param: typing.List[System.Collections.Generic.Dictionary[QuantConnect.Symbol, typing.List[datetime.datetime]]]) -> typing.List[System.Collections.Generic.Dictionary[QuantConnect.Symbol, datetime.datetime]]:
+        ...
+
+    @overload
+    def test_method_3(self,number:int,time:typing.Union[datetime.datetime,datetime.date]) -> None:
         ...
 "
                 }).SetName("GeneratesMethodsWithSymbolImplicitConversionForInheritedGenericClasses"),

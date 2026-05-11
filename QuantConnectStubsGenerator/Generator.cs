@@ -293,6 +293,8 @@ namespace QuantConnectStubsGenerator
 
             HandleGenericMethods(cls, context);
 
+            HandleCountableEnumerables(cls, context);
+
             // Precompute non-PyObject signatures once to keep the filter O(N) instead of O(N²).
             // We classify "C# equivalent" by the absence of a PyObject parameter rather than by
             // ".Python.cs" file suffix so that partial classes declaring PyObject overloads in
@@ -355,6 +357,31 @@ namespace QuantConnectStubsGenerator
                 .ToHashSet();
             cls.Methods.RemoveWhere(m => m.DeprecationReason != null
                 && liveOverloadSignatures.Contains((m.Name, m.ReturnType)));
+        }
+
+        private static bool IsEnumerable(PythonType type)
+        {
+            return (type.Name == "IEnumerable" && type.Namespace == "System.Collections")
+                || (type.Name == "Iterable" && type.Namespace == "typing");
+        }
+
+        private static bool IsEnumerable(Class cls, ParseContext context)
+        {
+            return cls.InheritsFrom.Any(IsEnumerable)
+                || cls.GetBaseClasses(context).Any(c => IsEnumerable(c, context));
+        }
+
+        private void HandleCountableEnumerables(Class cls, ParseContext context)
+        {
+            if (cls.Methods.Any(m => m.Name == "__len__") ||
+                !cls.Properties.Any(p => p.Name.Equals("Count", StringComparison.InvariantCultureIgnoreCase)) ||
+                !IsEnumerable(cls, context))
+            {
+                return;
+            }
+
+            var lenMethod = new Method("__len__", new PythonType("int")) { Class = cls };
+            cls.Methods.Add(lenMethod);
         }
 
         private void MarkOverloads(Class cls)

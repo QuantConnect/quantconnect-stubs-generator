@@ -15,7 +15,6 @@
 
 using System;
 using System.Linq;
-using System.Xml;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using QuantConnectStubsGenerator.Model;

@@ -74,12 +74,6 @@ namespace QuantConnectStubsGenerator.Parser
             PythonType genericType = null;
             if (node.TypeParameterList != null)
             {
-                if (node.TypeParameterList.Parameters.Count > 1
-                    || !node.Identifier.Text.Equals("history", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    // skip, multiple generics or any different to history, we don't expect users to use those
-                    return;
-                }
                 var parameterType = node.TypeParameterList.Parameters.First();
                 genericType = _typeConverter.GetType(parameterType, skipTypeNormalization: SkipTypeNormalization);
             }
@@ -339,10 +333,11 @@ namespace QuantConnectStubsGenerator.Parser
                 _currentClass.Methods.Remove(existing);
             }
 
-            _currentClass.Methods.Add(method);
-
             ImprovePythonAccessorIfNecessary(method);
             ImproveDictionaryDefinitionIfNecessary(node, method);
+
+            // Add the method to the current class after all improvements, so the final definition is use for the hash code generation for the Class.Methods hashset
+            _currentClass.Methods.Add(method);
 
             return method;
         }

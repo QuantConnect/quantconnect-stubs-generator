@@ -500,8 +500,8 @@ namespace QuantConnectStubsGenerator
 
                 // Helper classes — both hoisted to namespace level with private names so they
                 // don't clutter QCAlgorithm's inner-class namespace in IDE autocomplete (issue #82).
-                var indexableClassName = $"_{genericMethodName}";
-                var typedClassName = $"_Typed{genericMethodName}";
+                var indexableClassName = $"_{cls.Type.Name}_{genericMethodName}";
+                var typedClassName = $"_Typed_{cls.Type.Name}_{genericMethodName}";
                 var typedClassType = new PythonType(typedClassName, cls.Type.Namespace) { TypeParameters = [genericType] };
                 var newGenericClass = new Class(typedClassType) { Summary = string.Empty };
                 var newIndexableClass = new Class(new PythonType(indexableClassName, cls.Type.Namespace)) { Summary = string.Empty };
@@ -509,7 +509,7 @@ namespace QuantConnectStubsGenerator
                 // PyObject wrapper overloads first so the DataFrame-returning variants take
                 // precedence in mypy/pyright overload resolution when an arg matches both a
                 // typed C# overload (e.g. History(Symbol, int, Resolution)) and the wrapper.
-                var allMethods = cls.Methods.Where(x => x.Name == genericMethodName)
+                var allMethods = cls.Methods.Where(x => x.Name.Equals(genericMethodName, StringComparison.InvariantCultureIgnoreCase))
                     .OrderBy(x => x.HasPyObjectParameter ? 0 : 1)
                     .ToList();
 
@@ -548,7 +548,7 @@ namespace QuantConnectStubsGenerator
                     .Select(tp => tp.ToPythonString())
                     .ToHashSet();
 
-                foreach (var methods in allMethods)
+                foreach (var method in allMethods)
                 {
                     // Skip C# overloads whose first parameter is fully covered by a wrapper
                     // overload (e.g. History(IEnumerable<Symbol>, ...) is covered by
@@ -556,18 +556,18 @@ namespace QuantConnectStubsGenerator
                     // If any flattened type is NOT in the wrapper's set (e.g. a Symbol
                     // first parameter that the wrapper's tickers Union does not include),
                     // keep the C# overload so its distinct return type is preserved.
-                    if (!methods.IsGeneric
+                    if (!method.IsGeneric
                         && pythonFirstParamTypes.Count > 0
-                        && !methods.HasPyObjectParameter
-                        && methods.Parameters.Count > 0
-                        && FlattenUnion(methods.Parameters[0].Type).All(t => pythonFirstParamTypes.Contains(t.ToPythonString())))
+                        && !method.HasPyObjectParameter
+                        && method.Parameters.Count > 0
+                        && FlattenUnion(method.Parameters[0].Type).All(t => pythonFirstParamTypes.Contains(t.ToPythonString())))
                     {
                         continue;
                     }
 
-                    var targetClass = methods.IsGeneric ? newGenericClass : newIndexableClass;
-                    var callMethod = new Method("__call__", methods) { Overload = true };
-                    if (methods.HasPyObjectParameter)
+                    var targetClass = method.IsGeneric ? newGenericClass : newIndexableClass;
+                    var callMethod = new Method("__call__", method) { Overload = true, Static = false, Class = targetClass };
+                    if (method.HasPyObjectParameter)
                     {
                         // Replace the Parameter instance (don't mutate — the original is shared
                         // with cls.Methods and mutating would desync its hash there).
@@ -596,6 +596,8 @@ namespace QuantConnectStubsGenerator
                 {
                     Type = newIndexableClass.Type,
                     Class = cls,
+                    Static = cls.Static || allMethods.Any(m => m.Static), // If any overload is static, the property must be static so it's accessible from the class.
+                    IsGenericMethodGroupingProperty = true
                 };
                 cls.Properties.Add(property);
 
@@ -605,7 +607,10 @@ namespace QuantConnectStubsGenerator
                 ns.RegisterClass(newGenericClass);
 
                 // remove those we've moved around
-                cls.Methods.RemoveWhere(x => x.Name.Equals(genericMethodName, StringComparison.InvariantCultureIgnoreCase));
+                foreach (var method in allMethods)
+                {
+                    cls.Methods.Remove(method);
+                }
             }
         }
 

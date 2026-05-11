@@ -21,13 +21,13 @@ namespace QuantConnectStubsGenerator.Model
 {
     public class PythonType : IEquatable<PythonType>
     {
+        public static readonly PythonType Security = new("Security", "QuantConnect.Securities");
         public static readonly PythonType SymbolType = new PythonType("Symbol", "QuantConnect");
         public static readonly PythonType ImplicitConversionParameterSymbolType =
-            CreateUnion(SymbolType, new PythonType("str"), new PythonType("BaseContract", "QuantConnect.Data.Market"),
-                new PythonType("Security", "QuantConnect.Securities"));
+            CreateUnion(SymbolType, new PythonType("str"), new PythonType("BaseContract", "QuantConnect.Data.Market"), Security);
 
-        public static readonly PythonType Any = new PythonType("Any", "typing");
-        public static readonly PythonType None = new PythonType("None");
+        public static readonly PythonType Any = new("Any", "typing");
+        public static readonly PythonType None = new("None");
 
         public string Name { get; set; }
         public string Namespace { get; set; }

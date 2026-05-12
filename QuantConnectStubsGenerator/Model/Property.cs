@@ -35,6 +35,8 @@ namespace QuantConnectStubsGenerator.Model
 
         public Class Class { get; set; }
 
+        public bool IsGenericMethodGroupingProperty { get; set; }
+
         public Property(string name)
         {
             Name = name;
@@ -52,6 +54,7 @@ namespace QuantConnectStubsGenerator.Model
             HasSetter = template.HasSetter;
             Class = template.Class;
             Documentation = template.Documentation;
+            IsGenericMethodGroupingProperty = template.IsGenericMethodGroupingProperty;
         }
     }
 }

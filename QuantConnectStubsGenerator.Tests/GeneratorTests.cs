@@ -203,15 +203,89 @@ namespace QuantConnect.GenericMethodsTest
             Assert.IsNotNull(testClass.Properties.SingleOrDefault(x => x.Name == "History"));
 
             // The dispatch helper is non-generic and exposes __call__ + __getitem__.
-            var indexableClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "_History");
+            var indexableClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "_TestClass_History");
             Assert.AreEqual(0, indexableClass.Type.TypeParameters?.Count ?? 0);
             Assert.IsNotNull(indexableClass.Methods.SingleOrDefault(x => x.Name == "__getitem__"));
             Assert.IsNotNull(indexableClass.Methods.SingleOrDefault(x => x.Name == "__call__"));
 
             // The typed helper is generic and holds the Sequence[T]-returning overloads.
-            var typedClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "_TypedHistory");
+            var typedClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "_Typed_TestClass_History");
             Assert.AreNotEqual(0, typedClass.Type.TypeParameters?.Count ?? 0);
             Assert.AreEqual(2, typedClass.Methods.Count(x => x.Name == "__call__"));
+        }
+
+        [Test]
+        public void GenericMethodsInStaticExtensionClass()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+namespace QuantConnect.GenericMethodsExtensionTest
+{
+    public static class TestExtensionsClass
+    {
+        public static int ExtensionMethod(this int target, string parameter)
+        {
+            return 1;
+        }
+        public static T ExtensionMethod<T>(this int target, T parameter)
+        {
+            return parameter;
+        }
+        public static PyObject ExtensionMethod<T>(this int target, int parameter)
+        {
+            return null;
+        }
+    }
+}" }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var namespaces = result.GetNamespaces().ToList();
+            Assert.AreEqual(2, namespaces.Count);
+
+            var baseNameSpace = namespaces.Single(x => x.Name == "QuantConnect");
+            var testNameSpace = namespaces.Single(x => x.Name == "QuantConnect.GenericMethodsExtensionTest");
+
+            // The extension class is registered as a static class.
+            var extensionsClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "TestExtensionsClass");
+            Assert.IsTrue(extensionsClass.Static);
+            Assert.AreEqual(0, extensionsClass.Methods.Count);
+            Assert.AreEqual(0, extensionsClass.InnerClasses.Count);
+            var property = extensionsClass.Properties.SingleOrDefault(x => x.Name == "ExtensionMethod");
+            Assert.IsNotNull(property);
+            Assert.IsTrue(property.Static);
+
+            // The dispatch helper is non-generic and exposes __call__ + __getitem__.
+            var indexableClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "_TestExtensionsClass_ExtensionMethod");
+            Assert.AreEqual(0, indexableClass.Type.TypeParameters?.Count ?? 0);
+            Assert.IsNotNull(indexableClass.Methods.SingleOrDefault(x => x.Name == "__getitem__"));
+
+            // The non-generic __call__ includes 'target' (the 'this' parameter) as its first parameter.
+            var dispatchCall = indexableClass.Methods.Single(x => x.Name == "__call__");
+            Assert.AreEqual(2, dispatchCall.Parameters.Count);
+            Assert.AreEqual("target", dispatchCall.Parameters[0].Name);
+            Assert.AreEqual("int", dispatchCall.Parameters[0].Type.Name);
+
+            // The property type must be of the indexable helper class type
+            Assert.AreEqual(property.Type, indexableClass.Type);
+
+            // The typed helper is generic and holds the Sequence[T]-returning overloads.
+            var typedClass = testNameSpace.GetClasses().Single(x => x.Type.Name == "_Typed_TestExtensionsClass_ExtensionMethod");
+            Assert.AreNotEqual(0, typedClass.Type.TypeParameters?.Count ?? 0);
+            Assert.AreEqual(2, typedClass.Methods.Count(x => x.Name == "__call__"));
+
+            // Each typed __call__ also carries 'target' (the 'this' parameter) as its first parameter.
+            foreach (var call in typedClass.Methods.Where(x => x.Name == "__call__"))
+            {
+                Assert.IsTrue(call.Parameters.Count >= 1);
+                Assert.AreEqual("target", call.Parameters[0].Name);
+                Assert.AreEqual("int", call.Parameters[0].Type.Name);
+            }
         }
 
         [Test]

@@ -13,8 +13,6 @@
  * limitations under the License.
 */
 
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using QuantConnectStubsGenerator.Model;
@@ -55,9 +53,11 @@ namespace QuantConnectStubsGenerator.Renderer
         private bool ShouldSkip(Property property)
         {
             // Python.Net will favor snake-cased methods over properties,
-            // so we skip properties what match an existing method's name
-
-            return property.Class.GetClassAndBaseClasses(Context).Any(cls => cls.Methods.Any(method => method.Name == property.Name));
+            // so we skip properties what match an existing method's name.
+            // Although, we make an exception for properties that are actually 
+            // just grouping multiple generic method overloads under a single C# property name,
+            // since all methods will be grouped under it (see Generator.HandleGenericMethods).
+            return !property.IsGenericMethodGroupingProperty && property.Class.GetClassAndBaseClasses(Context).Any(cls => cls.Methods.Any(method => method.Name == property.Name));
         }
 
         private static Property GetSnakeCasedProperty(Property property)

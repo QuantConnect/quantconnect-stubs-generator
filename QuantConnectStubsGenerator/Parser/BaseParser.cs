@@ -297,7 +297,7 @@ namespace QuantConnectStubsGenerator.Parser
                 var hasSummary = xmlSummary != null;
                 xmlSummary ??= doc.CreateElement("summary");
                 doc["root"].AppendChild(xmlSummary);
-                xmlSummary.AppendChild(doc.CreateTextNode((!hasSummary ? "" : "\n\n") + $"This {nameof(codeEntityType)} is protected."));
+                xmlSummary.AppendChild(doc.CreateTextNode((!hasSummary ? "" : "\n\n") + $"This {codeEntityType} is protected."));
             }
 
             var deprecationReason = GetDeprecationReason(node);

@@ -1409,6 +1409,355 @@ class _EventContainer(typing.Generic[QuantConnect_Namespace__EventContainer_Call
         ...
 ",
                 }).SetName("CodeReferencesInDocsAreSnakeCased"),
+
+            // GenericMethods
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test1.cs",
+                        @"
+using System;
+
+namespace QuantConnect.Namespace
+{
+    
+    public class TestClass
+    {
+        public int History(string parameter)
+        {
+            return 1;
+        }
+        public T History<T>(T parameter)
+        {
+            return parameter;
+        }
+        public PyObject History<T>(int parameter)
+        {
+            return null;
+        }
+    }
+}"
+                    },
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import IntEnum
+import typing
+
+import QuantConnect.Namespace
+import System
+
+QuantConnect_Namespace_TestClass_History_T = typing.TypeVar(""QuantConnect_Namespace_TestClass_History_T"")
+
+
+class _Typed_TestClass_History(typing.Generic[QuantConnect_Namespace_TestClass_History_T]):
+    """"""""""""
+
+    @overload
+    def __call__(self, parameter: QuantConnect_Namespace_TestClass_History_T) -> QuantConnect_Namespace_TestClass_History_T:
+        ...
+
+    @overload
+    def __call__(self, parameter: int) -> typing.Any:
+        ...
+
+
+class _TestClass_History:
+    """"""""""""
+
+    @overload
+    def __call__(self, parameter: str) -> int:
+        ...
+
+    def __getitem__(self, type: typing.Type[QuantConnect_Namespace_TestClass_History_T]) -> QuantConnect.Namespace._Typed_TestClass_History[QuantConnect_Namespace_TestClass_History_T]:
+        ...
+
+
+class TestClass(System.Object):
+    """"""This class has no documentation.""""""
+
+    @property
+    def history(self) -> QuantConnect.Namespace._TestClass_History:
+        ...
+"
+
+                }).SetName("GenericMethods"),
+
+            // GenericStaticMethods
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test1.cs",
+                        @"
+using System;
+
+namespace QuantConnect.Namespace
+{    
+    public static class TestExtensionsClass
+    {
+        public static int ExtensionMethod(this int target, string parameter)
+        {
+            return 1;
+        }
+        public static T ExtensionMethod<T>(this int target, T parameter)
+        {
+            return parameter;
+        }
+        public static PyObject ExtensionMethod<T>(this int target, int parameter)
+        {
+            return null;
+        }
+    }
+}"
+                    },
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import IntEnum
+import typing
+
+import QuantConnect.Namespace
+import System
+
+QuantConnect_Namespace_TestExtensionsClass_ExtensionMethod_T = typing.TypeVar(""QuantConnect_Namespace_TestExtensionsClass_ExtensionMethod_T"")
+
+
+class _Typed_TestExtensionsClass_ExtensionMethod(typing.Generic[QuantConnect_Namespace_TestExtensionsClass_ExtensionMethod_T]):
+    """"""""""""
+
+    @overload
+    def __call__(self, target: int, parameter: QuantConnect_Namespace_TestExtensionsClass_ExtensionMethod_T) -> QuantConnect_Namespace_TestExtensionsClass_ExtensionMethod_T:
+        ...
+
+    @overload
+    def __call__(self, target: int, parameter: int) -> typing.Any:
+        ...
+
+
+class _TestExtensionsClass_ExtensionMethod:
+    """"""""""""
+
+    @overload
+    def __call__(self, target: int, parameter: str) -> int:
+        ...
+
+    def __getitem__(self, type: typing.Type[QuantConnect_Namespace_TestExtensionsClass_ExtensionMethod_T]) -> QuantConnect.Namespace._Typed_TestExtensionsClass_ExtensionMethod[QuantConnect_Namespace_TestExtensionsClass_ExtensionMethod_T]:
+        ...
+
+
+class TestExtensionsClass(System.Object):
+    """"""This class has no documentation.""""""
+
+    extension_method: QuantConnect.Namespace._TestExtensionsClass_ExtensionMethod
+"
+                }).SetName("GenericStaticMethods"),
+
+            // GenericCombinedStaticAndInstanceMethods
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test1.cs",
+                        @"
+using System;
+
+namespace QuantConnect.Namespace
+{
+    /// <summary>
+    /// The generated helper property should be static because at least one of the overloads is static, even though there are also instance overloads.
+    /// </summary>
+    public class TestClass
+    {
+        // Instance methods
+        public int TestMethod(string parameter)
+        {
+            return 1;
+        }
+        public T TestMethod<T>(T parameter)
+        {
+            return parameter;
+        }
+
+        // Static methods
+        public static int TestMethod(this int target, string parameter)
+        {
+            return 1;
+        }
+        public static T TestMethod<T>(this int target, T parameter)
+        {
+            return parameter;
+        }
+    }
+}"
+                    },
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import IntEnum
+import typing
+
+import QuantConnect.Namespace
+import System
+
+QuantConnect_Namespace_TestClass_TestMethod_T = typing.TypeVar(""QuantConnect_Namespace_TestClass_TestMethod_T"")
+
+
+class _Typed_TestClass_TestMethod(typing.Generic[QuantConnect_Namespace_TestClass_TestMethod_T]):
+    """"""""""""
+
+    @overload
+    def __call__(self, parameter: QuantConnect_Namespace_TestClass_TestMethod_T) -> QuantConnect_Namespace_TestClass_TestMethod_T:
+        ...
+
+    @overload
+    def __call__(self, target: int, parameter: QuantConnect_Namespace_TestClass_TestMethod_T) -> QuantConnect_Namespace_TestClass_TestMethod_T:
+        ...
+
+
+class _TestClass_TestMethod:
+    """"""""""""
+
+    @overload
+    def __call__(self, parameter: str) -> int:
+        ...
+
+    @overload
+    def __call__(self, target: int, parameter: str) -> int:
+        ...
+
+    def __getitem__(self, type: typing.Type[QuantConnect_Namespace_TestClass_TestMethod_T]) -> QuantConnect.Namespace._Typed_TestClass_TestMethod[QuantConnect_Namespace_TestClass_TestMethod_T]:
+        ...
+
+
+class TestClass(System.Object):
+    """"""
+    The generated helper property should be static because at least one of the overloads is static, even though there are also instance overloads.
+    """"""
+
+    test_method: QuantConnect.Namespace._TestClass_TestMethod
+"
+                }).SetName("GenericCombinedStaticAndInstanceMethods"),
+
+            // AddsLenMethodToCountableEnumerables
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test1.cs",
+                        @"
+using System;
+
+namespace QuantConnect.Namespace
+{
+    
+    public class TestEnumerable1 : System.Collections.IEnumerable
+    {
+        public int Count { get; }
+        public IEnumerator GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class TestEnumerable2 : System.Collections.Generic.IEnumerable<int>
+    {
+        public int Count { get; }
+        public IEnumerator<int> GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+    }
+
+    public class TestBaseEnumerable : System.Collections.Generic.IEnumerable<int>
+    {
+        public IEnumerator<int> GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+    }
+
+    public class TestDerivedEnumerable : TestBaseEnumerable
+    {
+        public int Count { get; }
+    }
+}"
+                    },
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import IntEnum
+import typing
+
+import QuantConnect.Namespace
+import System
+import System.Collections
+
+
+class TestEnumerable1(System.Object, System.Collections.IEnumerable):
+    """"""This class has no documentation.""""""
+
+    @property
+    def count(self) -> int:
+        ...
+
+    def __len__(self) -> int:
+        ...
+
+    def get_enumerator(self) -> typing.Any:
+        ...
+
+
+class TestEnumerable2(System.Object, typing.Iterable[int]):
+    """"""This class has no documentation.""""""
+
+    @property
+    def count(self) -> int:
+        ...
+
+    def __len__(self) -> int:
+        ...
+
+    def get_enumerator(self) -> typing.Any:
+        ...
+
+
+class TestBaseEnumerable(System.Object, typing.Iterable[int]):
+    """"""This class has no documentation.""""""
+
+    def get_enumerator(self) -> typing.Any:
+        ...
+
+
+class TestDerivedEnumerable(QuantConnect.Namespace.TestBaseEnumerable):
+    """"""This class has no documentation.""""""
+
+    @property
+    def count(self) -> int:
+        ...
+
+    def __len__(self) -> int:
+        ...
+"
+                }).SetName("AddsLenMethodToCountableEnumerables"),
         };
 
         private class TestGenerator : Generator

@@ -1410,6 +1410,102 @@ class _EventContainer(typing.Generic[QuantConnect_Namespace__EventContainer_Call
 ",
                 }).SetName("CodeReferencesInDocsAreSnakeCased"),
 
+            // GeneratesDeleteItemForDictionaryAndListInterfaces
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Interfaces.cs",
+                        @"
+namespace System.Collections.Generic
+{
+    public interface IDictionary<TKey, TValue>
+    {
+        TValue this[TKey key] { get; set; }
+    }
+
+    public interface IList<T>
+    {
+        T this[int index] { get; set; }
+    }
+}
+"
+                    },
+                    {
+                        "Test.cs",
+                        @"
+namespace QuantConnect.Test
+{
+    public class TestIndexed
+    {
+        public string this[int index]
+        {
+            get { return null; }
+            set { }
+        }
+    }
+}"
+                    }
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import IntEnum
+import abc
+import typing
+
+import System.Collections.Generic
+
+System_Collections_Generic_IDictionary_TValue = typing.TypeVar(""System_Collections_Generic_IDictionary_TValue"")
+System_Collections_Generic_IDictionary_TKey = typing.TypeVar(""System_Collections_Generic_IDictionary_TKey"")
+System_Collections_Generic_IList_T = typing.TypeVar(""System_Collections_Generic_IList_T"")
+
+
+class IDictionary(typing.Generic[System_Collections_Generic_IDictionary_TKey, System_Collections_Generic_IDictionary_TValue], metaclass=abc.ABCMeta):
+    """"""This class has no documentation.""""""
+
+    def __delitem__(self, key: System_Collections_Generic_IDictionary_TKey) -> None:
+        ...
+
+    def __getitem__(self, key: System_Collections_Generic_IDictionary_TKey) -> System_Collections_Generic_IDictionary_TValue:
+        ...
+
+    def __setitem__(self, key: System_Collections_Generic_IDictionary_TKey, value: System_Collections_Generic_IDictionary_TValue) -> None:
+        ...
+
+
+class IList(typing.Generic[System_Collections_Generic_IList_T], metaclass=abc.ABCMeta):
+    """"""This class has no documentation.""""""
+
+    def __delitem__(self, index: int) -> None:
+        ...
+
+    def __getitem__(self, index: int) -> System_Collections_Generic_IList_T:
+        ...
+
+    def __setitem__(self, index: int, value: System_Collections_Generic_IList_T) -> None:
+        ...
+",
+                    @"
+from typing import overload
+from enum import IntEnum
+
+import QuantConnect.Test
+import System
+
+
+class TestIndexed(System.Object):
+    """"""This class has no documentation.""""""
+
+    def __getitem__(self, index: int) -> str:
+        ...
+
+    def __setitem__(self, index: int, value: str) -> None:
+        ...
+"
+                }).SetName("GeneratesDeleteItemForDictionaryAndListInterfaces"),
+
             // GenericMethods
             new TestCaseData(
                 new Dictionary<string, string>()

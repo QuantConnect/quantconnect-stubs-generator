@@ -211,6 +211,14 @@ namespace QuantConnectStubsGenerator.Parser
                 var valueParameter = new Parameter("value", returnType);
                 _currentClass.Methods.Last().Parameters.Add(valueParameter);
             }
+
+            // Python.NET implements `del ob[key]` only through IDictionary<K,V>.Remove and IList<T>.RemoveAt,
+            // so __delitem__ goes on those two interfaces; their implementers get it by inheritance.
+            if (_currentNamespace.Name == "System.Collections.Generic"
+                && (_currentClass?.Type.Name == "IDictionary" || _currentClass?.Type.Name == "IList"))
+            {
+                VisitMethod(node, "__delitem__", node.ParameterList.Parameters, new PythonType("None"), null, false);
+            }
         }
 
         private Method VisitMethod(

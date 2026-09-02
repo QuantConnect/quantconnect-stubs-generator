@@ -510,6 +510,60 @@ class TestDictionary2(typing.Generic[QuantConnect_Test_TestDictionary2_TKey, Qua
         ...
 "
                 }).SetName("GeneratesContainerMethodsForDictionaries"),
+            // DropsInterfacesReachableThroughAnotherBase
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test.cs",
+                        @"
+namespace QuantConnect.Test
+{
+    public interface IA
+    {
+    }
+
+    public interface IB : IA
+    {
+    }
+
+    public interface IC : IB
+    {
+    }
+
+    public class TestClass : IA, IC
+    {
+    }
+}"
+                    }
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import IntEnum
+import abc
+
+import QuantConnect.Test
+import System
+
+
+class IA(metaclass=abc.ABCMeta):
+    """"""This class has no documentation.""""""
+
+
+class IB(QuantConnect.Test.IA, metaclass=abc.ABCMeta):
+    """"""This class has no documentation.""""""
+
+
+class IC(QuantConnect.Test.IB, metaclass=abc.ABCMeta):
+    """"""This class has no documentation.""""""
+
+
+class TestClass(System.Object, QuantConnect.Test.IC):
+    """"""This class has no documentation.""""""
+"
+                }).SetName("DropsInterfacesReachableThroughAnotherBase"),
 
             // GeneratesMethodsWithSymbolImplicitConversionForInheritedGenericClasses
             new TestCaseData(

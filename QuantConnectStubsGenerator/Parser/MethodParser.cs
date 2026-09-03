@@ -92,7 +92,7 @@ namespace QuantConnectStubsGenerator.Parser
             ExtendIterableIfNecessary(node, returnType);
 
             // Add <, >, <=, >= methods to make the class comparable
-            MakeComparableIfNecessary(method);
+            MakeComparableIfNecessary(node, method);
 
             // Add __contains__ and __len__ methods to containers in System.Collections.Generic
             AddContainerMethodsIfNecessary(node);
@@ -493,6 +493,22 @@ namespace QuantConnectStubsGenerator.Parser
         }
 
         /// <summary>
+        /// Whether the class declaring the given method implements System.IComparable, directly or not.
+        /// The rendered base classes alone are not enough: IComparable is dropped from them when another
+        /// base already extends it, and that chain may run through interfaces that have no stub at all.
+        /// </summary>
+        private bool ImplementsComparable(MethodDeclarationSyntax node)
+        {
+            if (_currentClass.GetBaseClasses(_context).Any(cls => cls.Type.Name == "IComparable" && cls.Type.Namespace == "System"))
+            {
+                return true;
+            }
+
+            return _typeConverter.GetSymbol(node) is IMethodSymbol { ContainingType: { } containingType }
+                && containingType.AllInterfaces.Any(i => i.Name == "IComparable" && i.ContainingNamespace?.ToDisplayString() == "System");
+        }
+
+        /// <summary>
         /// There are several Python-friendly accessors like Slice.Get(Type) instead of Slice.Get&lt;T&gt;().
         /// If we spot such a Python-friendly accessor, we remove the non-Python-friendly accessor and improve
         /// the Python-friendly accessor's definition.
@@ -553,13 +569,13 @@ namespace QuantConnectStubsGenerator.Parser
         /// <summary>
         /// Adds python comparison magic methods (__lt__, __le__, __gt__, __ge__) to the class if it implements IComparable
         /// </summary>
-        private void MakeComparableIfNecessary(Method method)
+        private void MakeComparableIfNecessary(MethodDeclarationSyntax node, Method method)
         {
             if (method == null ||
                 method.Name != "CompareTo" ||
                 method.Parameters.Count != 1 ||
                 method.ReturnType.ToPythonString() != "int" ||
-                !_currentClass.GetBaseClasses(_context).Any(cls => cls.Type.Name == "IComparable" && cls.Type.Namespace == "System"))
+                !ImplementsComparable(node))
             {
                 return;
             }

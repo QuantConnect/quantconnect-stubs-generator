@@ -607,6 +607,114 @@ namespace QuantConnect
             Assert.AreEqual(shouldInheritFromStr, testClass.InheritsFrom.Any(t => t.Name == "str" && t.Namespace == null));
         }
 
+        [TestCase("IExtendedDictionary", "QuantConnect.Interfaces", "keys", "typing.List[QuantConnect_Interfaces_IExtendedDictionary_TKey]")]
+        [TestCase("IExtendedDictionary", "QuantConnect.Interfaces", "values", "typing.List[QuantConnect_Interfaces_IExtendedDictionary_TValue]")]
+        [TestCase("ExtendedDictionary", "QuantConnect", "keys", "typing.List[QuantConnect_ExtendedDictionary_TKey]")]
+        [TestCase("ExtendedDictionary", "QuantConnect", "values", "typing.List[QuantConnect_ExtendedDictionary_TValue]")]
+        [TestCase("ExtendedDictionary", "QuantConnect", "items",
+            "typing.List[typing.Tuple[QuantConnect_ExtendedDictionary_TKey, QuantConnect_ExtendedDictionary_TValue]]")]
+        [TestCase("ExtendedDictionary", "QuantConnect", "popitem",
+            "typing.Tuple[QuantConnect_ExtendedDictionary_TKey, QuantConnect_ExtendedDictionary_TValue]")]
+        [TestCase("ExtendedDictionary", "QuantConnect", "copy",
+            "typing.Dict[QuantConnect_ExtendedDictionary_TKey, QuantConnect_ExtendedDictionary_TValue]")]
+        [TestCase("ExtendedDictionary", "QuantConnect", "fromkeys",
+            "typing.Dict[QuantConnect_ExtendedDictionary_TKey, QuantConnect_ExtendedDictionary_TValue]")]
+        [TestCase("ExtendedDictionary", "QuantConnect", "Remove", "bool")]
+        public void ExtendedDictionaryPythonMethodsAreTypedWithKeyAndValueTypes(string className, string ns, string methodName,
+            string expectedReturnType)
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "IExtendedDictionary.cs", @"
+using Python.Runtime;
+
+namespace QuantConnect.Interfaces
+{
+    public interface IExtendedDictionary<TKey, TValue>
+    {
+        PyList keys();
+        PyList values();
+    }
+}" },
+                    { "ExtendedDictionary.cs", @"
+using Python.Runtime;
+using QuantConnect.Interfaces;
+
+namespace QuantConnect
+{
+    public abstract class ExtendedDictionary<TKey, TValue> : IExtendedDictionary<TKey, TValue>
+    {
+        public PyDict copy() => null;
+        public PyDict fromkeys(TKey[] sequence) => null;
+        public PyDict fromkeys(TKey[] sequence, TValue value) => null;
+        public PyList items() => null;
+        public PyTuple popitem() => null;
+        public PyList keys() => null;
+        public PyList values() => null;
+        public bool Remove(TKey key) => false;
+    }
+}" }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var cls = result.GetNamespaceByName(ns).GetClasses().Single(c => c.Type.Name == className);
+            var methods = cls.Methods.Where(m => m.Name == methodName).ToList();
+
+            Assert.IsNotEmpty(methods);
+            foreach (var method in methods)
+            {
+                Assert.AreEqual(expectedReturnType, method.ReturnType.ToPythonString());
+            }
+        }
+
+        [Test]
+        public void BaseClassWithFewerGenericsResolvesToTheKeptVariant()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "BaseDictionary.cs", @"
+using System.Collections.Generic;
+
+namespace QuantConnect.Util
+{
+    public class BaseDictionary<TKey, TValue, TDictionary>
+        where TDictionary : IDictionary<TKey, TValue>
+    {
+    }
+
+    public class BaseDictionary<TKey, TValue> : BaseDictionary<TKey, TValue, Dictionary<TKey, TValue>>
+    {
+    }
+}" },
+                    { "DerivedDictionary.cs", @"
+using QuantConnect.Util;
+
+namespace QuantConnect.Data
+{
+    public class DerivedDictionary<T> : BaseDictionary<string, T>
+    {
+    }
+}" }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var baseDictionary = result.GetNamespaceByName("QuantConnect.Util").GetClasses().Single();
+            Assert.AreEqual(3, baseDictionary.Type.TypeParameters.Count);
+
+            var derived = result.GetNamespaceByName("QuantConnect.Data").GetClasses().Single();
+            Assert.AreEqual(
+                "QuantConnect.Util.BaseDictionary[str, QuantConnect_Data_DerivedDictionary_T, System.Collections.Generic.Dictionary[str, QuantConnect_Data_DerivedDictionary_T]]",
+                derived.InheritsFrom.Single().ToPythonString());
+        }
+
         internal class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

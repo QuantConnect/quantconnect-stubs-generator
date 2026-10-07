@@ -295,6 +295,8 @@ namespace QuantConnectStubsGenerator
 
             HandleCountableEnumerables(cls, context);
 
+            HandleExtendedDictionaryMethods(cls);
+
             // Precompute non-PyObject signatures once to keep the filter O(N) instead of O(N²).
             // We classify "C# equivalent" by the absence of a PyObject parameter rather than by
             // ".Python.cs" file suffix so that partial classes declaring PyObject overloads in
@@ -382,6 +384,42 @@ namespace QuantConnectStubsGenerator
 
             var lenMethod = new Method("__len__", new PythonType("int")) { Class = cls };
             cls.Methods.Add(lenMethod);
+        }
+
+        /// <summary>
+        /// IExtendedDictionary's Python-style methods return untyped PyList/PyDict/PyTuple objects,
+        /// so their return types are rebuilt from the dictionary's key and value types
+        /// </summary>
+        private static void HandleExtendedDictionaryMethods(Class cls)
+        {
+            static bool IsExtendedDictionary(PythonType type) =>
+                type.Name == "IExtendedDictionary" && type.Namespace == "QuantConnect.Interfaces";
+
+            var dictionaryType = IsExtendedDictionary(cls.Type) ? cls.Type : cls.InheritsFrom.FirstOrDefault(IsExtendedDictionary);
+            if (dictionaryType == null || dictionaryType.TypeParameters.Count != 2)
+            {
+                return;
+            }
+
+            var keyType = dictionaryType.TypeParameters[0];
+            var valueType = dictionaryType.TypeParameters[1];
+
+            PythonType Tuple() => new("Tuple", "typing") { TypeParameters = { keyType, valueType } };
+            PythonType Dict() => new("Dict", "typing") { TypeParameters = { keyType, valueType } };
+            PythonType List(PythonType itemType) => new("List", "typing") { TypeParameters = { itemType } };
+
+            foreach (var method in cls.Methods)
+            {
+                method.ReturnType = method.Name switch
+                {
+                    "keys" => List(keyType),
+                    "values" => List(valueType),
+                    "items" => List(Tuple()),
+                    "popitem" => Tuple(),
+                    "copy" or "fromkeys" => Dict(),
+                    _ => method.ReturnType
+                };
+            }
         }
 
         private void MarkOverloads(Class cls)

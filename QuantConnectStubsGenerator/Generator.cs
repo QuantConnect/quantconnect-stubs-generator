@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using log4net;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -392,9 +393,6 @@ namespace QuantConnectStubsGenerator
         /// </summary>
         private static void HandleExtendedDictionaryMethods(Class cls)
         {
-            static bool IsExtendedDictionary(PythonType type) =>
-                type.Name == "IExtendedDictionary" && type.Namespace == "QuantConnect.Interfaces";
-
             var dictionaryType = IsExtendedDictionary(cls.Type) ? cls.Type : cls.InheritsFrom.FirstOrDefault(IsExtendedDictionary);
             if (dictionaryType == null || dictionaryType.TypeParameters.Count != 2)
             {
@@ -404,22 +402,42 @@ namespace QuantConnectStubsGenerator
             var keyType = dictionaryType.TypeParameters[0];
             var valueType = dictionaryType.TypeParameters[1];
 
-            PythonType Tuple() => new("Tuple", "typing") { TypeParameters = { keyType, valueType } };
-            PythonType Dict() => new("Dict", "typing") { TypeParameters = { keyType, valueType } };
-            PythonType List(PythonType itemType) => new("List", "typing") { TypeParameters = { itemType } };
-
             foreach (var method in cls.Methods)
             {
                 method.ReturnType = method.Name switch
                 {
                     "keys" => List(keyType),
                     "values" => List(valueType),
-                    "items" => List(Tuple()),
-                    "popitem" => Tuple(),
-                    "copy" or "fromkeys" => Dict(),
+                    "items" => List(Tuple(keyType, valueType)),
+                    "popitem" => Tuple(keyType, valueType),
+                    "copy" or "fromkeys" => Dict(keyType, valueType),
                     _ => method.ReturnType
                 };
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsExtendedDictionary(PythonType type)
+        {
+            return type.Name == "IExtendedDictionary" && type.Namespace == "QuantConnect.Interfaces";
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static PythonType Tuple(PythonType keyType, PythonType valueType)
+        {
+            return new PythonType("Tuple", "typing") { TypeParameters = { keyType, valueType } };
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static PythonType Dict(PythonType keyType, PythonType valueType)
+        {
+            return new PythonType("Dict", "typing") { TypeParameters = { keyType, valueType } };
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static PythonType List(PythonType itemType)
+        {
+            return new PythonType("List", "typing") { TypeParameters = { itemType } };
         }
 
         private void MarkOverloads(Class cls)

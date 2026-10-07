@@ -147,6 +147,21 @@ namespace QuantConnectStubsGenerator.Model
             }
             return unionType;
         }
+
+        public static PythonType CreateList(PythonType itemType)
+        {
+            return new PythonType("List", "typing") { TypeParameters = { itemType } };
+        }
+
+        public static PythonType CreateDict(PythonType keyType, PythonType valueType)
+        {
+            return new PythonType("Dict", "typing") { TypeParameters = { keyType, valueType } };
+        }
+
+        public static PythonType CreateTuple(params PythonType[] itemTypes)
+        {
+            return new PythonType("Tuple", "typing") { TypeParameters = itemTypes.ToList() };
+        }
     }
 }
 

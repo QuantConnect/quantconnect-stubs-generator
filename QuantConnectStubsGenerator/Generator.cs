@@ -406,11 +406,11 @@ namespace QuantConnectStubsGenerator
             {
                 method.ReturnType = method.Name switch
                 {
-                    "keys" => List(keyType),
-                    "values" => List(valueType),
-                    "items" => List(Tuple(keyType, valueType)),
-                    "popitem" => Tuple(keyType, valueType),
-                    "copy" or "fromkeys" => Dict(keyType, valueType),
+                    "keys" => PythonType.CreateList(keyType),
+                    "values" => PythonType.CreateList(valueType),
+                    "items" => PythonType.CreateList(PythonType.CreateTuple(keyType, valueType)),
+                    "popitem" => PythonType.CreateTuple(keyType, valueType),
+                    "copy" or "fromkeys" => PythonType.CreateDict(keyType, valueType),
                     _ => method.ReturnType
                 };
             }
@@ -420,24 +420,6 @@ namespace QuantConnectStubsGenerator
         private static bool IsExtendedDictionary(PythonType type)
         {
             return type.Name == "IExtendedDictionary" && type.Namespace == "QuantConnect.Interfaces";
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static PythonType Tuple(PythonType keyType, PythonType valueType)
-        {
-            return new PythonType("Tuple", "typing") { TypeParameters = { keyType, valueType } };
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static PythonType Dict(PythonType keyType, PythonType valueType)
-        {
-            return new PythonType("Dict", "typing") { TypeParameters = { keyType, valueType } };
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static PythonType List(PythonType itemType)
-        {
-            return new PythonType("List", "typing") { TypeParameters = { itemType } };
         }
 
         private void MarkOverloads(Class cls)
@@ -608,8 +590,8 @@ namespace QuantConnectStubsGenerator
                 var tickersUnion = PythonType.CreateUnion(
                     new PythonType("Symbol", "QuantConnect"),
                     new PythonType("str"),
-                    new PythonType("List", "typing") { TypeParameters = { new PythonType("Symbol", "QuantConnect") } },
-                    new PythonType("List", "typing") { TypeParameters = { new PythonType("str") } },
+                    PythonType.CreateList(new PythonType("Symbol", "QuantConnect")),
+                    PythonType.CreateList(new PythonType("str")),
                     new PythonType("Universe", "QuantConnect.Data.UniverseSelection"),
                     new PythonType("Type", "typing")
                 );

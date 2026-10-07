@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using log4net;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -295,6 +296,8 @@ namespace QuantConnectStubsGenerator
 
             HandleCountableEnumerables(cls, context);
 
+            HandleExtendedDictionaryMethods(cls);
+
             // Precompute non-PyObject signatures once to keep the filter O(N) instead of O(N²).
             // We classify "C# equivalent" by the absence of a PyObject parameter rather than by
             // ".Python.cs" file suffix so that partial classes declaring PyObject overloads in
@@ -382,6 +385,41 @@ namespace QuantConnectStubsGenerator
 
             var lenMethod = new Method("__len__", new PythonType("int")) { Class = cls };
             cls.Methods.Add(lenMethod);
+        }
+
+        /// <summary>
+        /// IExtendedDictionary's Python-style methods return untyped PyList/PyDict/PyTuple objects,
+        /// so their return types are rebuilt from the dictionary's key and value types
+        /// </summary>
+        private static void HandleExtendedDictionaryMethods(Class cls)
+        {
+            var dictionaryType = IsExtendedDictionary(cls.Type) ? cls.Type : cls.InheritsFrom.FirstOrDefault(IsExtendedDictionary);
+            if (dictionaryType == null || dictionaryType.TypeParameters.Count != 2)
+            {
+                return;
+            }
+
+            var keyType = dictionaryType.TypeParameters[0];
+            var valueType = dictionaryType.TypeParameters[1];
+
+            foreach (var method in cls.Methods)
+            {
+                method.ReturnType = method.Name switch
+                {
+                    "keys" => PythonType.CreateList(keyType),
+                    "values" => PythonType.CreateList(valueType),
+                    "items" => PythonType.CreateList(PythonType.CreateTuple(keyType, valueType)),
+                    "popitem" => PythonType.CreateTuple(keyType, valueType),
+                    "copy" or "fromkeys" => PythonType.CreateDict(keyType, valueType),
+                    _ => method.ReturnType
+                };
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsExtendedDictionary(PythonType type)
+        {
+            return type.Name == "IExtendedDictionary" && type.Namespace == "QuantConnect.Interfaces";
         }
 
         private void MarkOverloads(Class cls)
@@ -552,8 +590,8 @@ namespace QuantConnectStubsGenerator
                 var tickersUnion = PythonType.CreateUnion(
                     new PythonType("Symbol", "QuantConnect"),
                     new PythonType("str"),
-                    new PythonType("List", "typing") { TypeParameters = { new PythonType("Symbol", "QuantConnect") } },
-                    new PythonType("List", "typing") { TypeParameters = { new PythonType("str") } },
+                    PythonType.CreateList(new PythonType("Symbol", "QuantConnect")),
+                    PythonType.CreateList(new PythonType("str")),
                     new PythonType("Universe", "QuantConnect.Data.UniverseSelection"),
                     new PythonType("Type", "typing")
                 );

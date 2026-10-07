@@ -68,9 +68,7 @@ namespace QuantConnectStubsGenerator.Parser
             // Handle arrays
             if (symbol is IArrayTypeSymbol arrayTypeSymbol)
             {
-                var listType = new PythonType("List", "typing");
-                listType.TypeParameters.Add(GetType(arrayTypeSymbol.ElementType, isParameter: isParameter));
-                return listType;
+                return PythonType.CreateList(GetType(arrayTypeSymbol.ElementType, isParameter: isParameter));
             }
 
             // Use typing.Any as fallback if there is no type information in the given symbol
@@ -233,20 +231,11 @@ namespace QuantConnectStubsGenerator.Parser
                     return true;
 
                 case "PyList":
-                    pythonType = new PythonType("List", "typing")
-                    {
-                        TypeParameters = new List<PythonType> { PythonType.Any }
-                    };
+                    pythonType = PythonType.CreateList(PythonType.Any);
                     return true;
 
                 case "PyDict":
-                    pythonType = new PythonType("Dict", "typing")
-                    {
-                        TypeParameters = new List<PythonType>
-                        {
-                            PythonType.Any, PythonType.Any
-                        }
-                    };
+                    pythonType = PythonType.CreateDict(PythonType.Any, PythonType.Any);
                     return true;
 
                 default:
@@ -295,14 +284,9 @@ namespace QuantConnectStubsGenerator.Parser
                     // know. Using Dict (invariant) rather than Mapping (covariant read-only)
                     // keeps overrides like `default_markets = { ... }` accepted without
                     // introducing a less familiar ABC.
-                    return new PythonType("Dict", "typing")
-                    {
-                        TypeParameters =
-                        {
-                            NormalizeType(type.TypeParameters[0], isParameter),
-                            NormalizeType(type.TypeParameters[1], isParameter)
-                        }
-                    };
+                    return PythonType.CreateDict(
+                        NormalizeType(type.TypeParameters[0], isParameter),
+                        NormalizeType(type.TypeParameters[1], isParameter));
                 }
             }
             else if (type.Namespace == "System.Collections" && type.Name == "IList")
@@ -314,16 +298,10 @@ namespace QuantConnectStubsGenerator.Parser
             {
                 if (isGeneric)
                 {
-                    return new PythonType("List", "typing")
-                    {
-                        TypeParameters = { NormalizeType(type.TypeParameters[0], isParameter) }
-                    };
+                    return PythonType.CreateList(NormalizeType(type.TypeParameters[0], isParameter));
                 }
 
-                return new PythonType("List", "typing")
-                {
-                    TypeParameters = { PythonType.Any }
-                };
+                return PythonType.CreateList(PythonType.Any);
             }
 
             return type;

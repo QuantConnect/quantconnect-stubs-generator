@@ -301,10 +301,7 @@ namespace QuantConnectStubsGenerator.Parser
             // The first item is the return value of the method, the following items are the out parameters
             if (outTypes.Count > 0)
             {
-                var tupleType = new PythonType("Tuple", "typing");
-                tupleType.TypeParameters.Add(method.ReturnType);
-                outTypes.ForEach(type => tupleType.TypeParameters.Add(type));
-                method.ReturnType = tupleType;
+                method.ReturnType = PythonType.CreateTuple([method.ReturnType, .. outTypes]);
             }
 
             var doc = method.Documentation["root"];

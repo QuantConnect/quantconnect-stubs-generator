@@ -109,12 +109,11 @@ namespace QuantConnectStubsGenerator.Parser
 
             if (symbol.BaseType != null)
             {
-                var ns = symbol.BaseType.ContainingNamespace.Name;
-                var name = symbol.BaseType.Name;
+                var baseType = ResolveKeptGenericVariant(symbol.BaseType);
 
-                if (!ShouldSkipBaseType(currentType, symbol.BaseType))
+                if (!ShouldSkipBaseType(currentType, baseType))
                 {
-                    types.Add(_typeConverter.GetType(symbol.BaseType, skipTypeNormalization: skipTypeNormalization));
+                    types.Add(_typeConverter.GetType(baseType, skipTypeNormalization: skipTypeNormalization));
                 }
             }
 
@@ -165,6 +164,23 @@ namespace QuantConnectStubsGenerator.Parser
             types = types.Select(type => ValidateInheritedType(currentType, type)).ToList();
 
             return types;
+        }
+
+        /// <summary>
+        /// Only the variant of a generic class with the most type parameters is rendered (e.g. Foo[K, V, D] over Foo[K, V]).
+        /// When the base type is a variant with fewer type parameters that derives from the kept one, use the kept one instead.
+        /// </summary>
+        private static INamedTypeSymbol ResolveKeptGenericVariant(INamedTypeSymbol type)
+        {
+            while (type.BaseType is { } baseType
+                && baseType.Name == type.Name
+                && SymbolEqualityComparer.Default.Equals(baseType.ContainingNamespace, type.ContainingNamespace)
+                && baseType.TypeArguments.Length > type.TypeArguments.Length)
+            {
+                type = baseType;
+            }
+
+            return type;
         }
 
         private PythonType ParseMetaClass(BaseTypeDeclarationSyntax node)

@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "QuantConnectStubsGenerator": {
-      "commandName": "Project",
-      "commandLineArgs": "..\\..\\..\\..\\..\\Lean\r\n..\\..\\..\\..\\..\\dotnet_runtime\r\ntest"
-    }
-  }
-}

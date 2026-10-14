@@ -98,6 +98,10 @@ namespace QuantConnectStubsGenerator
             ParseSyntaxTrees<PropertyParser>(context, syntaxTrees, compilation);
             ParseSyntaxTrees<MethodParser>(context, syntaxTrees, compilation);
 
+            // Mirror the members Python.NET synthesizes at runtime, before the per-class post-processing marks overloads
+            BindExtensionMethods(context);
+            AddImplicitNumericOperators(context);
+
             // Perform post-processing on all parsed classes
             foreach (var ns in context.GetNamespaces())
             {
@@ -372,6 +376,90 @@ namespace QuantConnectStubsGenerator
         {
             return cls.InheritsFrom.Any(IsEnumerable)
                 || cls.GetBaseClasses(context).Any(c => IsEnumerable(c, context));
+        }
+
+        /// <summary>
+        /// Python.NET binds extension methods to the type they extend so they are callable from the instance.
+        /// Like the runtime, this skips framework extensions, generic targets and names the target already declares
+        /// </summary>
+        private static void BindExtensionMethods(ParseContext context)
+        {
+            foreach (var ns in context.GetNamespaces())
+            {
+                if (ns.Name == "System" || ns.Name.StartsWith("System.") || ns.Name.StartsWith("Microsoft."))
+                {
+                    continue;
+                }
+
+                foreach (var extensionMethod in ns.GetClasses().Where(cls => cls.Static).SelectMany(cls => cls.Methods).ToList())
+                {
+                    var extendedType = extensionMethod.ExtendedType;
+                    if (extendedType == null || extendedType.IsNamedTypeParameter || extendedType.TypeParameters.Count > 0
+                        || extensionMethod.Parameters.Count == 0
+                        || !Extensions.TryGetClass(extendedType, context, out var targetClass))
+                    {
+                        continue;
+                    }
+
+                    var name = extensionMethod.Name;
+                    var declaredByTarget = targetClass.GetClassAndBaseClasses(context).Any(cls =>
+                        cls.Properties.Any(property => property.Name == name)
+                        || cls.Methods.Any(method => method.Name == name && method.ExtendedType == null));
+                    if (declaredByTarget)
+                    {
+                        continue;
+                    }
+
+                    var boundMethod = new Method(name, extensionMethod) { Class = targetClass, Static = false };
+                    boundMethod.Parameters.RemoveAt(0);
+                    targetClass.Methods.Add(boundMethod);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Python.NET gives types with an implicit numeric conversion the Python number protocol through that conversion,
+        /// keeping the operators the type declares itself
+        /// </summary>
+        private static void AddImplicitNumericOperators(ParseContext context)
+        {
+            var floatType = new PythonType("float");
+            var boolType = new PythonType("bool");
+
+            foreach (var cls in context.GetNamespaces().SelectMany(ns => ns.GetClasses()).Where(cls => cls.ImplicitNumericConversion))
+            {
+                void Add(string name, PythonType returnType, PythonType otherType = null)
+                {
+                    if (cls.DeclaredOperators.Contains(name))
+                    {
+                        return;
+                    }
+
+                    var method = new Method(name, returnType) { Class = cls };
+                    if (otherType != null)
+                    {
+                        method.Parameters.Add(new Parameter("other", otherType));
+                    }
+                    cls.Methods.Add(method);
+                }
+
+                foreach (var name in new[] { "__add__", "__sub__", "__mul__", "__truediv__" })
+                {
+                    Add(name, floatType, cls.Type);
+                    Add(name, floatType, floatType);
+                    Add(name.Insert(2, "r"), floatType, floatType);
+                }
+
+                foreach (var name in new[] { "__lt__", "__le__", "__gt__", "__ge__" })
+                {
+                    Add(name, boolType, cls.Type);
+                    Add(name, boolType, floatType);
+                }
+
+                Add("__neg__", floatType);
+                Add("__float__", floatType);
+                Add("__int__", new PythonType("int"));
+            }
         }
 
         private void HandleCountableEnumerables(Class cls, ParseContext context)

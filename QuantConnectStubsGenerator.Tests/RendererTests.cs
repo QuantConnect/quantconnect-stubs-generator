@@ -1908,6 +1908,159 @@ class TestDerivedEnumerable(QuantConnect.Namespace.TestBaseEnumerable):
         ...
 "
                 }).SetName("AddsLenMethodToCountableEnumerables"),
+
+            // RendersBoundExtensionMethodsAndNumericOperators
+            new TestCaseData(
+                new Dictionary<string, string>()
+                {
+                    {
+                        "Test.cs",
+                        @"
+namespace QuantConnect.Orders
+{
+    public enum OrderStatus { New, Filled }
+
+    public class OrderFee
+    {
+        public static implicit operator decimal(OrderFee fee) => 0;
+    }
+
+    public static class OrderExtensions
+    {
+        /// <summary>
+        /// Determines if the specified status is in an open state.
+        /// </summary>
+        /// <param name=""status"">The status to check</param>
+        public static bool IsOpen(this OrderStatus status) => status != OrderStatus.Filled;
+    }
+}"
+                    }
+                },
+                new[]
+                {
+                    @"
+from typing import overload
+from enum import IntEnum
+import typing
+
+import QuantConnect.Orders
+import System
+
+
+class OrderStatus(IntEnum):
+    """"""This class has no documentation.""""""
+
+    NEW = 0
+
+    FILLED = 1
+
+    def is_open(self) -> bool:
+        """"""Determines if the specified status is in an open state.""""""
+        ...
+
+
+class OrderFee(System.Object):
+    """"""This class has no documentation.""""""
+
+    @overload
+    def __add__(self, other: QuantConnect.Orders.OrderFee) -> float:
+        ...
+
+    @overload
+    def __add__(self, other: float) -> float:
+        ...
+
+    def __float__(self) -> float:
+        ...
+
+    @overload
+    def __ge__(self, other: QuantConnect.Orders.OrderFee) -> bool:
+        ...
+
+    @overload
+    def __ge__(self, other: float) -> bool:
+        ...
+
+    @overload
+    def __gt__(self, other: QuantConnect.Orders.OrderFee) -> bool:
+        ...
+
+    @overload
+    def __gt__(self, other: float) -> bool:
+        ...
+
+    def __int__(self) -> int:
+        ...
+
+    @overload
+    def __le__(self, other: QuantConnect.Orders.OrderFee) -> bool:
+        ...
+
+    @overload
+    def __le__(self, other: float) -> bool:
+        ...
+
+    @overload
+    def __lt__(self, other: QuantConnect.Orders.OrderFee) -> bool:
+        ...
+
+    @overload
+    def __lt__(self, other: float) -> bool:
+        ...
+
+    @overload
+    def __mul__(self, other: QuantConnect.Orders.OrderFee) -> float:
+        ...
+
+    @overload
+    def __mul__(self, other: float) -> float:
+        ...
+
+    def __neg__(self) -> float:
+        ...
+
+    def __radd__(self, other: float) -> float:
+        ...
+
+    def __rmul__(self, other: float) -> float:
+        ...
+
+    def __rsub__(self, other: float) -> float:
+        ...
+
+    def __rtruediv__(self, other: float) -> float:
+        ...
+
+    @overload
+    def __sub__(self, other: QuantConnect.Orders.OrderFee) -> float:
+        ...
+
+    @overload
+    def __sub__(self, other: float) -> float:
+        ...
+
+    @overload
+    def __truediv__(self, other: QuantConnect.Orders.OrderFee) -> float:
+        ...
+
+    @overload
+    def __truediv__(self, other: float) -> float:
+        ...
+
+
+class OrderExtensions(System.Object):
+    """"""This class has no documentation.""""""
+
+    @staticmethod
+    def is_open(status: QuantConnect.Orders.OrderStatus) -> bool:
+        """"""
+        Determines if the specified status is in an open state.
+        
+        :param status: The status to check
+        """"""
+        ...
+"
+                }).SetName("RendersBoundExtensionMethodsAndNumericOperators"),
         };
 
         private class TestGenerator : Generator

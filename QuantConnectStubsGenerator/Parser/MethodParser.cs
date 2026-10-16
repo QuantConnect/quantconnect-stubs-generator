@@ -264,6 +264,8 @@ namespace QuantConnectStubsGenerator.Parser
                 && parameterList[0].Modifiers.Any(modifier => modifier.Text == "this"))
             {
                 method.ExtendedType = _typeConverter.GetType(parameterList[0].Type, skipTypeNormalization: SkipTypeNormalization);
+                method.EditorBrowsableNever = HasEditorBrowsableNever(node.AttributeLists)
+                    || node.Parent is TypeDeclarationSyntax declaringClass && HasEditorBrowsableNever(declaringClass.AttributeLists);
             }
 
             var outTypes = new List<PythonType>();

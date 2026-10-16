@@ -377,13 +377,14 @@ namespace QuantConnectStubsGenerator
 
         /// <summary>
         /// Python.NET binds extension methods to the type they extend so they are callable from the instance.
-        /// Like the runtime, this skips framework extensions, generic targets and names the target already declares
+        /// Like the runtime, this skips framework extensions, framework and generic targets, extensions marked
+        /// [EditorBrowsable(EditorBrowsableState.Never)] and names the target already declares
         /// </summary>
         private static void BindExtensionMethods(ParseContext context)
         {
             foreach (var ns in context.GetNamespaces())
             {
-                if (ns.Name == "System" || ns.Name.StartsWith("System.") || ns.Name.StartsWith("Microsoft."))
+                if (IsFrameworkNamespace(ns.Name))
                 {
                     continue;
                 }
@@ -391,7 +392,9 @@ namespace QuantConnectStubsGenerator
                 foreach (var extensionMethod in ns.GetClasses().Where(cls => cls.Static).SelectMany(cls => cls.Methods).ToList())
                 {
                     var extendedType = extensionMethod.ExtendedType;
+                    // framework targets (object, IEnumerable, IDisposable...) are shared by countless classes, Python.NET does not bind them
                     if (extendedType == null || extendedType.IsNamedTypeParameter || extendedType.TypeParameters.Count > 0
+                        || IsFrameworkNamespace(extendedType.Namespace) || extensionMethod.EditorBrowsableNever
                         || extensionMethod.Parameters.Count == 0
                         || !Extensions.TryGetClass(extendedType, context, out var targetClass))
                     {
@@ -414,9 +417,14 @@ namespace QuantConnectStubsGenerator
             }
         }
 
+        private static bool IsFrameworkNamespace(string name)
+        {
+            return name != null && (name == "System" || name.StartsWith("System.") || name == "Microsoft" || name.StartsWith("Microsoft."));
+        }
+
         /// <summary>
         /// Python.NET gives types with an implicit numeric conversion the Python number protocol through that conversion,
-        /// keeping the operators the type declares itself
+        /// keeping the operators the type declares or inherits
         /// </summary>
         private static void AddImplicitNumericOperators(ParseContext context)
         {
@@ -425,9 +433,11 @@ namespace QuantConnectStubsGenerator
 
             foreach (var cls in context.GetNamespaces().SelectMany(ns => ns.GetClasses()).Where(cls => cls.ImplicitNumericConversion))
             {
+                bool Declared(string name) => cls.GetClassAndBaseClasses(context).Any(c => c.DeclaredOperators.Contains(name));
+
                 void Add(string name, PythonType returnType, PythonType otherType = null)
                 {
-                    if (cls.DeclaredOperators.Contains(name))
+                    if (Declared(name))
                     {
                         return;
                     }
@@ -442,6 +452,11 @@ namespace QuantConnectStubsGenerator
 
                 foreach (var name in new[] { "__add__", "__sub__", "__mul__", "__truediv__" })
                 {
+                    // Python.NET synthesizes an operator in both directions or not at all, a declared one wins in both
+                    if (Declared(name))
+                    {
+                        continue;
+                    }
                     Add(name, floatType, cls.Type);
                     Add(name, floatType, floatType);
                     Add(name.Insert(2, "r"), floatType, floatType);

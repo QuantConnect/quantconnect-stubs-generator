@@ -149,6 +149,25 @@ namespace QuantConnectStubsGenerator.Parser
         }
 
         /// <summary>
+        /// Check if a node is marked [EditorBrowsable(EditorBrowsableState.Never)], hidden from IntelliSense but still callable
+        /// </summary>
+        protected static bool HasEditorBrowsableNever(SyntaxList<AttributeListSyntax> attributeLists)
+        {
+            return attributeLists.SelectMany(list => list.Attributes).Any(attribute =>
+            {
+                var name = attribute.Name.ToString();
+                if (name != "EditorBrowsable" && name != "EditorBrowsableAttribute"
+                    && !name.EndsWith(".EditorBrowsable") && !name.EndsWith(".EditorBrowsableAttribute"))
+                {
+                    return false;
+                }
+
+                var state = attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression.ToString();
+                return state == "Never" || state?.EndsWith(".Never") == true;
+            });
+        }
+
+        /// <summary>
         /// We skip internal or private nodes
         /// </summary>
         protected bool ShouldSkip(MemberDeclarationSyntax node)

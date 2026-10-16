@@ -883,6 +883,143 @@ namespace QuantConnect.Orders.Fees
             }
         }
 
+        [Test]
+        public void FrameworkTargetsAreNotBound()
+        {
+            // object, IEnumerable, IDisposable... are shared by countless classes, Python.NET does not bind their extensions
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+namespace System.Shapes
+{
+    public class Circle { }
+
+    public interface IRound { }
+}
+
+namespace QuantConnect.Orders
+{
+    public class Square : System.Shapes.IRound { }
+
+    public static class ShapeExtensions
+    {
+        public static double Area(this System.Shapes.Circle circle) => 0;
+        public static double Roundness(this System.Shapes.IRound round) => 0;
+    }
+}" }
+                }
+            };
+
+            var context = testGenerator.GenerateModelsPublic();
+            Class GetClass(string ns, string name) => context.GetNamespaceByName(ns).GetClasses().Single(cls => cls.Type.Name == name);
+
+            Assert.IsFalse(GetClass("System.Shapes", "Circle").Methods.Any(method => method.Name == "Area"));
+            Assert.IsFalse(GetClass("System.Shapes", "IRound").Methods.Any(method => method.Name == "Roundness"));
+            Assert.IsFalse(GetClass("QuantConnect.Orders", "Square").Methods.Any(method => method.Name == "Roundness"));
+
+            // the static forms stay available
+            var extensions = GetClass("QuantConnect.Orders", "ShapeExtensions");
+            Assert.IsTrue(extensions.Methods.Where(method => method.Name is "Area" or "Roundness").All(method => method.Static && method.Parameters.Count == 1));
+            Assert.AreEqual(2, extensions.Methods.Count(method => method.Name is "Area" or "Roundness"));
+        }
+
+        [Test]
+        public void EditorBrowsableNeverExtensionMethodsKeepTheStaticFormOnly()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+using System.ComponentModel;
+
+namespace QuantConnect.Orders
+{
+    public class Model { }
+
+    public static class ModelExtensions
+    {
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static string Hidden(this Model model) => """";
+
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public static string HiddenQualified(this Model model) => """";
+
+        [EditorBrowsable(EditorBrowsableState.Advanced)]
+        public static string Advanced(this Model model) => """";
+    }
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static class HiddenModelExtensions
+    {
+        public static string HiddenByClass(this Model model) => """";
+    }
+}" }
+                }
+            };
+
+            var ns = testGenerator.GenerateModelsPublic().GetNamespaceByName("QuantConnect.Orders");
+            Class GetClass(string name) => ns.GetClasses().Single(cls => cls.Type.Name == name);
+
+            var bound = GetClass("Model").Methods.Select(method => method.Name).ToList();
+            Assert.AreEqual(new[] { "Advanced" }, bound.ToArray());
+
+            // the static forms stay available, Python.NET still binds them on the static class
+            Assert.IsTrue(GetClass("ModelExtensions").Methods.Single(method => method.Name == "Hidden").Static);
+            Assert.IsTrue(GetClass("ModelExtensions").Methods.Single(method => method.Name == "HiddenQualified").Static);
+            Assert.IsTrue(GetClass("HiddenModelExtensions").Methods.Single(method => method.Name == "HiddenByClass").Static);
+        }
+
+        [Test]
+        public void DeclaredOrInheritedOperatorsAreNotSynthesizedInEitherDirection()
+        {
+            // Python.NET synthesizes an operator in both directions or not at all, a declared or inherited one wins in both
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+namespace QuantConnect.Data
+{
+    // declares + in one direction only, like MultiPeriodField
+    public class Field
+    {
+        public static implicit operator decimal(Field field) => 0;
+        public static decimal operator +(Field a, Field b) => 0;
+    }
+
+    public class BaseAmount
+    {
+        public static string operator -(BaseAmount a, BaseAmount b) => """";
+    }
+
+    public class DerivedAmount : BaseAmount
+    {
+        public static implicit operator decimal(DerivedAmount amount) => 0;
+    }
+}" }
+                }
+            };
+
+            var ns = testGenerator.GenerateModelsPublic().GetNamespaceByName("QuantConnect.Data");
+            Class GetClass(string name) => ns.GetClasses().Single(cls => cls.Type.Name == name);
+            int Count(Class cls, string name) => cls.Methods.Count(method => method.Name == name);
+
+            var field = GetClass("Field");
+            Assert.AreEqual(1, Count(field, "__add__"));
+            Assert.AreEqual(0, Count(field, "__radd__"));
+            Assert.AreEqual(2, Count(field, "__sub__"));
+            Assert.AreEqual(1, Count(field, "__rsub__"));
+
+            var derived = GetClass("DerivedAmount");
+            Assert.AreEqual(0, Count(derived, "__sub__"));
+            Assert.AreEqual(0, Count(derived, "__rsub__"));
+            Assert.AreEqual(2, Count(derived, "__add__"));
+            Assert.AreEqual(1, Count(derived, "__radd__"));
+        }
+
         internal class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

@@ -55,6 +55,12 @@ namespace QuantConnectStubsGenerator.Model
         /// </summary>
         public PythonType ExtendedType { get; set; }
 
+        /// <summary>
+        /// True if this extension method, or the class declaring it, is marked [EditorBrowsable(EditorBrowsableState.Never)].
+        /// Python.NET keeps those in their static form only, they are not bound to the extended type
+        /// </summary>
+        public bool EditorBrowsableNever { get; set; }
+
         public Method(string name, PythonType returnType)
         {
             Name = name;
@@ -74,6 +80,7 @@ namespace QuantConnectStubsGenerator.Model
             Documentation = other.Documentation;
             HasPyObjectParameter = other.HasPyObjectParameter;
             ExtendedType = other.ExtendedType;
+            EditorBrowsableNever = other.EditorBrowsableNever;
         }
 
         public bool Equals(Method other)

@@ -118,8 +118,8 @@ namespace QuantConnect.MethodParserTests
             get
             {
                 yield return new TestCaseData("PyObject", PythonType.Any);
-                yield return new TestCaseData("PyList", new PythonType("List", "typing") { TypeParameters = [PythonType.Any] });
-                yield return new TestCaseData("PyDict", new PythonType("Dict", "typing") { TypeParameters = new List<PythonType>{ PythonType.Any, PythonType.Any } });
+                yield return new TestCaseData("PyList", PythonType.CreateList(PythonType.Any));
+                yield return new TestCaseData("PyDict", PythonType.CreateDict(PythonType.Any, PythonType.Any));
             }
         }
 
@@ -168,7 +168,7 @@ namespace QuantConnect.MethodParserTests
 
             var method2 = testClass.Methods.Single(x => x.Name == "TestMethod2");
             Assert.AreEqual(1, method2.Parameters.Count);
-            Assert.AreEqual(new PythonType("List", "typing") { TypeParameters = [expectedConvertedType] }, method2.Parameters[0].Type);
+            Assert.AreEqual(PythonType.CreateList(expectedConvertedType), method2.Parameters[0].Type);
 
             var method3 = testClass.Methods.Single(x => x.Name == "TestMethod3");
             Assert.AreEqual(1, method3.Parameters.Count);

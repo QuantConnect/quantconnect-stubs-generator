@@ -21,7 +21,7 @@ namespace QuantConnectStubsGenerator.Utility
 {
     public static class Extensions
     {
-        private static bool TryGetClass(PythonType classType, ParseContext context, out Class @class)
+        public static bool TryGetClass(PythonType classType, ParseContext context, out Class @class)
         {
             @class = null;
             if (classType == null)

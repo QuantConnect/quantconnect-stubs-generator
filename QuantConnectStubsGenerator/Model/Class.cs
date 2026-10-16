@@ -35,6 +35,17 @@ namespace QuantConnectStubsGenerator.Model
         public HashSet<Method> Methods { get; } = new HashSet<Method>();
         public bool AvoidImplicitTypes { get; set; }
 
+        /// <summary>
+        /// True if the class declares an implicit conversion to a numeric type, which Python.NET turns into
+        /// the Python number protocol (arithmetic, comparisons, float() and int())
+        /// </summary>
+        public bool ImplicitNumericConversion { get; set; }
+
+        /// <summary>
+        /// The Python magic method names of the operators the class declares itself
+        /// </summary>
+        public HashSet<string> DeclaredOperators { get; } = new HashSet<string>();
+
         public Class(PythonType type)
         {
             Type = type;

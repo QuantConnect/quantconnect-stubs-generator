@@ -431,50 +431,79 @@ namespace QuantConnectStubsGenerator
         /// </summary>
         private static void AddImplicitNumericOperators(ParseContext context)
         {
-            var floatType = new PythonType("float");
-            var boolType = new PythonType("bool");
-
-            foreach (var cls in context.GetNamespaces().SelectMany(ns => ns.GetClasses()).Where(cls => cls.ImplicitNumericConversion))
+            foreach (var cls in context.GetNamespaces().SelectMany(ns => ns.GetClasses()).Where(cls => cls.ImplicitNumericConversion != null))
             {
-                bool Declared(string name) => cls.GetClassAndBaseClasses(context).Any(c => c.DeclaredOperators.Contains(name));
+                // an integral conversion is exact with ints and a float with floats, like a Python int
+                var number = cls.ImplicitNumericConversion;
+                var integral = number.Equals(PythonType.Int);
 
-                void Add(string name, PythonType returnType, PythonType otherType = null)
-                {
-                    if (Declared(name))
-                    {
-                        return;
-                    }
-
-                    var method = new Method(name, returnType) { Class = cls };
-                    if (otherType != null)
-                    {
-                        method.Parameters.Add(new Parameter("other", otherType));
-                    }
-                    cls.Methods.Add(method);
-                }
-
-                foreach (var name in new[] { "__add__", "__sub__", "__mul__", "__truediv__" })
+                foreach (var name in new[] { "__add__", "__sub__", "__mul__" })
                 {
                     // Python.NET synthesizes an operator in both directions or not at all, a declared one wins in both
-                    if (Declared(name))
+                    if (DeclaresOperator(cls, context, name))
                     {
                         continue;
                     }
-                    Add(name, floatType, cls.Type);
-                    Add(name, floatType, floatType);
-                    Add(name.Insert(2, "r"), floatType, floatType);
+                    // the int overload goes first so type checkers pick it for int operands
+                    AddOperator(cls, context, name, number, cls.Type);
+                    if (integral)
+                    {
+                        AddOperator(cls, context, name, PythonType.Int, PythonType.Int);
+                    }
+                    AddOperator(cls, context, name, PythonType.Float, PythonType.Float);
+
+                    var reflected = name.Insert(2, "r");
+                    if (integral)
+                    {
+                        AddOperator(cls, context, reflected, PythonType.Int, PythonType.Int);
+                    }
+                    AddOperator(cls, context, reflected, PythonType.Float, PythonType.Float);
+                }
+
+                // true division is a float even between ints
+                if (!DeclaresOperator(cls, context, "__truediv__"))
+                {
+                    AddOperator(cls, context, "__truediv__", PythonType.Float, cls.Type);
+                    AddOperator(cls, context, "__truediv__", PythonType.Float, PythonType.Float);
+                    AddOperator(cls, context, "__rtruediv__", PythonType.Float, PythonType.Float);
                 }
 
                 foreach (var name in new[] { "__lt__", "__le__", "__gt__", "__ge__" })
                 {
-                    Add(name, boolType, cls.Type);
-                    Add(name, boolType, floatType);
+                    AddOperator(cls, context, name, PythonType.Bool, cls.Type);
+                    AddOperator(cls, context, name, PythonType.Bool, PythonType.Float);
                 }
 
-                Add("__neg__", floatType);
-                Add("__float__", floatType);
-                Add("__int__", new PythonType("int"));
+                AddOperator(cls, context, "__neg__", number);
+                AddOperator(cls, context, "__float__", PythonType.Float);
+                AddOperator(cls, context, "__int__", PythonType.Int);
             }
+        }
+
+        /// <summary>
+        /// Whether the class or one of its bases declares the operator itself
+        /// </summary>
+        private static bool DeclaresOperator(Class cls, ParseContext context, string name)
+        {
+            return cls.GetClassAndBaseClasses(context).Any(c => c.DeclaredOperators.Contains(name));
+        }
+
+        /// <summary>
+        /// Adds a synthesized operator overload unless the class declares the operator itself
+        /// </summary>
+        private static void AddOperator(Class cls, ParseContext context, string name, PythonType returnType, PythonType otherType = null)
+        {
+            if (DeclaresOperator(cls, context, name))
+            {
+                return;
+            }
+
+            var method = new Method(name, returnType) { Class = cls };
+            if (otherType != null)
+            {
+                method.Parameters.Add(new Parameter("other", otherType));
+            }
+            cls.Methods.Add(method);
         }
 
         private void HandleCountableEnumerables(Class cls, ParseContext context)

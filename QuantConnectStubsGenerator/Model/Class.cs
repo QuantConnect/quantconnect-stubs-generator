@@ -36,10 +36,10 @@ namespace QuantConnectStubsGenerator.Model
         public bool AvoidImplicitTypes { get; set; }
 
         /// <summary>
-        /// True if the class declares an implicit conversion to a numeric type, which Python.NET turns into
-        /// the Python number protocol (arithmetic, comparisons, float() and int())
+        /// The Python number the implicit numeric conversion of the class maps to, which Python.NET turns into
+        /// the Python number protocol: int for integral conversions, float for the others, null without one
         /// </summary>
-        public bool ImplicitNumericConversion { get; set; }
+        public PythonType ImplicitNumericConversion { get; set; }
 
         /// <summary>
         /// The Python magic method names of the operators the class declares itself

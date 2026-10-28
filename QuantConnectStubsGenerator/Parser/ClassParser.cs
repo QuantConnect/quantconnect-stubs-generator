@@ -33,6 +33,8 @@ namespace QuantConnectStubsGenerator.Parser
             SyntaxKind.UIntKeyword, SyntaxKind.UShortKeyword, SyntaxKind.ByteKeyword
         };
 
+        private static readonly SyntaxKind[] _floatingKeywords = { SyntaxKind.DecimalKeyword, SyntaxKind.DoubleKeyword, SyntaxKind.FloatKeyword };
+
         public ClassParser(ParseContext context, SemanticModel model) : base(context, model)
         {
         }
@@ -51,7 +53,7 @@ namespace QuantConnectStubsGenerator.Parser
                 {
                     // Add documentation if the existing class has been registered without it and it is available here
                     existingClass.Summary ??= cls.Summary;
-                    existingClass.ImplicitNumericConversion |= cls.ImplicitNumericConversion;
+                    existingClass.ImplicitNumericConversion ??= cls.ImplicitNumericConversion;
 
                     _currentClass = existingClass;
                     return;
@@ -87,32 +89,51 @@ namespace QuantConnectStubsGenerator.Parser
                 InheritsFrom = inheritsFrom,
                 MetaClass = ParseMetaClass(node),
                 AvoidImplicitTypes = HasAttribute(node.AttributeLists, "StubsAvoidImplicits"),
-                ImplicitNumericConversion = HasImplicitConversionTo(node, _numericKeywords)
+                ImplicitNumericConversion = GetImplicitNumericConversion(node)
             };
         }
 
         private bool HasImplicitConversionToString(BaseTypeDeclarationSyntax node)
         {
-            return HasImplicitConversionTo(node, _stringKeyword);
+            return ImplicitConversionTo(node, _stringKeyword) != SyntaxKind.None;
         }
 
-        private bool HasImplicitConversionTo(BaseTypeDeclarationSyntax node, SyntaxKind[] keywords)
+        /// <summary>
+        /// Like Python.NET, an integral conversion behaves as a Python int and a floating point or decimal one as a float
+        /// </summary>
+        private PythonType GetImplicitNumericConversion(BaseTypeDeclarationSyntax node)
+        {
+            var keyword = ImplicitConversionTo(node, _numericKeywords);
+            if (keyword == SyntaxKind.None)
+            {
+                return null;
+            }
+
+            return _floatingKeywords.Contains(keyword) ? PythonType.Float : PythonType.Int;
+        }
+
+        /// <summary>
+        /// The keyword of the first of the given predefined types the class implicitly converts to, None without one
+        /// </summary>
+        private SyntaxKind ImplicitConversionTo(BaseTypeDeclarationSyntax node, SyntaxKind[] keywords)
         {
             if (node is not TypeDeclarationSyntax typeDecl)
             {
-                return false;
+                return SyntaxKind.None;
             }
 
             // only conversions from the declaring type itself, not the ones it offers from other types
-            return typeDecl.Members
+            var conversion = typeDecl.Members
                 .OfType<ConversionOperatorDeclarationSyntax>()
-                .Any(op => !HasAttribute(op.AttributeLists, "StubsIgnore")
-                           && op.ImplicitOrExplicitKeyword.IsKind(SyntaxKind.ImplicitKeyword)
-                           && op.Type is PredefinedTypeSyntax predefined
-                           && keywords.Any(keyword => predefined.Keyword.IsKind(keyword))
-                           && op.ParameterList.Parameters.Count == 1
-                           && op.ParameterList.Parameters[0].Type is SimpleNameSyntax parameterType
-                           && parameterType.Identifier.Text == typeDecl.Identifier.Text);
+                .FirstOrDefault(op => !HasAttribute(op.AttributeLists, "StubsIgnore")
+                                      && op.ImplicitOrExplicitKeyword.IsKind(SyntaxKind.ImplicitKeyword)
+                                      && op.Type is PredefinedTypeSyntax predefined
+                                      && keywords.Any(keyword => predefined.Keyword.IsKind(keyword))
+                                      && op.ParameterList.Parameters.Count == 1
+                                      && op.ParameterList.Parameters[0].Type is SimpleNameSyntax parameterType
+                                      && parameterType.Identifier.Text == typeDecl.Identifier.Text);
+
+            return conversion == null ? SyntaxKind.None : ((PredefinedTypeSyntax)conversion.Type).Keyword.Kind();
         }
 
         private IEnumerable<PythonType> ParseInheritedTypes(BaseTypeDeclarationSyntax node)

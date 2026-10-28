@@ -892,6 +892,11 @@ namespace QuantConnect.Orders.Fees
         [StubsIgnore]
         public static implicit operator int(Ticket ticket) => 0;
     }
+
+    public class Count
+    {
+        public static implicit operator long(Count count) => 0;
+    }
 }" }
                 }
             };
@@ -917,6 +922,19 @@ namespace QuantConnect.Orders.Fees
             var money = GetClass("Money");
             Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.Money->QuantConnect.Orders.Fees.Money" }, Signatures(money, "__add__"));
             Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.Money->float", "float->float" }, Signatures(money, "__sub__"));
+
+            // an integral conversion behaves like a Python int: exact with ints, a float with floats, true division a float
+            var count = GetClass("Count");
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.Count->int", "float->float", "int->int" }, Signatures(count, "__add__"));
+            Assert.AreEqual(new[] { "float->float", "int->int" }, Signatures(count, "__rsub__"));
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.Count->float", "float->float" }, Signatures(count, "__truediv__"));
+            Assert.AreEqual(new[] { "float->float" }, Signatures(count, "__rtruediv__"));
+            Assert.AreEqual(new[] { "->int" }, Signatures(count, "__neg__"));
+            Assert.AreEqual(new[] { "->float" }, Signatures(count, "__float__"));
+            Assert.AreEqual(new[] { "->int" }, Signatures(count, "__int__"));
+            // the int overload comes before the float one, so type checkers pick it for int operands
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.Count", "int", "float" },
+                count.Methods.Where(method => method.Name == "__mul__").Select(method => method.Parameters[0].Type.ToPythonString()).ToArray());
 
             // conversions to a number from other types or marked as ignored do not count
             foreach (var name in new[] { "Plain", "Wrapper", "Ticket" })

@@ -28,6 +28,9 @@ namespace QuantConnectStubsGenerator.Model
 
         public static readonly PythonType Any = new("Any", "typing");
         public static readonly PythonType None = new("None");
+        public static readonly PythonType Int = new("int");
+        public static readonly PythonType Float = new("float");
+        public static readonly PythonType Bool = new("bool");
 
         public string Name { get; set; }
         public string Namespace { get; set; }

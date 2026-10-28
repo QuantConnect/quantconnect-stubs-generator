@@ -155,7 +155,11 @@ namespace QuantConnectStubsGenerator.Parser
 
             foreach (var typeSymbol in symbol.Interfaces.Except(interfacesToRemove))
             {
-                var type = _typeConverter.GetType(typeSymbol, skipTypeNormalization: skipTypeNormalization);
+                // typing.Dict iterates keys while GetEnumerator makes a dictionary iterate key-value pairs,
+                // so IReadOnlyDictionary stays the base instead of its typing.Dict normalization
+                var isReadOnlyDictionary = typeSymbol.Name == "IReadOnlyDictionary"
+                    && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
+                var type = _typeConverter.GetType(typeSymbol, skipTypeNormalization: skipTypeNormalization || isReadOnlyDictionary);
 
                 // In C# a class can be extended multiple times with different amounts of generics
                 // In Python this is not possible, so we keep the type with the most generics

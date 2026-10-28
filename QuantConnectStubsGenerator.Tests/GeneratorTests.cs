@@ -715,6 +715,48 @@ namespace QuantConnect.Data
                 derived.InheritsFrom.Single().ToPythonString());
         }
 
+        [Test]
+        public void ReadOnlyDictionaryBaseIsNotNormalizedToDict()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+using System.Collections;
+using System.Collections.Generic;
+
+namespace QuantConnect.Util
+{
+    public class Lookup : IReadOnlyDictionary<string, int>
+    {
+        public int this[string key] => 0;
+        public IEnumerable<string> Keys => null;
+        public IEnumerable<int> Values => null;
+        public int Count => 0;
+        public bool ContainsKey(string key) => false;
+        public bool TryGetValue(string key, out int value) { value = 0; return false; }
+        public IEnumerator<KeyValuePair<string, int>> GetEnumerator() => null;
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public IReadOnlyDictionary<string, int> Snapshot => this;
+    }
+}" }
+                }
+            };
+
+            var lookup = testGenerator.GenerateModelsPublic().GetNamespaceByName("QuantConnect.Util").GetClasses().Single();
+            var bases = lookup.InheritsFrom.Select(type => type.ToPythonString()).ToList();
+
+            // typing.Dict iterates keys, which conflicts with the key-value pair iterable GetEnumerator adds
+            Assert.IsFalse(bases.Any(type => type.StartsWith("typing.Dict[")), string.Join(", ", bases));
+            Assert.That(bases, Does.Contain("System.Collections.Generic.IReadOnlyDictionary[str, int]"));
+            Assert.That(bases, Does.Contain("typing.Iterable[System.Collections.Generic.KeyValuePair[str, int]]"));
+
+            // members keep the dict typing, a Python override can still return a dict literal
+            var snapshot = lookup.Properties.Single(property => property.Name == "Snapshot");
+            Assert.AreEqual("typing.Dict[str, int]", snapshot.Type.ToPythonString());
+        }
+
         private const string ExtensionMethodsSource = @"
 using System.Collections.Generic;
 

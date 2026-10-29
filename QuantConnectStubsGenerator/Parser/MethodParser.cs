@@ -163,6 +163,7 @@ namespace QuantConnectStubsGenerator.Parser
             }
 
             operatorMethod.Static = false;
+            _currentClass.DeclaredOperators.Add(pythonOperatorName);
 
             return true;
         }
@@ -258,6 +259,14 @@ namespace QuantConnectStubsGenerator.Parser
                 DeprecationReason = GetDeprecationReason(node),
                 Documentation = GetXmlDocumentation(node, CodeEntityType.Class),
             };
+
+            if (method.Static && node is MethodDeclarationSyntax && parameterList.Count > 0
+                && parameterList[0].Modifiers.Any(modifier => modifier.Text == "this"))
+            {
+                method.ExtendedType = _typeConverter.GetType(parameterList[0].Type, skipTypeNormalization: SkipTypeNormalization);
+                method.EditorBrowsableNever = HasEditorBrowsableNever(node.AttributeLists)
+                    || node.Parent is TypeDeclarationSyntax declaringClass && HasEditorBrowsableNever(declaringClass.AttributeLists);
+            }
 
             var outTypes = new List<PythonType>();
 

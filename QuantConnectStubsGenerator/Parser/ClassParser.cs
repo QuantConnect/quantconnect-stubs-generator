@@ -24,6 +24,17 @@ namespace QuantConnectStubsGenerator.Parser
 {
     public class ClassParser : BaseParser
     {
+        private static readonly SyntaxKind[] _stringKeyword = { SyntaxKind.StringKeyword };
+
+        private static readonly SyntaxKind[] _numericKeywords =
+        {
+            SyntaxKind.DecimalKeyword, SyntaxKind.DoubleKeyword, SyntaxKind.FloatKeyword, SyntaxKind.LongKeyword,
+            SyntaxKind.IntKeyword, SyntaxKind.ShortKeyword, SyntaxKind.SByteKeyword, SyntaxKind.ULongKeyword,
+            SyntaxKind.UIntKeyword, SyntaxKind.UShortKeyword, SyntaxKind.ByteKeyword
+        };
+
+        private static readonly SyntaxKind[] _floatingKeywords = { SyntaxKind.DecimalKeyword, SyntaxKind.DoubleKeyword, SyntaxKind.FloatKeyword };
+
         public ClassParser(ParseContext context, SemanticModel model) : base(context, model)
         {
         }
@@ -42,6 +53,7 @@ namespace QuantConnectStubsGenerator.Parser
                 {
                     // Add documentation if the existing class has been registered without it and it is available here
                     existingClass.Summary ??= cls.Summary;
+                    existingClass.ImplicitNumericConversion ??= cls.ImplicitNumericConversion;
 
                     _currentClass = existingClass;
                     return;
@@ -76,22 +88,52 @@ namespace QuantConnectStubsGenerator.Parser
                 Interface = node is InterfaceDeclarationSyntax,
                 InheritsFrom = inheritsFrom,
                 MetaClass = ParseMetaClass(node),
-                AvoidImplicitTypes = HasAttribute(node.AttributeLists, "StubsAvoidImplicits")
+                AvoidImplicitTypes = HasAttribute(node.AttributeLists, "StubsAvoidImplicits"),
+                ImplicitNumericConversion = GetImplicitNumericConversion(node)
             };
         }
 
-        private static bool HasImplicitConversionToString(BaseTypeDeclarationSyntax node)
+        private bool HasImplicitConversionToString(BaseTypeDeclarationSyntax node)
+        {
+            return ImplicitConversionTo(node, _stringKeyword) != SyntaxKind.None;
+        }
+
+        /// <summary>
+        /// Like Python.NET, an integral conversion behaves as a Python int and a floating point or decimal one as a float
+        /// </summary>
+        private PythonType GetImplicitNumericConversion(BaseTypeDeclarationSyntax node)
+        {
+            var keyword = ImplicitConversionTo(node, _numericKeywords);
+            if (keyword == SyntaxKind.None)
+            {
+                return null;
+            }
+
+            return _floatingKeywords.Contains(keyword) ? PythonType.Float : PythonType.Int;
+        }
+
+        /// <summary>
+        /// The keyword of the first of the given predefined types the class implicitly converts to, None without one
+        /// </summary>
+        private SyntaxKind ImplicitConversionTo(BaseTypeDeclarationSyntax node, SyntaxKind[] keywords)
         {
             if (node is not TypeDeclarationSyntax typeDecl)
             {
-                return false;
+                return SyntaxKind.None;
             }
 
-            return typeDecl.Members
+            // only conversions from the declaring type itself, not the ones it offers from other types
+            var conversion = typeDecl.Members
                 .OfType<ConversionOperatorDeclarationSyntax>()
-                .Any(op => op.ImplicitOrExplicitKeyword.IsKind(SyntaxKind.ImplicitKeyword)
-                           && op.Type is PredefinedTypeSyntax predefined
-                           && predefined.Keyword.IsKind(SyntaxKind.StringKeyword));
+                .FirstOrDefault(op => !HasAttribute(op.AttributeLists, "StubsIgnore")
+                                      && op.ImplicitOrExplicitKeyword.IsKind(SyntaxKind.ImplicitKeyword)
+                                      && op.Type is PredefinedTypeSyntax predefined
+                                      && keywords.Any(keyword => predefined.Keyword.IsKind(keyword))
+                                      && op.ParameterList.Parameters.Count == 1
+                                      && op.ParameterList.Parameters[0].Type is SimpleNameSyntax parameterType
+                                      && parameterType.Identifier.Text == typeDecl.Identifier.Text);
+
+            return conversion == null ? SyntaxKind.None : ((PredefinedTypeSyntax)conversion.Type).Keyword.Kind();
         }
 
         private IEnumerable<PythonType> ParseInheritedTypes(BaseTypeDeclarationSyntax node)
@@ -134,7 +176,11 @@ namespace QuantConnectStubsGenerator.Parser
 
             foreach (var typeSymbol in symbol.Interfaces.Except(interfacesToRemove))
             {
-                var type = _typeConverter.GetType(typeSymbol, skipTypeNormalization: skipTypeNormalization);
+                // typing.Dict iterates keys while GetEnumerator makes a dictionary iterate key-value pairs,
+                // so IReadOnlyDictionary stays the base instead of its typing.Dict normalization
+                var isReadOnlyDictionary = typeSymbol.Name == "IReadOnlyDictionary"
+                    && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
+                var type = _typeConverter.GetType(typeSymbol, skipTypeNormalization: skipTypeNormalization || isReadOnlyDictionary);
 
                 // In C# a class can be extended multiple times with different amounts of generics
                 // In Python this is not possible, so we keep the type with the most generics

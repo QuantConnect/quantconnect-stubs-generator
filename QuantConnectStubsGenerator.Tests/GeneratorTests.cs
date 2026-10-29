@@ -715,6 +715,371 @@ namespace QuantConnect.Data
                 derived.InheritsFrom.Single().ToPythonString());
         }
 
+        [Test]
+        public void ReadOnlyDictionaryBaseIsNotNormalizedToDict()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+using System.Collections;
+using System.Collections.Generic;
+
+namespace QuantConnect.Util
+{
+    public class Lookup : IReadOnlyDictionary<string, int>
+    {
+        public int this[string key] => 0;
+        public IEnumerable<string> Keys => null;
+        public IEnumerable<int> Values => null;
+        public int Count => 0;
+        public bool ContainsKey(string key) => false;
+        public bool TryGetValue(string key, out int value) { value = 0; return false; }
+        public IEnumerator<KeyValuePair<string, int>> GetEnumerator() => null;
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public IReadOnlyDictionary<string, int> Snapshot => this;
+    }
+}" }
+                }
+            };
+
+            var lookup = testGenerator.GenerateModelsPublic().GetNamespaceByName("QuantConnect.Util").GetClasses().Single();
+            var bases = lookup.InheritsFrom.Select(type => type.ToPythonString()).ToList();
+
+            // typing.Dict iterates keys, which conflicts with the key-value pair iterable GetEnumerator adds
+            Assert.IsFalse(bases.Any(type => type.StartsWith("typing.Dict[")), string.Join(", ", bases));
+            Assert.That(bases, Does.Contain("System.Collections.Generic.IReadOnlyDictionary[str, int]"));
+            Assert.That(bases, Does.Contain("typing.Iterable[System.Collections.Generic.KeyValuePair[str, int]]"));
+
+            // members keep the dict typing, a Python override can still return a dict literal
+            var snapshot = lookup.Properties.Single(property => property.Name == "Snapshot");
+            Assert.AreEqual("typing.Dict[str, int]", snapshot.Type.ToPythonString());
+        }
+
+        private const string ExtensionMethodsSource = @"
+using System.Collections.Generic;
+
+namespace QuantConnect.Orders
+{
+    public enum OrderStatus { New, Filled }
+
+    public interface IShape { double Side { get; } }
+
+    public class Square : IShape { public double Side => 2; }
+
+    public class Model
+    {
+        public string Name { get; set; }
+        public string Existing() => ""member"";
+    }
+
+    public class DerivedModel : Model { }
+
+    public static class OrderExtensions
+    {
+        public static bool IsOpen(this OrderStatus status) => status != OrderStatus.Filled;
+        public static string Describe(this OrderStatus status, string prefix, int times = 1) => prefix;
+        public static double Area(this IShape shape) => shape.Side * shape.Side;
+        public static string Describe(this Model model, string prefix = """") => prefix + model.Name;
+        public static string Existing(this Model model) => ""extension"";
+        public static T Identity<T>(this T value) => value;
+        public static int Total(this List<int> values) => 0;
+        public static string Twice(this string value) => value + value;
+    }
+}";
+
+        [Test]
+        public void ExtensionMethodsAreBoundToTheExtendedType()
+        {
+            var testGenerator = new TestGenerator { Files = new() { { "Test.cs", ExtensionMethodsSource } } };
+            var ns = testGenerator.GenerateModelsPublic().GetNamespaceByName("QuantConnect.Orders");
+            Class GetClass(string name) => ns.GetClasses().Single(cls => cls.Type.Name == name);
+
+            var orderStatus = GetClass("OrderStatus");
+            var isOpen = orderStatus.Methods.Single(method => method.Name == "IsOpen");
+            Assert.IsFalse(isOpen.Static);
+            Assert.AreEqual(0, isOpen.Parameters.Count);
+            Assert.AreEqual("bool", isOpen.ReturnType.ToPythonString());
+
+            // the instance is dropped, the remaining parameters keep their defaults
+            var describe = orderStatus.Methods.Single(method => method.Name == "Describe");
+            Assert.AreEqual(new[] { "prefix", "times" }, describe.Parameters.Select(parameter => parameter.Name).ToArray());
+            Assert.AreEqual("1", describe.Parameters[1].Value);
+
+            // interface targets are bound to the interface, implementing classes inherit them
+            Assert.AreEqual(1, GetClass("IShape").Methods.Count(method => method.Name == "Area"));
+            Assert.AreEqual(0, GetClass("Square").Methods.Count(method => method.Name == "Area"));
+
+            // a real member wins over an extension with the same name
+            var model = GetClass("Model");
+            var existing = model.Methods.Single(method => method.Name == "Existing");
+            Assert.IsNull(existing.ExtendedType);
+            Assert.AreEqual(1, model.Methods.Count(method => method.Name == "Describe"));
+            Assert.AreEqual(0, GetClass("DerivedModel").Methods.Count(method => method.Name == "Describe"));
+
+            // generic and Python native targets are not bound anywhere
+            var boundNames = ns.GetClasses().Where(cls => !cls.Static).SelectMany(cls => cls.Methods).Select(method => method.Name).ToList();
+            Assert.IsFalse(boundNames.Contains("Identity"));
+            Assert.IsFalse(boundNames.Contains("Total"));
+            Assert.IsFalse(boundNames.Contains("Twice"));
+
+            // the static forms stay available
+            var extensions = GetClass("OrderExtensions");
+            Assert.IsTrue(extensions.Methods.Where(method => method.Name == "IsOpen").All(method => method.Static && method.Parameters.Count == 1));
+        }
+
+        [Test]
+        public void FrameworkExtensionMethodsAreNotBound()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+namespace System.Shapes
+{
+    public class Circle { }
+
+    public static class CircleExtensions
+    {
+        public static double Area(this Circle circle) => 0;
+    }
+}" }
+                }
+            };
+
+            var ns = testGenerator.GenerateModelsPublic().GetNamespaceByName("System.Shapes");
+            var circle = ns.GetClasses().Single(cls => cls.Type.Name == "Circle");
+            Assert.AreEqual(0, circle.Methods.Count(method => method.Name == "Area"));
+        }
+
+        [Test]
+        public void ImplicitNumericConversionAddsTheNumberProtocol()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+namespace QuantConnect.Orders.Fees
+{
+    public class OrderFee
+    {
+        public decimal Amount { get; set; }
+        public static implicit operator decimal(OrderFee fee) => fee.Amount;
+    }
+
+    public class Money
+    {
+        public decimal Amount { get; set; }
+        public static implicit operator decimal(Money money) => money.Amount;
+        public static Money operator +(Money a, Money b) => new Money();
+    }
+
+    public class Plain
+    {
+        public static implicit operator string(Plain plain) => """";
+    }
+
+    public class Wrapper
+    {
+        public static implicit operator decimal(int value) => value;
+    }
+
+    public class Ticket
+    {
+        [StubsIgnore]
+        public static implicit operator int(Ticket ticket) => 0;
+    }
+
+    public class Count
+    {
+        public static implicit operator long(Count count) => 0;
+    }
+}" }
+                }
+            };
+
+            var ns = testGenerator.GenerateModelsPublic().GetNamespaceByName("QuantConnect.Orders.Fees");
+            Class GetClass(string name) => ns.GetClasses().Single(cls => cls.Type.Name == name);
+            string[] Signatures(Class cls, string name) => cls.Methods
+                .Where(method => method.Name == name)
+                .Select(method => $"{string.Join(",", method.Parameters.Select(parameter => parameter.Type.ToPythonString()))}->{method.ReturnType.ToPythonString()}")
+                .OrderBy(signature => signature, System.StringComparer.Ordinal)
+                .ToArray();
+
+            var orderFee = GetClass("OrderFee");
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.OrderFee->float", "float->float" }, Signatures(orderFee, "__add__"));
+            Assert.AreEqual(new[] { "float->float" }, Signatures(orderFee, "__radd__"));
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.OrderFee->float", "float->float" }, Signatures(orderFee, "__truediv__"));
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.OrderFee->bool", "float->bool" }, Signatures(orderFee, "__lt__"));
+            Assert.AreEqual(new[] { "->float" }, Signatures(orderFee, "__neg__"));
+            Assert.AreEqual(new[] { "->float" }, Signatures(orderFee, "__float__"));
+            Assert.AreEqual(new[] { "->int" }, Signatures(orderFee, "__int__"));
+
+            // the type's own operator is kept, the others are synthesized
+            var money = GetClass("Money");
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.Money->QuantConnect.Orders.Fees.Money" }, Signatures(money, "__add__"));
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.Money->float", "float->float" }, Signatures(money, "__sub__"));
+
+            // an integral conversion behaves like a Python int: exact with ints, a float with floats, true division a float
+            var count = GetClass("Count");
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.Count->int", "float->float", "int->int" }, Signatures(count, "__add__"));
+            Assert.AreEqual(new[] { "float->float", "int->int" }, Signatures(count, "__rsub__"));
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.Count->float", "float->float" }, Signatures(count, "__truediv__"));
+            Assert.AreEqual(new[] { "float->float" }, Signatures(count, "__rtruediv__"));
+            Assert.AreEqual(new[] { "->int" }, Signatures(count, "__neg__"));
+            Assert.AreEqual(new[] { "->float" }, Signatures(count, "__float__"));
+            Assert.AreEqual(new[] { "->int" }, Signatures(count, "__int__"));
+            // the int overload comes before the float one, so type checkers pick it for int operands
+            Assert.AreEqual(new[] { "QuantConnect.Orders.Fees.Count", "int", "float" },
+                count.Methods.Where(method => method.Name == "__mul__").Select(method => method.Parameters[0].Type.ToPythonString()).ToArray());
+
+            // conversions to a number from other types or marked as ignored do not count
+            foreach (var name in new[] { "Plain", "Wrapper", "Ticket" })
+            {
+                Assert.IsFalse(GetClass(name).Methods.Any(method => method.Name.StartsWith("__") && method.Name != "__init__"), name);
+            }
+        }
+
+        [Test]
+        public void FrameworkTargetsAreNotBound()
+        {
+            // object, IEnumerable, IDisposable... are shared by countless classes, Python.NET does not bind their extensions
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+namespace System.Shapes
+{
+    public class Circle { }
+
+    public interface IRound { }
+}
+
+namespace QuantConnect.Orders
+{
+    public class Square : System.Shapes.IRound { }
+
+    public static class ShapeExtensions
+    {
+        public static double Area(this System.Shapes.Circle circle) => 0;
+        public static double Roundness(this System.Shapes.IRound round) => 0;
+    }
+}" }
+                }
+            };
+
+            var context = testGenerator.GenerateModelsPublic();
+            Class GetClass(string ns, string name) => context.GetNamespaceByName(ns).GetClasses().Single(cls => cls.Type.Name == name);
+
+            Assert.IsFalse(GetClass("System.Shapes", "Circle").Methods.Any(method => method.Name == "Area"));
+            Assert.IsFalse(GetClass("System.Shapes", "IRound").Methods.Any(method => method.Name == "Roundness"));
+            Assert.IsFalse(GetClass("QuantConnect.Orders", "Square").Methods.Any(method => method.Name == "Roundness"));
+
+            // the static forms stay available
+            var extensions = GetClass("QuantConnect.Orders", "ShapeExtensions");
+            Assert.IsTrue(extensions.Methods.Where(method => method.Name is "Area" or "Roundness").All(method => method.Static && method.Parameters.Count == 1));
+            Assert.AreEqual(2, extensions.Methods.Count(method => method.Name is "Area" or "Roundness"));
+        }
+
+        [Test]
+        public void EditorBrowsableNeverExtensionMethodsKeepTheStaticFormOnly()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+using System.ComponentModel;
+
+namespace QuantConnect.Orders
+{
+    public class Model { }
+
+    public static class ModelExtensions
+    {
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static string Hidden(this Model model) => """";
+
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public static string HiddenQualified(this Model model) => """";
+
+        [EditorBrowsable(EditorBrowsableState.Advanced)]
+        public static string Advanced(this Model model) => """";
+    }
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static class HiddenModelExtensions
+    {
+        public static string HiddenByClass(this Model model) => """";
+    }
+}" }
+                }
+            };
+
+            var ns = testGenerator.GenerateModelsPublic().GetNamespaceByName("QuantConnect.Orders");
+            Class GetClass(string name) => ns.GetClasses().Single(cls => cls.Type.Name == name);
+
+            var bound = GetClass("Model").Methods.Select(method => method.Name).ToList();
+            Assert.AreEqual(new[] { "Advanced" }, bound.ToArray());
+
+            // the static forms stay available, Python.NET still binds them on the static class
+            Assert.IsTrue(GetClass("ModelExtensions").Methods.Single(method => method.Name == "Hidden").Static);
+            Assert.IsTrue(GetClass("ModelExtensions").Methods.Single(method => method.Name == "HiddenQualified").Static);
+            Assert.IsTrue(GetClass("HiddenModelExtensions").Methods.Single(method => method.Name == "HiddenByClass").Static);
+        }
+
+        [Test]
+        public void DeclaredOrInheritedOperatorsAreNotSynthesizedInEitherDirection()
+        {
+            // Python.NET synthesizes an operator in both directions or not at all, a declared or inherited one wins in both
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Test.cs", @"
+namespace QuantConnect.Data
+{
+    // declares + in one direction only, like MultiPeriodField
+    public class Field
+    {
+        public static implicit operator decimal(Field field) => 0;
+        public static decimal operator +(Field a, Field b) => 0;
+    }
+
+    public class BaseAmount
+    {
+        public static string operator -(BaseAmount a, BaseAmount b) => """";
+    }
+
+    public class DerivedAmount : BaseAmount
+    {
+        public static implicit operator decimal(DerivedAmount amount) => 0;
+    }
+}" }
+                }
+            };
+
+            var ns = testGenerator.GenerateModelsPublic().GetNamespaceByName("QuantConnect.Data");
+            Class GetClass(string name) => ns.GetClasses().Single(cls => cls.Type.Name == name);
+            int Count(Class cls, string name) => cls.Methods.Count(method => method.Name == name);
+
+            var field = GetClass("Field");
+            Assert.AreEqual(1, Count(field, "__add__"));
+            Assert.AreEqual(0, Count(field, "__radd__"));
+            Assert.AreEqual(2, Count(field, "__sub__"));
+            Assert.AreEqual(1, Count(field, "__rsub__"));
+
+            var derived = GetClass("DerivedAmount");
+            Assert.AreEqual(0, Count(derived, "__sub__"));
+            Assert.AreEqual(0, Count(derived, "__rsub__"));
+            Assert.AreEqual(2, Count(derived, "__add__"));
+            Assert.AreEqual(1, Count(derived, "__radd__"));
+        }
+
         internal class TestGenerator : Generator
         {
             public Dictionary<string, string> Files { get; set; }

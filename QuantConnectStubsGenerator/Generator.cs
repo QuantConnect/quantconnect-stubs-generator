@@ -98,6 +98,10 @@ namespace QuantConnectStubsGenerator
             ParseSyntaxTrees<PropertyParser>(context, syntaxTrees, compilation);
             ParseSyntaxTrees<MethodParser>(context, syntaxTrees, compilation);
 
+            // Mirror the members Python.NET synthesizes at runtime, before the per-class post-processing marks overloads
+            BindExtensionMethods(context);
+            AddImplicitNumericOperators(context);
+
             // Perform post-processing on all parsed classes
             foreach (var ns in context.GetNamespaces())
             {
@@ -372,6 +376,134 @@ namespace QuantConnectStubsGenerator
         {
             return cls.InheritsFrom.Any(IsEnumerable)
                 || cls.GetBaseClasses(context).Any(c => IsEnumerable(c, context));
+        }
+
+        /// <summary>
+        /// Python.NET binds extension methods to the type they extend so they are callable from the instance.
+        /// Like the runtime, this skips framework extensions, framework and generic targets, extensions marked
+        /// [EditorBrowsable(EditorBrowsableState.Never)] and names the target already declares
+        /// </summary>
+        private static void BindExtensionMethods(ParseContext context)
+        {
+            foreach (var ns in context.GetNamespaces())
+            {
+                if (IsFrameworkNamespace(ns.Name))
+                {
+                    continue;
+                }
+
+                foreach (var extensionMethod in ns.GetClasses().Where(cls => cls.Static).SelectMany(cls => cls.Methods).ToList())
+                {
+                    var extendedType = extensionMethod.ExtendedType;
+                    // framework targets (object, IEnumerable, IDisposable...) are shared by countless classes, Python.NET does not bind them
+                    if (extendedType == null || extendedType.IsNamedTypeParameter || extendedType.TypeParameters.Count > 0
+                        || IsFrameworkNamespace(extendedType.Namespace) || extensionMethod.EditorBrowsableNever
+                        || extensionMethod.Parameters.Count == 0
+                        || !Extensions.TryGetClass(extendedType, context, out var targetClass))
+                    {
+                        continue;
+                    }
+
+                    var name = extensionMethod.Name;
+                    var declaredByTarget = targetClass.GetClassAndBaseClasses(context).Any(cls =>
+                        cls.Properties.Any(property => property.Name == name)
+                        || cls.Methods.Any(method => method.Name == name && method.ExtendedType == null));
+                    if (declaredByTarget)
+                    {
+                        continue;
+                    }
+
+                    var boundMethod = new Method(name, extensionMethod) { Class = targetClass, Static = false };
+                    boundMethod.Parameters.RemoveAt(0);
+                    targetClass.Methods.Add(boundMethod);
+                }
+            }
+        }
+
+        private static bool IsFrameworkNamespace(string name)
+        {
+            return name != null && (name == "System" || name.StartsWith("System.") || name == "Microsoft" || name.StartsWith("Microsoft."));
+        }
+
+        /// <summary>
+        /// Python.NET gives types with an implicit numeric conversion the Python number protocol through that conversion,
+        /// keeping the operators the type declares or inherits
+        /// </summary>
+        private static void AddImplicitNumericOperators(ParseContext context)
+        {
+            foreach (var cls in context.GetNamespaces().SelectMany(ns => ns.GetClasses()).Where(cls => cls.ImplicitNumericConversion != null))
+            {
+                // an integral conversion is exact with ints and a float with floats, like a Python int
+                var number = cls.ImplicitNumericConversion;
+                var integral = number.Equals(PythonType.Int);
+
+                foreach (var name in new[] { "__add__", "__sub__", "__mul__" })
+                {
+                    // Python.NET synthesizes an operator in both directions or not at all, a declared one wins in both
+                    if (DeclaresOperator(cls, context, name))
+                    {
+                        continue;
+                    }
+                    // the int overload goes first so type checkers pick it for int operands
+                    AddOperator(cls, context, name, number, cls.Type);
+                    if (integral)
+                    {
+                        AddOperator(cls, context, name, PythonType.Int, PythonType.Int);
+                    }
+                    AddOperator(cls, context, name, PythonType.Float, PythonType.Float);
+
+                    var reflected = name.Insert(2, "r");
+                    if (integral)
+                    {
+                        AddOperator(cls, context, reflected, PythonType.Int, PythonType.Int);
+                    }
+                    AddOperator(cls, context, reflected, PythonType.Float, PythonType.Float);
+                }
+
+                // true division is a float even between ints
+                if (!DeclaresOperator(cls, context, "__truediv__"))
+                {
+                    AddOperator(cls, context, "__truediv__", PythonType.Float, cls.Type);
+                    AddOperator(cls, context, "__truediv__", PythonType.Float, PythonType.Float);
+                    AddOperator(cls, context, "__rtruediv__", PythonType.Float, PythonType.Float);
+                }
+
+                foreach (var name in new[] { "__lt__", "__le__", "__gt__", "__ge__" })
+                {
+                    AddOperator(cls, context, name, PythonType.Bool, cls.Type);
+                    AddOperator(cls, context, name, PythonType.Bool, PythonType.Float);
+                }
+
+                AddOperator(cls, context, "__neg__", number);
+                AddOperator(cls, context, "__float__", PythonType.Float);
+                AddOperator(cls, context, "__int__", PythonType.Int);
+            }
+        }
+
+        /// <summary>
+        /// Whether the class or one of its bases declares the operator itself
+        /// </summary>
+        private static bool DeclaresOperator(Class cls, ParseContext context, string name)
+        {
+            return cls.GetClassAndBaseClasses(context).Any(c => c.DeclaredOperators.Contains(name));
+        }
+
+        /// <summary>
+        /// Adds a synthesized operator overload unless the class declares the operator itself
+        /// </summary>
+        private static void AddOperator(Class cls, ParseContext context, string name, PythonType returnType, PythonType otherType = null)
+        {
+            if (DeclaresOperator(cls, context, name))
+            {
+                return;
+            }
+
+            var method = new Method(name, returnType) { Class = cls };
+            if (otherType != null)
+            {
+                method.Parameters.Add(new Parameter("other", otherType));
+            }
+            cls.Methods.Add(method);
         }
 
         private void HandleCountableEnumerables(Class cls, ParseContext context)

@@ -130,6 +130,15 @@ namespace QuantConnectStubsGenerator
                 }
             }
 
+            // Runs after every class has its generic method groups, which a subclass method of the same name joins
+            foreach (var ns in context.GetNamespaces())
+            {
+                foreach (var cls in ns.GetClasses().ToList())
+                {
+                    HandleInheritedGenericMethods(cls, context);
+                }
+            }
+
             // We do this in steps (post process classes and then get namespaces to import and generate summaries)
             // because we need classes to be fully processed before we can generate summaries and determine imports
             foreach (var ns in context.GetNamespaces())
@@ -833,6 +842,49 @@ namespace QuantConnectStubsGenerator
                 foreach (var method in allMethods)
                 {
                     cls.Methods.Remove(method);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Python.NET combines a method a class declares with the inherited overloads of the same name, so a method
+        /// named like a generic method group of a base class joins a dispatch helper extending the base class's one,
+        /// instead of shadowing its __call__ and __getitem__ the way a plain method would in Python
+        /// </summary>
+        private static void HandleInheritedGenericMethods(Class cls, ParseContext context)
+        {
+            foreach (var baseClass in cls.GetBaseClasses(context))
+            {
+                foreach (var baseProperty in baseClass.Properties.Where(x => x.IsGenericMethodGroupingProperty))
+                {
+                    var methods = cls.Methods.Where(x => x.Name == baseProperty.Name).ToList();
+                    if (methods.Count == 0 || cls.Properties.Any(x => x.Name == baseProperty.Name))
+                    {
+                        continue;
+                    }
+
+                    var baseHelper = context.GetNamespaceByName(baseProperty.Type.Namespace).GetClassByType(baseProperty.Type);
+                    var helper = new Class(new PythonType($"_{cls.Type.Name}_{baseProperty.Name}", cls.Type.Namespace)) { Summary = string.Empty };
+                    helper.InheritsFrom.Add(baseHelper.Type);
+                    // __call__ overloads do not combine across Python classes: the inherited ones come along
+                    foreach (var method in methods.Concat(baseHelper.Methods.Where(x => x.Name == "__call__")))
+                    {
+                        helper.Methods.Add(new Method("__call__", method) { Overload = true, Static = false, Class = helper });
+                    }
+
+                    cls.Properties.Add(new Property(baseProperty.Name)
+                    {
+                        Type = helper.Type,
+                        Class = cls,
+                        Static = baseProperty.Static,
+                        IsGenericMethodGroupingProperty = true
+                    });
+                    context.GetNamespaceByName(cls.Type.Namespace).RegisterClass(helper);
+
+                    foreach (var method in methods)
+                    {
+                        cls.Methods.Remove(method);
+                    }
                 }
             }
         }

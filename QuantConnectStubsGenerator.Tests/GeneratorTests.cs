@@ -389,6 +389,65 @@ namespace QuantConnect.Test
             Assert.IsTrue(testProperty.HasSetter);
         }
 
+        [Test]
+        public void SubclassMethodsJoinTheInheritedGenericMethodGroup()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "ObjectStore.cs",
+                        @"
+namespace QuantConnect.Storage
+{
+    public class ObjectStore
+    {
+        public T ReadJson<T>(string path)
+        {
+            return default;
+        }
+        public bool SaveJson<T>(string path, T obj)
+        {
+            return true;
+        }
+    }
+
+    public class PythonObjectStore : ObjectStore
+    {
+        public PyObject ReadJson(string path)
+        {
+            return null;
+        }
+        public bool SaveJson(string path, PyObject obj)
+        {
+            return true;
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaceByName("QuantConnect.Storage");
+            var pythonStore = ns.GetClasses().Single(x => x.Type.Name == "PythonObjectStore");
+            // the methods moved into dispatch helpers extending the base class's, so read_json[T] still resolves
+            Assert.AreEqual(0, pythonStore.Methods.Count);
+            foreach (var name in new[] { "ReadJson", "SaveJson" })
+            {
+                var property = pythonStore.Properties.Single(x => x.Name == name);
+                Assert.IsTrue(property.IsGenericMethodGroupingProperty);
+                Assert.AreEqual($"QuantConnect.Storage._PythonObjectStore_{name}", property.Type.ToPythonString());
+
+                var helper = ns.GetClassByType(property.Type);
+                Assert.AreEqual($"QuantConnect.Storage._ObjectStore_{name}", helper.InheritsFrom.Single().ToPythonString());
+                Assert.AreEqual(1, helper.Methods.Count(x => x.Name == "__call__"));
+                Assert.IsFalse(helper.Methods.Any(x => x.Name == "__getitem__"));
+            }
+        }
+
         [TestCase(true, "QuantConnect.Storage.PythonObjectStore")]
         [TestCase(false, "QuantConnect.Storage.ObjectStore")]
         public void AlgorithmObjectStoreIsTypedAsThePythonObjectStore(bool pythonObjectStoreExists, string expectedType)

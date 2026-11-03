@@ -2063,6 +2063,58 @@ class OrderExtensions(System.Object):
                 }).SetName("RendersBoundExtensionMethodsAndNumericOperators"),
         };
 
+        [Test]
+        public void RendersSubclassMethodsAsInheritedGenericMethodGroupHelpers()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "ObjectStore.cs",
+                        @"
+namespace QuantConnect.Storage
+{
+    public class ObjectStore
+    {
+        public T ReadJson<T>(string path)
+        {
+            return default;
+        }
+        public bool SaveJson<T>(string path, T obj)
+        {
+            return true;
+        }
+    }
+
+    public class PythonObjectStore : ObjectStore
+    {
+        public PyObject ReadJson(string path)
+        {
+            return null;
+        }
+        public bool SaveJson(string path, PyObject obj)
+        {
+            return true;
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            testGenerator.GenerateModelsAndRender(out _, out var renderedNamespaces);
+
+            var storage = renderedNamespaces.Single(x => x.Contains("class PythonObjectStore"));
+            Assert.That(storage, Does.Contain("class _PythonObjectStore_ReadJson(QuantConnect.Storage._ObjectStore_ReadJson):"));
+            Assert.That(storage, Does.Contain("    def __call__(self, path: str) -> typing.Any:"));
+            Assert.That(storage, Does.Contain("class _PythonObjectStore_SaveJson(QuantConnect.Storage._ObjectStore_SaveJson):"));
+            Assert.That(storage, Does.Contain("    def __call__(self, path: str, obj: typing.Any) -> bool:"));
+            Assert.That(storage, Does.Contain("    def read_json(self) -> QuantConnect.Storage._PythonObjectStore_ReadJson:"));
+            Assert.That(storage, Does.Contain("    def save_json(self) -> QuantConnect.Storage._PythonObjectStore_SaveJson:"));
+            Assert.That(storage, Does.Not.Contain("def read_json(self, path"));
+        }
+
         private class TestGenerator : Generator
         {
             private List<StringBuilder> _stringBuilders = new();

@@ -875,7 +875,12 @@ namespace QuantConnectStubsGenerator
                     }
 
                     var baseHelper = context.GetNamespaceByName(baseProperty.Type.Namespace).GetClassByType(baseProperty.Type);
-                    var helper = new Class(new PythonType($"_{cls.Type.Name}_{baseProperty.Name}", cls.Type.Namespace)) { Summary = string.Empty };
+                    // a nested class name has dots the renderer drops, and the class's type parameters stay bound through the helper
+                    var helperType = new PythonType($"_{cls.Type.Name.Replace('.', '_')}_{baseProperty.Name}", cls.Type.Namespace)
+                    {
+                        TypeParameters = cls.Type.TypeParameters.ToList()
+                    };
+                    var helper = new Class(helperType) { Summary = string.Empty };
                     helper.InheritsFrom.Add(baseHelper.Type);
                     // __call__ overloads do not combine across Python classes: the inherited ones come along
                     foreach (var method in methods.Concat(baseHelper.Methods.Where(x => x.Name == "__call__")))
@@ -887,7 +892,8 @@ namespace QuantConnectStubsGenerator
                     {
                         Type = helper.Type,
                         Class = cls,
-                        Static = baseProperty.Static,
+                        // a static overload is reachable from the class, so the property must be too
+                        Static = baseProperty.Static || cls.Static || methods.Any(x => x.Static),
                         IsGenericMethodGroupingProperty = true
                     });
                     context.GetNamespaceByName(cls.Type.Namespace).RegisterClass(helper);

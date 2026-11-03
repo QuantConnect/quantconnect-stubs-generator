@@ -510,6 +510,91 @@ namespace QuantConnect.Storage
             }
         }
 
+        [Test]
+        public void NestedGenericAndStaticSubclassesJoinTheInheritedGenericMethodGroup()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Synthetic.cs", @"
+namespace Synthetic
+{
+    public class Base
+    {
+        public U Fetch<U>(string path)
+        {
+            return default;
+        }
+        public void Write<U>(U value)
+        {
+        }
+    }
+
+    public class Outer
+    {
+        public class Store : Base
+        {
+            public string Fetch(string path)
+            {
+                return null;
+            }
+        }
+    }
+
+    public class GenericStore<T> : Base
+    {
+        public T Fetch(int id)
+        {
+            return default;
+        }
+        public void Write(T value)
+        {
+        }
+    }
+
+    public class StaticStore : Base
+    {
+        public static string Fetch(int id)
+        {
+            return null;
+        }
+    }
+}" }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaceByName("Synthetic");
+            foreach (var cls in ns.GetClasses().Where(x => x.Type.Name is "Outer.Store" or "GenericStore" or "StaticStore"))
+            {
+                Assert.AreEqual(0, cls.Methods.Count, string.Join(", ", cls.Methods));
+            }
+
+            // the helper name has no dot for the renderer to drop, so the property annotation names a declared class
+            var nested = ns.GetClasses().Single(x => x.Type.Name == "Outer.Store");
+            var nestedProperty = nested.Properties.Single(x => x.Name == "Fetch");
+            Assert.AreEqual("Synthetic._Outer_Store_Fetch", nestedProperty.Type.ToPythonString());
+            Assert.AreEqual("_Outer_Store_Fetch", ns.GetClassByType(nestedProperty.Type).Type.Name);
+
+            // the helper is generic over the class's type parameters, so the property binds them
+            var generic = ns.GetClasses().Single(x => x.Type.Name == "GenericStore");
+            foreach (var (name, parameterType) in new[] { ("Fetch", "int"), ("Write", "Synthetic_GenericStore_T") })
+            {
+                var property = generic.Properties.Single(x => x.Name == name);
+                Assert.AreEqual($"Synthetic._GenericStore_{name}[Synthetic_GenericStore_T]", property.Type.ToPythonString());
+                var helper = ns.GetClassByType(property.Type);
+                Assert.That(helper.Type.TypeParameters, Is.EqualTo(generic.Type.TypeParameters));
+                var call = helper.Methods.Single(x => x.Name == "__call__" && x.Parameters[0].Type.ToPythonString() == parameterType);
+                Assert.AreEqual(name == "Fetch" ? "Synthetic_GenericStore_T" : "None", call.ReturnType.ToPythonString());
+            }
+
+            // a static overload is reachable from the class, so the property is static
+            var staticStore = ns.GetClasses().Single(x => x.Type.Name == "StaticStore");
+            Assert.IsTrue(staticStore.Properties.Single(x => x.Name == "Fetch").Static);
+        }
+
         [TestCase(true, "QuantConnect.Storage.PythonObjectStore")]
         [TestCase(false, "QuantConnect.Storage.ObjectStore")]
         public void AlgorithmObjectStoreIsTypedAsThePythonObjectStore(bool pythonObjectStoreExists, string expectedType)

@@ -423,6 +423,10 @@ namespace QuantConnect.Storage
         {
             return true;
         }
+        public bool SaveJson(string path, PyObject obj, bool overwrite)
+        {
+            return true;
+        }
     }
 }"
                     }
@@ -434,8 +438,8 @@ namespace QuantConnect.Storage
             var ns = result.GetNamespaceByName("QuantConnect.Storage");
             var pythonStore = ns.GetClasses().Single(x => x.Type.Name == "PythonObjectStore");
             // the methods moved into dispatch helpers extending the base class's, so read_json[T] still resolves
-            Assert.AreEqual(0, pythonStore.Methods.Count);
-            foreach (var name in new[] { "ReadJson", "SaveJson" })
+            Assert.AreEqual(0, pythonStore.Methods.Count, string.Join(", ", pythonStore.Methods));
+            foreach (var (name, overloads) in new[] { ("ReadJson", 1), ("SaveJson", 2) })
             {
                 var property = pythonStore.Properties.Single(x => x.Name == name);
                 Assert.IsTrue(property.IsGenericMethodGroupingProperty);
@@ -443,8 +447,66 @@ namespace QuantConnect.Storage
 
                 var helper = ns.GetClassByType(property.Type);
                 Assert.AreEqual($"QuantConnect.Storage._ObjectStore_{name}", helper.InheritsFrom.Single().ToPythonString());
-                Assert.AreEqual(1, helper.Methods.Count(x => x.Name == "__call__"));
+                Assert.AreEqual(overloads, helper.Methods.Count(x => x.Name == "__call__"));
                 Assert.IsFalse(helper.Methods.Any(x => x.Name == "__getitem__"));
+            }
+        }
+
+        [Test]
+        public void SubclassMethodsJoinTheNearestInheritedGenericMethodGroupInAnyParseOrder()
+        {
+            // the most derived class comes first in the source, before the base whose group it must join
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "ObjectStore.cs",
+                        @"
+namespace QuantConnect.Storage
+{
+    public class DerivedStore : PythonObjectStore
+    {
+        public PyObject ReadJson(string path, int version)
+        {
+            return null;
+        }
+    }
+
+    public class ObjectStore
+    {
+        public T ReadJson<T>(string path)
+        {
+            return default;
+        }
+    }
+
+    public class PythonObjectStore : ObjectStore
+    {
+        public PyObject ReadJson(string path)
+        {
+            return null;
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaceByName("QuantConnect.Storage");
+            foreach (var (name, baseName, overloads) in new[] { ("PythonObjectStore", "ObjectStore", 1), ("DerivedStore", "PythonObjectStore", 2) })
+            {
+                var cls = ns.GetClasses().Single(x => x.Type.Name == name);
+                Assert.AreEqual(0, cls.Methods.Count, string.Join(", ", cls.Methods));
+                var property = cls.Properties.Single(x => x.Name == "ReadJson");
+                Assert.AreEqual($"QuantConnect.Storage._{name}_ReadJson", property.Type.ToPythonString());
+
+                // the helper extends the nearest base's and carries every inherited overload, as Python.NET combines them
+                var helper = ns.GetClassByType(property.Type);
+                Assert.AreEqual($"QuantConnect.Storage._{baseName}_ReadJson", helper.InheritsFrom.Single().ToPythonString());
+                Assert.AreEqual(overloads, helper.Methods.Count(x => x.Name == "__call__"));
             }
         }
 

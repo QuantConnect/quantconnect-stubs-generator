@@ -131,11 +131,12 @@ namespace QuantConnectStubsGenerator
             }
 
             // Runs after every class has its generic method groups, which a subclass method of the same name joins
+            var handledClasses = new HashSet<Class>(ReferenceEqualityComparer.Instance);
             foreach (var ns in context.GetNamespaces())
             {
                 foreach (var cls in ns.GetClasses().ToList())
                 {
-                    HandleInheritedGenericMethods(cls, context);
+                    HandleInheritedGenericMethods(cls, context, handledClasses);
                 }
             }
 
@@ -851,8 +852,18 @@ namespace QuantConnectStubsGenerator
         /// named like a generic method group of a base class joins a dispatch helper extending the base class's one,
         /// instead of shadowing its __call__ and __getitem__ the way a plain method would in Python
         /// </summary>
-        private static void HandleInheritedGenericMethods(Class cls, ParseContext context)
+        private static void HandleInheritedGenericMethods(Class cls, ParseContext context, HashSet<Class> handledClasses)
         {
+            if (!handledClasses.Add(cls))
+            {
+                return;
+            }
+            // the nearest base's helper must exist before this class's extends it, whatever the parse order
+            foreach (var baseClass in cls.GetBaseClasses(context).ToList())
+            {
+                HandleInheritedGenericMethods(baseClass, context, handledClasses);
+            }
+
             foreach (var baseClass in cls.GetBaseClasses(context))
             {
                 foreach (var baseProperty in baseClass.Properties.Where(x => x.IsGenericMethodGroupingProperty))
@@ -881,10 +892,10 @@ namespace QuantConnectStubsGenerator
                     });
                     context.GetNamespaceByName(cls.Type.Namespace).RegisterClass(helper);
 
-                    foreach (var method in methods)
-                    {
-                        cls.Methods.Remove(method);
-                    }
+                    // MarkOverloads changed the hash of these methods after they were added, so Remove would miss them
+                    var kept = cls.Methods.Where(x => x.Name != baseProperty.Name).ToList();
+                    cls.Methods.Clear();
+                    cls.Methods.UnionWith(kept);
                 }
             }
         }

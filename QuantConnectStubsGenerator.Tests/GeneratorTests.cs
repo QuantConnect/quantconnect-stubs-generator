@@ -389,6 +389,50 @@ namespace QuantConnect.Test
             Assert.IsTrue(testProperty.HasSetter);
         }
 
+        [TestCase(true, "QuantConnect.Storage.PythonObjectStore")]
+        [TestCase(false, "QuantConnect.Storage.ObjectStore")]
+        public void AlgorithmObjectStoreIsTypedAsThePythonObjectStore(bool pythonObjectStoreExists, string expectedType)
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "ObjectStore.cs",
+                        @"
+namespace QuantConnect.Storage
+{
+    public class ObjectStore
+    {
+    }
+" + (pythonObjectStoreExists ? @"
+    public class PythonObjectStore : ObjectStore
+    {
+    }
+" : "") + @"
+}"
+                    },
+                    {
+                        "QCAlgorithm.cs",
+                        @"
+namespace QuantConnect.Algorithm
+{
+    public class QCAlgorithm
+    {
+        public QuantConnect.Storage.ObjectStore ObjectStore { get; private set; }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var algorithm = result.GetNamespaceByName("QuantConnect.Algorithm").GetClasses().Single();
+            var property = algorithm.Properties.Single(x => x.Name == "ObjectStore");
+            Assert.AreEqual(expectedType, property.Type.ToPythonString());
+        }
+
         [Test]
         public void CSharpEnumeratorsArePythonIterables()
         {

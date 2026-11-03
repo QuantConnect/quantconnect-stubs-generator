@@ -286,6 +286,8 @@ namespace QuantConnectStubsGenerator
 
         private void PostProcessClass(Class cls, ParseContext context)
         {
+            HandlePythonObjectStore(cls, context);
+
             var loggingMethods = new HashSet<string>
             {
                 "QCAlgorithm.Debug",
@@ -504,6 +506,30 @@ namespace QuantConnectStubsGenerator
                 method.Parameters.Add(new Parameter("other", otherType));
             }
             cls.Methods.Add(method);
+        }
+
+        /// <summary>
+        /// A Python algorithm's ObjectStore is always Lean's PythonObjectStore at runtime, the subclass holding the
+        /// Python-only helpers, so the property is typed as such for autocomplete to see them
+        /// </summary>
+        private static void HandlePythonObjectStore(Class cls, ParseContext context)
+        {
+            if (cls.Type.Namespace != "QuantConnect.Algorithm" || cls.Type.Name != "QCAlgorithm")
+            {
+                return;
+            }
+
+            var pythonStoreType = new PythonType("PythonObjectStore", "QuantConnect.Storage");
+            if (!context.HasNamespace(pythonStoreType.Namespace)
+                || !context.GetNamespaceByName(pythonStoreType.Namespace).HasClass(pythonStoreType))
+            {
+                return;
+            }
+
+            foreach (var property in cls.Properties.Where(x => x.Name == "ObjectStore"))
+            {
+                property.Type = pythonStoreType;
+            }
         }
 
         private void HandleCountableEnumerables(Class cls, ParseContext context)

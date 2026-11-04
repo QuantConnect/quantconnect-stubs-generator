@@ -2063,6 +2063,127 @@ class OrderExtensions(System.Object):
                 }).SetName("RendersBoundExtensionMethodsAndNumericOperators"),
         };
 
+        [Test]
+        public void RendersSubclassMethodsAsInheritedGenericMethodGroupHelpers()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "ObjectStore.cs",
+                        @"
+namespace QuantConnect.Storage
+{
+    public class ObjectStore
+    {
+        public T ReadJson<T>(string path)
+        {
+            return default;
+        }
+        public bool SaveJson<T>(string path, T obj)
+        {
+            return true;
+        }
+    }
+
+    public class PythonObjectStore : ObjectStore
+    {
+        public PyObject ReadJson(string path)
+        {
+            return null;
+        }
+        public bool SaveJson(string path, PyObject obj)
+        {
+            return true;
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            testGenerator.GenerateModelsAndRender(out _, out var renderedNamespaces);
+
+            var storage = renderedNamespaces.Single(x => x.Contains("class PythonObjectStore"));
+            Assert.That(storage, Does.Contain("class _PythonObjectStore_ReadJson(QuantConnect.Storage._ObjectStore_ReadJson):"));
+            Assert.That(storage, Does.Contain("    def __call__(self, path: str) -> typing.Any:"));
+            Assert.That(storage, Does.Contain("class _PythonObjectStore_SaveJson(QuantConnect.Storage._ObjectStore_SaveJson):"));
+            Assert.That(storage, Does.Contain("    def __call__(self, path: str, obj: typing.Any) -> bool:"));
+            Assert.That(storage, Does.Contain("    def read_json(self) -> QuantConnect.Storage._PythonObjectStore_ReadJson:"));
+            Assert.That(storage, Does.Contain("    def save_json(self) -> QuantConnect.Storage._PythonObjectStore_SaveJson:"));
+            Assert.That(storage, Does.Not.Contain("def read_json(self, path"));
+        }
+
+        [Test]
+        public void RendersNestedGenericAndStaticSubclassHelpers()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Synthetic.cs", @"
+namespace Synthetic
+{
+    public class Base
+    {
+        public U Fetch<U>(string path)
+        {
+            return default;
+        }
+        public void Write<U>(U value)
+        {
+        }
+    }
+
+    public class Outer
+    {
+        public class Store : Base
+        {
+            public string Fetch(string path)
+            {
+                return null;
+            }
+        }
+    }
+
+    public class GenericStore<T> : Base
+    {
+        public T Fetch(int id)
+        {
+            return default;
+        }
+        public void Write(T value)
+        {
+        }
+    }
+
+    public class StaticStore : Base
+    {
+        public static string Fetch(int id)
+        {
+            return null;
+        }
+    }
+}" }
+                }
+            };
+
+            testGenerator.GenerateModelsAndRender(out _, out var renderedNamespaces);
+
+            var synthetic = renderedNamespaces.Single(x => x.Contains("class GenericStore"));
+            Assert.That(synthetic, Does.Contain("class _Outer_Store_Fetch(Synthetic._Base_Fetch):"));
+            Assert.That(synthetic, Does.Contain("def fetch(self) -> Synthetic._Outer_Store_Fetch:"));
+            Assert.That(synthetic, Does.Contain("class _GenericStore_Fetch(typing.Generic[Synthetic_GenericStore_T], Synthetic._Base_Fetch):"));
+            Assert.That(synthetic, Does.Contain("    def __call__(self, id: int) -> Synthetic_GenericStore_T:"));
+            Assert.That(synthetic, Does.Contain("    def __call__(self, value: Synthetic_GenericStore_T) -> None:"));
+            Assert.That(synthetic, Does.Contain("def fetch(self) -> Synthetic._GenericStore_Fetch[Synthetic_GenericStore_T]:"));
+            Assert.That(synthetic, Does.Contain("def write(self) -> Synthetic._GenericStore_Write[Synthetic_GenericStore_T]:"));
+            Assert.That(synthetic, Does.Contain("class _StaticStore_Fetch(Synthetic._Base_Fetch):"));
+            Assert.That(synthetic, Does.Contain("fetch: Synthetic._StaticStore_Fetch"));
+            Assert.That(synthetic, Does.Not.Contain("def fetch(self, "));
+        }
+
         private class TestGenerator : Generator
         {
             private List<StringBuilder> _stringBuilders = new();

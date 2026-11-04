@@ -130,6 +130,16 @@ namespace QuantConnectStubsGenerator
                 }
             }
 
+            // Runs after every class has its generic method groups, which a subclass method of the same name joins
+            var handledClasses = new HashSet<Class>(ReferenceEqualityComparer.Instance);
+            foreach (var ns in context.GetNamespaces())
+            {
+                foreach (var cls in ns.GetClasses().ToList())
+                {
+                    HandleInheritedGenericMethods(cls, context, handledClasses);
+                }
+            }
+
             // We do this in steps (post process classes and then get namespaces to import and generate summaries)
             // because we need classes to be fully processed before we can generate summaries and determine imports
             foreach (var ns in context.GetNamespaces())
@@ -286,6 +296,8 @@ namespace QuantConnectStubsGenerator
 
         private void PostProcessClass(Class cls, ParseContext context)
         {
+            HandlePythonObjectStore(cls, context);
+
             var loggingMethods = new HashSet<string>
             {
                 "QCAlgorithm.Debug",
@@ -504,6 +516,30 @@ namespace QuantConnectStubsGenerator
                 method.Parameters.Add(new Parameter("other", otherType));
             }
             cls.Methods.Add(method);
+        }
+
+        /// <summary>
+        /// A Python algorithm's ObjectStore is always Lean's PythonObjectStore at runtime, the subclass holding the
+        /// Python-only helpers, so the property is typed as such for autocomplete to see them
+        /// </summary>
+        private static void HandlePythonObjectStore(Class cls, ParseContext context)
+        {
+            if (cls.Type.Namespace != "QuantConnect.Algorithm" || cls.Type.Name != "QCAlgorithm")
+            {
+                return;
+            }
+
+            var pythonStoreType = new PythonType("PythonObjectStore", "QuantConnect.Storage");
+            if (!context.HasNamespace(pythonStoreType.Namespace)
+                || !context.GetNamespaceByName(pythonStoreType.Namespace).HasClass(pythonStoreType))
+            {
+                return;
+            }
+
+            foreach (var property in cls.Properties.Where(x => x.Name == "ObjectStore"))
+            {
+                property.Type = pythonStoreType;
+            }
         }
 
         private void HandleCountableEnumerables(Class cls, ParseContext context)
@@ -807,6 +843,65 @@ namespace QuantConnectStubsGenerator
                 foreach (var method in allMethods)
                 {
                     cls.Methods.Remove(method);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Python.NET combines a method a class declares with the inherited overloads of the same name, so a method
+        /// named like a generic method group of a base class joins a dispatch helper extending the base class's one,
+        /// instead of shadowing its __call__ and __getitem__ the way a plain method would in Python
+        /// </summary>
+        private static void HandleInheritedGenericMethods(Class cls, ParseContext context, HashSet<Class> handledClasses)
+        {
+            if (!handledClasses.Add(cls))
+            {
+                return;
+            }
+            // the nearest base's helper must exist before this class's extends it, whatever the parse order
+            foreach (var baseClass in cls.GetBaseClasses(context).ToList())
+            {
+                HandleInheritedGenericMethods(baseClass, context, handledClasses);
+            }
+
+            foreach (var baseClass in cls.GetBaseClasses(context))
+            {
+                foreach (var baseProperty in baseClass.Properties.Where(x => x.IsGenericMethodGroupingProperty))
+                {
+                    var methods = cls.Methods.Where(x => x.Name == baseProperty.Name).ToList();
+                    if (methods.Count == 0 || cls.Properties.Any(x => x.Name == baseProperty.Name))
+                    {
+                        continue;
+                    }
+
+                    var baseHelper = context.GetNamespaceByName(baseProperty.Type.Namespace).GetClassByType(baseProperty.Type);
+                    // a nested class name has dots the renderer drops, and the class's type parameters stay bound through the helper
+                    var helperType = new PythonType($"_{cls.Type.Name.Replace('.', '_')}_{baseProperty.Name}", cls.Type.Namespace)
+                    {
+                        TypeParameters = cls.Type.TypeParameters.ToList()
+                    };
+                    var helper = new Class(helperType) { Summary = string.Empty };
+                    helper.InheritsFrom.Add(baseHelper.Type);
+                    // __call__ overloads do not combine across Python classes: the inherited ones come along
+                    foreach (var method in methods.Concat(baseHelper.Methods.Where(x => x.Name == "__call__")))
+                    {
+                        helper.Methods.Add(new Method("__call__", method) { Overload = true, Static = false, Class = helper });
+                    }
+
+                    cls.Properties.Add(new Property(baseProperty.Name)
+                    {
+                        Type = helper.Type,
+                        Class = cls,
+                        // a static overload is reachable from the class, so the property must be too
+                        Static = baseProperty.Static || cls.Static || methods.Any(x => x.Static),
+                        IsGenericMethodGroupingProperty = true
+                    });
+                    context.GetNamespaceByName(cls.Type.Namespace).RegisterClass(helper);
+
+                    // MarkOverloads changed the hash of these methods after they were added, so Remove would miss them
+                    var kept = cls.Methods.Where(x => x.Name != baseProperty.Name).ToList();
+                    cls.Methods.Clear();
+                    cls.Methods.UnionWith(kept);
                 }
             }
         }

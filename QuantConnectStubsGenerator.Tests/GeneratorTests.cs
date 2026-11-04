@@ -390,6 +390,256 @@ namespace QuantConnect.Test
         }
 
         [Test]
+        public void SubclassMethodsJoinTheInheritedGenericMethodGroup()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "ObjectStore.cs",
+                        @"
+namespace QuantConnect.Storage
+{
+    public class ObjectStore
+    {
+        public T ReadJson<T>(string path)
+        {
+            return default;
+        }
+        public bool SaveJson<T>(string path, T obj)
+        {
+            return true;
+        }
+    }
+
+    public class PythonObjectStore : ObjectStore
+    {
+        public PyObject ReadJson(string path)
+        {
+            return null;
+        }
+        public bool SaveJson(string path, PyObject obj)
+        {
+            return true;
+        }
+        public bool SaveJson(string path, PyObject obj, bool overwrite)
+        {
+            return true;
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaceByName("QuantConnect.Storage");
+            var pythonStore = ns.GetClasses().Single(x => x.Type.Name == "PythonObjectStore");
+            // the methods moved into dispatch helpers extending the base class's, so read_json[T] still resolves
+            Assert.AreEqual(0, pythonStore.Methods.Count, string.Join(", ", pythonStore.Methods));
+            foreach (var (name, overloads) in new[] { ("ReadJson", 1), ("SaveJson", 2) })
+            {
+                var property = pythonStore.Properties.Single(x => x.Name == name);
+                Assert.IsTrue(property.IsGenericMethodGroupingProperty);
+                Assert.AreEqual($"QuantConnect.Storage._PythonObjectStore_{name}", property.Type.ToPythonString());
+
+                var helper = ns.GetClassByType(property.Type);
+                Assert.AreEqual($"QuantConnect.Storage._ObjectStore_{name}", helper.InheritsFrom.Single().ToPythonString());
+                Assert.AreEqual(overloads, helper.Methods.Count(x => x.Name == "__call__"));
+                Assert.IsFalse(helper.Methods.Any(x => x.Name == "__getitem__"));
+            }
+        }
+
+        [Test]
+        public void SubclassMethodsJoinTheNearestInheritedGenericMethodGroupInAnyParseOrder()
+        {
+            // the most derived class comes first in the source, before the base whose group it must join
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "ObjectStore.cs",
+                        @"
+namespace QuantConnect.Storage
+{
+    public class DerivedStore : PythonObjectStore
+    {
+        public PyObject ReadJson(string path, int version)
+        {
+            return null;
+        }
+    }
+
+    public class ObjectStore
+    {
+        public T ReadJson<T>(string path)
+        {
+            return default;
+        }
+    }
+
+    public class PythonObjectStore : ObjectStore
+    {
+        public PyObject ReadJson(string path)
+        {
+            return null;
+        }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaceByName("QuantConnect.Storage");
+            foreach (var (name, baseName, overloads) in new[] { ("PythonObjectStore", "ObjectStore", 1), ("DerivedStore", "PythonObjectStore", 2) })
+            {
+                var cls = ns.GetClasses().Single(x => x.Type.Name == name);
+                Assert.AreEqual(0, cls.Methods.Count, string.Join(", ", cls.Methods));
+                var property = cls.Properties.Single(x => x.Name == "ReadJson");
+                Assert.AreEqual($"QuantConnect.Storage._{name}_ReadJson", property.Type.ToPythonString());
+
+                // the helper extends the nearest base's and carries every inherited overload, as Python.NET combines them
+                var helper = ns.GetClassByType(property.Type);
+                Assert.AreEqual($"QuantConnect.Storage._{baseName}_ReadJson", helper.InheritsFrom.Single().ToPythonString());
+                Assert.AreEqual(overloads, helper.Methods.Count(x => x.Name == "__call__"));
+            }
+        }
+
+        [Test]
+        public void NestedGenericAndStaticSubclassesJoinTheInheritedGenericMethodGroup()
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    { "Synthetic.cs", @"
+namespace Synthetic
+{
+    public class Base
+    {
+        public U Fetch<U>(string path)
+        {
+            return default;
+        }
+        public void Write<U>(U value)
+        {
+        }
+    }
+
+    public class Outer
+    {
+        public class Store : Base
+        {
+            public string Fetch(string path)
+            {
+                return null;
+            }
+        }
+    }
+
+    public class GenericStore<T> : Base
+    {
+        public T Fetch(int id)
+        {
+            return default;
+        }
+        public void Write(T value)
+        {
+        }
+    }
+
+    public class StaticStore : Base
+    {
+        public static string Fetch(int id)
+        {
+            return null;
+        }
+    }
+}" }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var ns = result.GetNamespaceByName("Synthetic");
+            foreach (var cls in ns.GetClasses().Where(x => x.Type.Name is "Outer.Store" or "GenericStore" or "StaticStore"))
+            {
+                Assert.AreEqual(0, cls.Methods.Count, string.Join(", ", cls.Methods));
+            }
+
+            // the helper name has no dot for the renderer to drop, so the property annotation names a declared class
+            var nested = ns.GetClasses().Single(x => x.Type.Name == "Outer.Store");
+            var nestedProperty = nested.Properties.Single(x => x.Name == "Fetch");
+            Assert.AreEqual("Synthetic._Outer_Store_Fetch", nestedProperty.Type.ToPythonString());
+            Assert.AreEqual("_Outer_Store_Fetch", ns.GetClassByType(nestedProperty.Type).Type.Name);
+
+            // the helper is generic over the class's type parameters, so the property binds them
+            var generic = ns.GetClasses().Single(x => x.Type.Name == "GenericStore");
+            foreach (var (name, parameterType) in new[] { ("Fetch", "int"), ("Write", "Synthetic_GenericStore_T") })
+            {
+                var property = generic.Properties.Single(x => x.Name == name);
+                Assert.AreEqual($"Synthetic._GenericStore_{name}[Synthetic_GenericStore_T]", property.Type.ToPythonString());
+                var helper = ns.GetClassByType(property.Type);
+                Assert.That(helper.Type.TypeParameters, Is.EqualTo(generic.Type.TypeParameters));
+                var call = helper.Methods.Single(x => x.Name == "__call__" && x.Parameters[0].Type.ToPythonString() == parameterType);
+                Assert.AreEqual(name == "Fetch" ? "Synthetic_GenericStore_T" : "None", call.ReturnType.ToPythonString());
+            }
+
+            // a static overload is reachable from the class, so the property is static
+            var staticStore = ns.GetClasses().Single(x => x.Type.Name == "StaticStore");
+            Assert.IsTrue(staticStore.Properties.Single(x => x.Name == "Fetch").Static);
+        }
+
+        [TestCase(true, "QuantConnect.Storage.PythonObjectStore")]
+        [TestCase(false, "QuantConnect.Storage.ObjectStore")]
+        public void AlgorithmObjectStoreIsTypedAsThePythonObjectStore(bool pythonObjectStoreExists, string expectedType)
+        {
+            var testGenerator = new TestGenerator
+            {
+                Files = new()
+                {
+                    {
+                        "ObjectStore.cs",
+                        @"
+namespace QuantConnect.Storage
+{
+    public class ObjectStore
+    {
+    }
+" + (pythonObjectStoreExists ? @"
+    public class PythonObjectStore : ObjectStore
+    {
+    }
+" : "") + @"
+}"
+                    },
+                    {
+                        "QCAlgorithm.cs",
+                        @"
+namespace QuantConnect.Algorithm
+{
+    public class QCAlgorithm
+    {
+        public QuantConnect.Storage.ObjectStore ObjectStore { get; private set; }
+    }
+}"
+                    }
+                }
+            };
+
+            var result = testGenerator.GenerateModelsPublic();
+
+            var algorithm = result.GetNamespaceByName("QuantConnect.Algorithm").GetClasses().Single();
+            var property = algorithm.Properties.Single(x => x.Name == "ObjectStore");
+            Assert.AreEqual(expectedType, property.Type.ToPythonString());
+        }
+
+        [Test]
         public void CSharpEnumeratorsArePythonIterables()
         {
             var testGenerator = new TestGenerator
